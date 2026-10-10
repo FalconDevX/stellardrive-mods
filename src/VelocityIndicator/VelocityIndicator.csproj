@@ -1,0 +1,7 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>VelocityIndicator</AssemblyName>
+    <RootNamespace>VelocityIndicator</RootNamespace>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+</Project>

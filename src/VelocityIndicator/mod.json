@@ -1,0 +1,7 @@
+{
+  "id": "stellardrive-velocityindicator",
+  "name": "Velocity Indicator",
+  "author": "mateu",
+  "version": "0.1.0",
+  "description": "Wskaźnik prędkości statku nie przeskakuje na orbicie (zawsze względem powierzchni planety) i nie pokazuje fałszywego zera. Każdy gracz potrzebuje moda."
+}
