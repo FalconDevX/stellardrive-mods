@@ -12,6 +12,7 @@ namespace Flora.Models
     {
         private static GameObject _holder;
         private static Material _template;
+        private static Material _grassTemplate;
         private static readonly Dictionary<string, Material> Materials = new Dictionary<string, Material>();
 
         // Kolory dobrane do palety gry (stonowane, lekko przygaszone jak liście jodeł).
@@ -47,6 +48,16 @@ namespace Flora.Models
             Object.DontDestroyOnLoad(_holder);
         }
 
+        // Kwiaty używają kopii materiału trawy (tryb _Is_Grass): zlewają się z terenem i nie dostają
+        // czarnych konturów jak drzewa - tak jak trawa w grze.
+        internal static void SetGrassTemplate(Material grass)
+        {
+            if (_grassTemplate == null && grass != null)
+            {
+                _grassTemplate = grass;
+            }
+        }
+
         private static GameObject[] _bushes;
         private static GameObject[] _flowers;
 
@@ -78,19 +89,19 @@ namespace Flora.Models
             var list = new List<GameObject>();
             for (int i = 0; i < PetalColors.Length; i++)
             {
-                Mesh mesh = LowPolyMeshes.FlowerClump(2000 + i, 5 + i % 3, 0.35f);
+                Mesh mesh = LowPolyMeshes.FlowerClump(2000 + i, 8 + i % 4, 0.2f);
                 Material[] mats =
                 {
-                    GetMaterial("stem", StemGreen, true),
-                    GetMaterial("petals" + i, PetalColors[i], true),
-                    GetMaterial("center", FlowerCenter, false),
+                    GetMaterial("stem", StemGreen, true, grass: true),
+                    GetMaterial("petals" + i, PetalColors[i], true, grass: true),
+                    GetMaterial("center", FlowerCenter, false, grass: true),
                 };
-                list.Add(CreatePrefab($"FloraFlowers{i}", mesh, mats));
+                list.Add(CreatePrefab($"FloraFlowers{i}", mesh, mats, castShadows: false));
             }
             return list.ToArray();
         }
 
-        private static GameObject CreatePrefab(string name, Mesh mesh, Material[] materials)
+        private static GameObject CreatePrefab(string name, Mesh mesh, Material[] materials, bool castShadows = true)
         {
             var root = new GameObject(name);
             root.transform.SetParent(_holder.transform, false);
@@ -102,17 +113,19 @@ namespace Flora.Models
             model.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = model.AddComponent<MeshRenderer>();
             renderer.sharedMaterials = materials;
-            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            renderer.shadowCastingMode = castShadows ? UnityEngine.Rendering.ShadowCastingMode.On : UnityEngine.Rendering.ShadowCastingMode.Off;
             return root;
         }
 
-        private static Material GetMaterial(string key, Color color, bool wind)
+        private static Material GetMaterial(string key, Color color, bool wind, bool grass = false)
         {
+            bool useGrass = grass && _grassTemplate != null;
+            key = (useGrass ? "grass_" : "") + key;
             if (Materials.TryGetValue(key, out Material existing))
             {
                 return existing;
             }
-            var mat = new Material(_template) { name = "Flora_" + key };
+            var mat = new Material(useGrass ? _grassTemplate : _template) { name = "Flora_" + key };
             SetTexture(mat, "_Albedo", Texture2D.whiteTexture);
             SetTexture(mat, "_Normal", null);
             SetColor(mat, "_AlbedoColor", color);
@@ -121,7 +134,7 @@ namespace Flora.Models
             SetFloat(mat, "_Translucency", wind ? 1f : 0f);
             SetFloat(mat, "_EnableLeafWind", wind ? 1f : 0f);
             SetFloat(mat, "_Is_Tree", 0f);
-            SetFloat(mat, "_Is_Grass", 0f);
+            SetFloat(mat, "_Is_Grass", useGrass ? 1f : 0f);
             mat.enableInstancing = true;
             Materials[key] = mat;
             return mat;

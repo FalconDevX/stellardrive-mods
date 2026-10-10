@@ -53,6 +53,7 @@ namespace Flora.Patches
             {
                 Material bark = FindMaterial(trees, "Bark") ?? FindMaterial(trees, null);
                 FloraPrefabs.SetTemplate(bark);
+                FloraPrefabs.SetGrassTemplate(FindMaterial(grass, null));
                 if (!FloraPrefabs.IsReady)
                 {
                     Melon<FloraMod>.Logger.Warning("Brak materiału roślin do skopiowania - pomijam");

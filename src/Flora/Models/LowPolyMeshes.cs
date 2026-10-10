@@ -156,14 +156,14 @@ namespace Flora.Models
             for (int f = 0; f < flowers; f++)
             {
                 float angle = (float)(rng.NextDouble() * Mathf.PI * 2f);
-                float dist = f == 0 ? 0f : 0.12f + 0.3f * (float)rng.NextDouble();
+                float dist = f == 0 ? 0f : 0.1f + 0.35f * (float)rng.NextDouble();
                 var basePos = new Vector3(Mathf.Cos(angle) * dist, 0f, Mathf.Sin(angle) * dist);
                 float h = height * (0.7f + 0.5f * (float)rng.NextDouble());
                 var lean = new Vector3((float)rng.NextDouble() - 0.5f, 0f, (float)rng.NextDouble() - 0.5f) * 0.15f;
                 Vector3 top = basePos + Vector3.up * h + lean;
 
                 // Łodyga: wąski trójkątny graniastosłup.
-                float w = 0.012f;
+                float w = 0.02f;
                 Vector3 s0 = new Vector3(w, 0, 0), s1 = new Vector3(-w * 0.5f, 0, w * 0.87f), s2 = new Vector3(-w * 0.5f, 0, -w * 0.87f);
                 Vector3[] bottom = { basePos + s0, basePos + s1, basePos + s2 };
                 Vector3[] upper = { top + s0, top + s1, top + s2 };
@@ -180,11 +180,11 @@ namespace Flora.Models
                 float la = (float)(rng.NextDouble() * Mathf.PI * 2f);
                 var leafDir = new Vector3(Mathf.Cos(la), 0.35f, Mathf.Sin(la));
                 var leafSide = Vector3.Cross(leafDir, Vector3.up).normalized * 0.03f;
-                b.DoubleTriangle(0, mid + leafSide, mid - leafSide, mid + leafDir * 0.12f);
+                b.DoubleTriangle(0, mid + leafSide * 1.5f, mid - leafSide * 1.5f, mid + leafDir * 0.1f);
 
                 // Kwiat: 5 płatków w kształcie gwiazdy, lekko uniesionych na końcach.
                 int petals = 5;
-                float petalLen = 0.06f + 0.03f * (float)rng.NextDouble();
+                float petalLen = 0.09f + 0.04f * (float)rng.NextDouble();
                 float rot = (float)(rng.NextDouble() * Mathf.PI * 2f);
                 for (int p = 0; p < petals; p++)
                 {
