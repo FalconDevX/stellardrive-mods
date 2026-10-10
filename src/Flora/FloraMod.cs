@@ -15,6 +15,8 @@ namespace Flora
         internal static MelonPreferences_Entry<bool> FlowersEnabled;
         internal static MelonPreferences_Entry<float> FlowerNoiseOffset;
         internal static MelonPreferences_Entry<float> FlowerViewRange;
+        internal static MelonPreferences_Entry<float> BushNoiseFrequency;
+        internal static MelonPreferences_Entry<float> FlowerNoiseFrequency;
 
         public override void OnInitializeMelon()
         {
@@ -27,6 +29,11 @@ namespace Flora
             FlowerNoiseOffset = category.CreateEntry("FlowerNoiseOffset", -0.45f,
                 description: "Wielkość pól kwiatów: więcej = większe pola (np. 0), mniej = mniejsze i rzadsze (np. -0.7)");
             FlowerViewRange = category.CreateEntry("FlowerViewRange", 120f, description: "Z jakiej odległości widać kwiaty (m)");
+            // Dla porównania w grze: las ma częstotliwość 100 (duże plamy), trawa 3200 (drobne plamki).
+            BushNoiseFrequency = category.CreateEntry("BushNoiseFrequency", 400f,
+                description: "Wielkość skupisk krzaków: mniej = większe, rzadziej rozrzucone skupiska (las w grze ma 100)");
+            FlowerNoiseFrequency = category.CreateEntry("FlowerNoiseFrequency", 600f,
+                description: "Wielkość pól kwiatów: mniej = większe pola (trawa w grze ma 3200)");
             DumpEnvironment = category.CreateEntry("DumpEnvironment", false,
                 description: "Wypisuje do UserData\\Flora\\ spis roślinności planet (diagnostyka)");
             category.SaveToFile(false);

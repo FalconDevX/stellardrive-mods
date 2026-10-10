@@ -64,12 +64,12 @@ namespace Flora.Patches
             if (FloraMod.BushesEnabled.Value)
             {
                 layers.Add(CreateLayer(trees, FloraPrefabs.CreateBushes(), FloraMod.BushNoiseOffset.Value, FloraMod.BushViewRange.Value,
-                    alignWithTerrain: false, noiseShift: new Vector3(13.7f, -4.1f, 8.3f), noiseFrequencyScale: 1.6f));
+                    alignWithTerrain: false, noiseShift: new Vector3(13.7f, -4.1f, 8.3f), noiseFrequency: FloraMod.BushNoiseFrequency.Value));
             }
             if (FloraMod.FlowersEnabled.Value)
             {
                 layers.Add(CreateLayer(grass, FloraPrefabs.CreateFlowers(), FloraMod.FlowerNoiseOffset.Value, FloraMod.FlowerViewRange.Value,
-                    alignWithTerrain: true, noiseShift: new Vector3(-21.3f, 7.9f, 3.1f), noiseFrequencyScale: 2.5f));
+                    alignWithTerrain: true, noiseShift: new Vector3(-21.3f, 7.9f, 3.1f), noiseFrequency: FloraMod.FlowerNoiseFrequency.Value));
             }
             env.configs = layers.ToArray();
 
@@ -78,7 +78,7 @@ namespace Flora.Patches
         }
 
         private static PlanetDensePlacementConfig CreateLayer(PlanetDensePlacementConfig source, GameObject[] prefabs, float noiseOffset, float viewRange,
-            bool alignWithTerrain, Vector3 noiseShift, float noiseFrequencyScale)
+            bool alignWithTerrain, Vector3 noiseShift, float noiseFrequency)
         {
             var layer = (PlanetDensePlacementConfig)CloneObject(source);
 
@@ -101,7 +101,7 @@ namespace Flora.Patches
             // Inny "kawałek" szumu niż oryginał: krzaki/kwiaty rosną w skupiskach w innych miejscach niż las.
             var noise = layer.noiseConfig;
             noise.center += noiseShift;
-            noise.frequency *= noiseFrequencyScale;
+            if (noiseFrequency > 0f) noise.frequency = noiseFrequency;
             layer.noiseConfig = noise;
             layer.noiseOffset = noiseOffset;
 
