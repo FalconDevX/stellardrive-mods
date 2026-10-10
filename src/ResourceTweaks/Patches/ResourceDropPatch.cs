@@ -23,7 +23,9 @@ namespace ResourceTweaks.Patches
             }
 
             byte before = __result.Quantity;
-            float multiplier = ResourceTweaksMod.DropMultiplier.Value;
+            float multiplier = __result.ItemId == ItemsConstants.IronItemId
+                ? ResourceTweaksMod.IronDropMultiplier.Value
+                : ResourceTweaksMod.DropMultiplier.Value;
             int amount = (int)Math.Round(before * multiplier);
             __result.Quantity = (byte)Math.Max(1, Math.Min(255, amount));
 
