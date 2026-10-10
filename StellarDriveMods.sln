@@ -7,6 +7,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{00D9AE06-A23
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloStellar", "src\HelloStellar\HelloStellar.csproj", "{1284475A-1094-4971-8AE2-E5CBAB6B6737}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ResourceTweaks", "src\ResourceTweaks\ResourceTweaks.csproj", "{64A4009B-FAB7-4E0A-9502-F5F1EDD18BA9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,8 +22,13 @@ Global
 		{1284475A-1094-4971-8AE2-E5CBAB6B6737}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1284475A-1094-4971-8AE2-E5CBAB6B6737}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1284475A-1094-4971-8AE2-E5CBAB6B6737}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64A4009B-FAB7-4E0A-9502-F5F1EDD18BA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64A4009B-FAB7-4E0A-9502-F5F1EDD18BA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64A4009B-FAB7-4E0A-9502-F5F1EDD18BA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64A4009B-FAB7-4E0A-9502-F5F1EDD18BA9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{1284475A-1094-4971-8AE2-E5CBAB6B6737} = {00D9AE06-A23F-410E-A505-A3C3FC3067B2}
+		{64A4009B-FAB7-4E0A-9502-F5F1EDD18BA9} = {00D9AE06-A23F-410E-A505-A3C3FC3067B2}
 	EndGlobalSection
 EndGlobal
