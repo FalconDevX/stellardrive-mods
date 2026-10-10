@@ -2,6 +2,6 @@
   "id": "stellardrive-resourcetweaks",
   "name": "Resource Tweaks",
   "author": "mateu",
-  "version": "0.2.2",
-  "description": "Więcej surowców z wydobycia (domyślnie x3) i większe stacki (domyślnie 100). Host musi mieć moda."
+  "version": "0.3.0",
+  "description": "Więcej surowców z wydobycia (x3), stacki do 100, szybsze kopanie (drzewa o 50%, reszta o 25%). Host musi mieć moda."
 }
