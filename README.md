@@ -1,8 +1,45 @@
 # StellarDrive Mods
 
-Własne mody do **StellarDrive** (Curious Owl, Unity 6000.3 / Mono) na **MelonLoader 0.7.3** + Harmony.
-Format paczek (`mod.json` + `.dll` w GitHub Release) jest zgodny z rejestrem
-[StellarModManager](https://github.com/jollyname/StellarModManager), więc gotowe mody da się tam później zgłosić.
+Nieoficjalne mody do **StellarDrive Demo** (Curious Owl) na **MelonLoader 0.7.3**.
+Nie są powiązane z twórcą gry.
+
+| Mod | Co robi |
+|---|---|
+| **Resource Tweaks** | 3x więcej surowców z wydobycia (bez narzędzi), stacki do 100 |
+| **Crouch** | Kucanie na lewy Ctrl (niższa postać i kamera, wolniejszy chód) |
+| **Flora** | Nowe krzaki i pola kwiatów na planecie (tylko dekoracja) |
+
+Ustawienia (mnożnik, stack, gęstość roślin...) są w `StellarDrive Demo\UserData\MelonPreferences.cfg`
+(plik pojawia się po pierwszym uruchomieniu gry z modami).
+
+## Instalacja dla graczy
+
+Potrzebujesz [Gita](https://git-scm.com/download/win) i gry **StellarDrive Demo** ze Steama.
+
+**Pierwszy raz:**
+1. Otwórz terminal (np. PowerShell) w folderze, gdzie chcesz trzymać mody, i wpisz:
+   ```
+   git clone https://github.com/FalconDevX/stellardrive-mods.git
+   ```
+2. **Zamknij grę**, wejdź do folderu `stellardrive-mods` i kliknij dwa razy **`install.bat`**.
+   Skrypt sam znajdzie grę, zainstaluje MelonLoader (jeśli go nie ma) i skopiuje mody.
+3. Uruchom grę normalnie przez Steam. Otworzy się też czarne okno konsoli MelonLoadera - tak ma być.
+
+**Aktualizacja** (gdy pojawią się zmiany): zamknij grę i kliknij dwa razy **`update.bat`**
+(robi `git pull` i instaluje nowe wersje).
+
+Gra jest w innym miejscu? Uruchom w terminalu: `install.bat "D:\SteamLibrary\steamapps\common\StellarDrive Demo"`.
+
+**Multiplayer:** wszyscy gracze powinni mieć te same wersje modów (`dist\VERSIONS.txt`).
+Wyłączenie modów: usuń pliki `.dll` z `StellarDrive Demo\Mods`.
+
+---
+
+# Dla twórców modów
+
+Mody to C# (net472) + Harmony. Format `mod.json` jest zgodny z rejestrem
+[StellarModManager](https://github.com/jollyname/StellarModManager).
+Po zmianach w kodzie: `.\tools\pack.ps1` (buduje Release do `dist\Mods`), potem commit i push.
 
 ## Wymagania
 - .NET SDK 8+ (`dotnet --list-sdks`)
@@ -15,7 +52,9 @@ Format paczek (`mod.json` + `.dll` w GitHub Release) jest zgodny z rejestrem
 Directory.Build.props    wspólne ustawienia: net472, referencje do MelonLoadera i wszystkich DLL gry
 Directory.Build.targets  sprawdzenie ścieżek + auto-kopiowanie .dll do <gra>\Mods po buildzie
 src/<Mod>/               jeden folder = jeden mod (csproj, klasa MelonMod, Patches/, mod.json)
-tools/                   install/uninstall MelonLoadera, run-game, new-mod
+tools/                   install/uninstall MelonLoadera, run-game, new-mod, pack (Release -> dist), install (dla graczy)
+dist/Mods/               gotowe .dll dla graczy (aktualizowane przez tools\pack.ps1)
+install.bat, update.bat  instalacja / aktualizacja dla graczy
 ```
 
 ## Codzienna praca

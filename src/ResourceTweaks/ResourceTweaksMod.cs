@@ -1,7 +1,7 @@
 using MelonLoader;
 using ResourceTweaks;
 
-[assembly: MelonInfo(typeof(ResourceTweaksMod), "Resource Tweaks", "0.2.0", "mateu")]
+[assembly: MelonInfo(typeof(ResourceTweaksMod), "Resource Tweaks", "0.2.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace ResourceTweaks
