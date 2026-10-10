@@ -1,0 +1,7 @@
+{
+  "id": "stellardrive-crouch",
+  "name": "Crouch",
+  "author": "mateu",
+  "version": "0.1.0",
+  "description": "Kucanie na klawisz 'crouch': niższa postać i kamera, wolniejszy chód, nie wstaje pod przeszkodą. Host musi mieć moda."
+}
