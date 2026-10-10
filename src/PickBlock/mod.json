@@ -1,0 +1,7 @@
+{
+  "id": "stellardrive-pickblock",
+  "name": "Pick Block",
+  "author": "mateu",
+  "version": "0.1.0",
+  "description": "Z narzędziem budowania: środkowy przycisk myszy na części wybiera ją do budowania (jak w Minecrafcie)."
+}

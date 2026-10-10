@@ -8,6 +8,7 @@ Nie są powiązane z twórcą gry.
 | **Resource Tweaks** | 3x więcej surowców z wydobycia (bez narzędzi), stacki do 100 |
 | **Crouch** | Kucanie na lewy Ctrl (niższa postać i kamera, wolniejszy chód) |
 | **Flora** | Nowe krzaki i pola kwiatów na planecie (tylko dekoracja) |
+| **Pick Block** | Z narzędziem budowania: środkowy przycisk myszy na części = buduj tą samą częścią |
 
 Ustawienia (mnożnik, stack, gęstość roślin...) są w `StellarDrive Demo\UserData\MelonPreferences.cfg`
 (plik pojawia się po pierwszym uruchomieniu gry z modami).
