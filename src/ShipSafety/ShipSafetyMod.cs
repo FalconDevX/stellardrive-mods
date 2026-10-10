@@ -1,7 +1,7 @@
 using MelonLoader;
 using ShipSafety;
 
-[assembly: MelonInfo(typeof(ShipSafetyMod), "Ship Safety", "0.1.0", "mateu")]
+[assembly: MelonInfo(typeof(ShipSafetyMod), "Ship Safety", "0.2.0", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace ShipSafety
@@ -14,6 +14,7 @@ namespace ShipSafety
         internal static MelonPreferences_Entry<bool> Enabled;
         internal static MelonPreferences_Entry<float> MaxSpeed;
         internal static MelonPreferences_Entry<float> MaxAcceleration;
+        internal static MelonPreferences_Entry<float> MaxSpeedJump;
 
         public override void OnInitializeMelon()
         {
@@ -24,6 +25,8 @@ namespace ShipSafety
                 description: "Maksymalna prędkość statku w m/s (prędkość ucieczki z planet to ok. 700-2500 m/s)");
             MaxAcceleration = category.CreateEntry("MaxAcceleration", 300f,
                 description: "Maksymalne przyspieszenie od sił (silniki, opór, siła nośna...) w m/s^2 (300 = ok. 30 g)");
+            MaxSpeedJump = category.CreateEntry("MaxSpeedJump", 1000f,
+                description: "Maksymalna zmiana prędkości statku w jednym kroku fizyki (m/s). Większy skok to błąd fizyki - prędkość wraca do tej sprzed kroku");
             category.SaveToFile(false);
 
             LoggerInstance.Msg($"Limit prędkości statków {MaxSpeed.Value} m/s, przyspieszenia {MaxAcceleration.Value} m/s^2" +
