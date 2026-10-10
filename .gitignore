@@ -1,0 +1,8 @@
+bin/
+obj/
+.vs/
+*.user
+GamePath.props
+dist/
+# Zdekompilowany kod gry trzymamy lokalnie - nie publikujemy go.
+decompiled/

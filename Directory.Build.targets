@@ -1,0 +1,18 @@
+<Project>
+  <!-- Sprawdza, czy gra i MelonLoader są tam, gdzie się spodziewamy. -->
+  <Target Name="CheckGameDir" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(GameManagedDir)')"
+           Text="Nie znaleziono gry w '$(GameDir)'. Ustaw ścieżkę w GamePath.props (patrz GamePath.props.example)." />
+    <Error Condition="!Exists('$(MelonLoaderDir)\MelonLoader.dll')"
+           Text="Brak MelonLoadera w '$(GameDir)'. Uruchom tools\install-melonloader.ps1." />
+  </Target>
+
+  <!-- Kopiuje zbudowany mod do folderu Mods gry. -->
+  <Target Name="DeployMod" AfterTargets="Build" Condition="'$(DeployToGame)' == 'true'">
+    <Copy SourceFiles="$(TargetPath);$(TargetDir)$(TargetName).pdb"
+          DestinationFolder="$(GameModsDir)"
+          Condition="Exists('$(TargetPath)')"
+          ContinueOnError="true" />
+    <Message Importance="high" Text="$(TargetName) -> $(GameModsDir)" />
+  </Target>
+</Project>

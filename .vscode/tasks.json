@@ -1,0 +1,21 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["build", "${workspaceFolder}/StellarDriveMods.sln", "-nologo", "-v", "minimal"],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "build + run game",
+      "dependsOn": "build",
+      "type": "process",
+      "command": "powershell",
+      "args": ["-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/run-game.ps1", "-Follow"],
+      "problemMatcher": []
+    }
+  ]
+}

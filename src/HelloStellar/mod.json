@@ -1,0 +1,7 @@
+{
+  "id": "stellardrive-hellostellar",
+  "name": "Hello Stellar",
+  "author": "mateu",
+  "version": "0.1.0",
+  "description": "Przykładowy mod: logowanie, konfiguracja, klawisz i patch Harmony."
+}

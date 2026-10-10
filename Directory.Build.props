@@ -1,0 +1,45 @@
+<Project>
+  <!--
+    Wspólna konfiguracja dla wszystkich modów w src/.
+    Ścieżkę do gry można nadpisać w pliku GamePath.props (nie trafia do gita)
+    albo zmienną środowiskową STELLARDRIVE_DIR.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)GamePath.props" Condition="Exists('$(MSBuildThisFileDirectory)GamePath.props')" />
+
+  <PropertyGroup>
+    <GameDir Condition="'$(GameDir)' == '' And '$(STELLARDRIVE_DIR)' != ''">$(STELLARDRIVE_DIR)</GameDir>
+    <GameDir Condition="'$(GameDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\StellarDrive Demo</GameDir>
+    <GameManagedDir>$(GameDir)\StellarDrive_Data\Managed</GameManagedDir>
+    <MelonLoaderDir>$(GameDir)\MelonLoader\net35</MelonLoaderDir>
+    <GameModsDir>$(GameDir)\Mods</GameModsDir>
+
+    <!-- Wyłącz, jeśli nie chcesz automatycznego kopiowania .dll do folderu Mods po buildzie. -->
+    <DeployToGame Condition="'$(DeployToGame)' == ''">true</DeployToGame>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <DebugType>portable</DebugType>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Pozwala budować net472 bez zainstalowanego Developer Packa .NET Framework. -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="MelonLoader" HintPath="$(MelonLoaderDir)\MelonLoader.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(MelonLoaderDir)\0Harmony.dll" Private="false" />
+
+    <!-- Wszystkie assembly gry i Unity, bez bibliotek systemowych (te dają reference assemblies). -->
+    <GameAssembly Include="$(GameManagedDir)\*.dll"
+                  Exclude="$(GameManagedDir)\mscorlib.dll;$(GameManagedDir)\netstandard.dll;$(GameManagedDir)\System*.dll;$(GameManagedDir)\Mono.*.dll;$(GameManagedDir)\Microsoft.*.dll" />
+    <Reference Include="@(GameAssembly)" Private="false" />
+  </ItemGroup>
+</Project>
