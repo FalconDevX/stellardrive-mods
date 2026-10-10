@@ -54,6 +54,7 @@ namespace Flora.Patches
                 Material bark = FindMaterial(trees, "Bark") ?? FindMaterial(trees, null);
                 FloraPrefabs.SetTemplate(bark);
                 FloraPrefabs.SetGrassTemplate(FindMaterial(grass, null));
+                FloraPrefabs.SetLeavesTemplate(FindMaterial(trees, "Leaves"));
                 if (!FloraPrefabs.IsReady)
                 {
                     Melon<FloraMod>.Logger.Warning("Brak materiału roślin do skopiowania - pomijam");
@@ -64,8 +65,15 @@ namespace Flora.Patches
             var layers = env.configs.ToList();
             if (FloraMod.BushesEnabled.Value)
             {
-                layers.Add(CreateLayer(trees, FloraPrefabs.CreateBushes(), FloraMod.BushNoiseOffset.Value, FloraMod.BushViewRange.Value,
-                    alignWithTerrain: false, noiseShift: new Vector3(13.7f, -4.1f, 8.3f), noiseFrequency: FloraMod.BushNoiseFrequency.Value));
+                var bushes = CreateLayer(trees, FloraPrefabs.CreateBushes(), FloraMod.BushNoiseOffset.Value, FloraMod.BushViewRange.Value,
+                    alignWithTerrain: false, noiseShift: new Vector3(13.7f, -4.1f, 8.3f), noiseFrequency: FloraMod.BushNoiseFrequency.Value);
+                // Ten sam poziom co drzewa = te same punkty siatki, więc krzaki wyrastały w pniach.
+                // Poziom niżej to drobniejsza siatka - punkty krzaków nie pokrywają się z drzewami.
+                if (bushes.level > 0)
+                {
+                    bushes.level -= 1;
+                }
+                layers.Add(bushes);
             }
             if (FloraMod.FlowersEnabled.Value)
             {

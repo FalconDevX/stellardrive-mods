@@ -13,6 +13,7 @@ namespace Flora.Models
         private static GameObject _holder;
         private static Material _template;
         private static Material _grassTemplate;
+        private static Material _leavesTemplate;
         private static readonly Dictionary<string, Material> Materials = new Dictionary<string, Material>();
 
         // Kolory dobrane do palety gry (stonowane, lekko przygaszone jak liście jodeł).
@@ -58,6 +59,16 @@ namespace Flora.Models
             }
         }
 
+        // Krzaki używają kopii materiału liści jodły (bez mapy normalnych) - na korze bez jej tekstury
+        // normalnych wychodziły czarne.
+        internal static void SetLeavesTemplate(Material leaves)
+        {
+            if (_leavesTemplate == null && leaves != null)
+            {
+                _leavesTemplate = leaves;
+            }
+        }
+
         private static GameObject[] _bushes;
         private static GameObject[] _flowers;
 
@@ -74,10 +85,10 @@ namespace Flora.Models
                 bool berries = i % 3 == 2;
                 float size = 0.8f + 0.25f * (i % 3);
                 Mesh mesh = LowPolyMeshes.Bush(1000 + i, size, berries);
-                var mats = new List<Material> { GetMaterial("leaves" + i % BushGreens.Length, BushGreens[i % BushGreens.Length], true) };
+                var mats = new List<Material> { GetMaterial("leaves" + i % BushGreens.Length, BushGreens[i % BushGreens.Length], true, leaves: true) };
                 if (berries)
                 {
-                    mats.Add(GetMaterial("berries", BerryRed, false));
+                    mats.Add(GetMaterial("berries", BerryRed, false, leaves: true));
                 }
                 list.Add(CreatePrefab($"FloraBush{i}", mesh, mats.ToArray()));
             }
@@ -117,16 +128,18 @@ namespace Flora.Models
             return root;
         }
 
-        private static Material GetMaterial(string key, Color color, bool wind, bool grass = false)
+        private static Material GetMaterial(string key, Color color, bool wind, bool grass = false, bool leaves = false)
         {
             bool useGrass = grass && _grassTemplate != null;
-            key = (useGrass ? "grass_" : "") + key;
+            bool useLeaves = !useGrass && leaves && _leavesTemplate != null;
+            key = (useGrass ? "grass_" : useLeaves ? "leaf_" : "") + key;
             if (Materials.TryGetValue(key, out Material existing))
             {
                 return existing;
             }
-            var mat = new Material(useGrass ? _grassTemplate : _template) { name = "Flora_" + key };
-            SetTexture(mat, "_Albedo", Texture2D.whiteTexture);
+            var mat = new Material(useGrass ? _grassTemplate : useLeaves ? _leavesTemplate : _template) { name = "Flora_" + key };
+            // Tekstura z narysowanym obrysem; części bez obrysu mają UV w jej białym środku.
+            SetTexture(mat, "_Albedo", FloraTextures.Outline);
             SetTexture(mat, "_Normal", null);
             SetColor(mat, "_AlbedoColor", color);
             SetFloat(mat, "_AlphaCutoff", 0f);
