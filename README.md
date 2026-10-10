@@ -5,10 +5,11 @@ Nie są powiązane z twórcą gry.
 
 | Mod | Co robi |
 |---|---|
-| **Resource Tweaks** | 3x więcej surowców z wydobycia (bez narzędzi), stacki do 100 |
+| **Resource Tweaks** | 3x więcej surowców z wydobycia (bez narzędzi), stacki do 100, szybsze kopanie (drzewa -50% czasu, reszta -25%) |
 | **Crouch** | Kucanie na lewy Ctrl (niższa postać i kamera, wolniejszy chód) |
 | **Flora** | Nowe krzaki i pola kwiatów na planecie (tylko dekoracja) |
 | **Pick Block** | Z narzędziem budowania: środkowy przycisk myszy na części = buduj tą samą częścią |
+| **Shared Piloting** | Kilka foteli pilota: obraca statkiem ten, kto rusza myszą (wbudowany żyroskop bezczynnego fotela nie blokuje). Wystarczy u hosta |
 
 Ustawienia (mnożnik, stack, gęstość roślin...) są w `StellarDrive Demo\UserData\MelonPreferences.cfg`
 (plik pojawia się po pierwszym uruchomieniu gry z modami).
