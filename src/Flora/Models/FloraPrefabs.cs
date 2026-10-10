@@ -89,7 +89,7 @@ namespace Flora.Models
             var list = new List<GameObject>();
             for (int i = 0; i < PetalColors.Length; i++)
             {
-                Mesh mesh = LowPolyMeshes.FlowerClump(2000 + i, 8 + i % 4, 0.2f);
+                Mesh mesh = LowPolyMeshes.FlowerClump(2000 + i, 8 + i % 4, 0.14f);
                 Material[] mats =
                 {
                     GetMaterial("stem", StemGreen, true, grass: true),

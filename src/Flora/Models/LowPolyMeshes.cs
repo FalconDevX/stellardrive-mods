@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Flora.Models
@@ -58,11 +59,13 @@ namespace Flora.Models
                 Triangle(submesh, a, c, b);
             }
 
-            public Mesh Build(string name)
+            // upNormals: wszystkie normalne w górę, jak w trawie gry - roślina jest oświetlona jak teren pod nią,
+            // a filtr konturów (liczony m.in. z normalnych) nie widzi na niej krawędzi.
+            public Mesh Build(string name, bool upNormals = false)
             {
                 var mesh = new Mesh { name = name };
                 mesh.SetVertices(_vertices);
-                mesh.SetNormals(_normals);
+                mesh.SetNormals(upNormals ? Enumerable.Repeat(Vector3.up, _vertices.Count).ToList() : _normals);
                 mesh.SetUVs(0, new Vector2[_vertices.Count]);
                 mesh.subMeshCount = _submeshes.Count;
                 for (int i = 0; i < _submeshes.Count; i++)
@@ -210,7 +213,7 @@ namespace Flora.Models
                     b.OutwardTriangle(2, top, ring[i], cTop, ring[(i + 1) % 3]);
                 }
             }
-            return b.Build($"FloraFlowers_{seed}");
+            return b.Build($"FloraFlowers_{seed}", upNormals: true);
         }
     }
 }
