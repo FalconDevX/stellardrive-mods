@@ -5,7 +5,7 @@ $ErrorActionPreference = "Stop"
 
 $root = Split-Path $PSScriptRoot -Parent
 # Mody dla graczy (HelloStellar to tylko przykład dla programistów).
-$mods = @("ResourceTweaks", "Crouch", "Flora", "PickBlock", "SharedPiloting")
+$mods = @("ResourceTweaks", "Crouch", "Flora", "PickBlock", "SharedPiloting", "ShipSafety")
 
 $dist = Join-Path $root "dist\Mods"
 if (Test-Path $dist) { Remove-Item $dist -Recurse -Force -Confirm:$false }

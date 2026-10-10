@@ -10,6 +10,7 @@ Nie są powiązane z twórcą gry.
 | **Flora** | Nowe krzaki i pola kwiatów na planecie (tylko dekoracja) |
 | **Pick Block** | Z narzędziem budowania: środkowy przycisk myszy na części = buduj tą samą częścią |
 | **Shared Piloting** | Kilka foteli pilota: obraca statkiem ten, kto rusza myszą (wbudowany żyroskop bezczynnego fotela nie blokuje). Wystarczy u hosta |
+| **Ship Safety** | Zabezpieczenie przed błędem gry, który wyrzuca statek z prędkością wielu c miliony km od planety: limit prędkości (5000 m/s) i przyspieszenia statków, przyczyna zapisywana do logu. Wystarczy u hosta |
 
 Ustawienia (mnożnik, stack, gęstość roślin...) są w `StellarDrive Demo\UserData\MelonPreferences.cfg`
 (plik pojawia się po pierwszym uruchomieniu gry z modami).
