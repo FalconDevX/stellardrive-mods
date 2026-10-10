@@ -23,10 +23,19 @@ namespace ResourceTweaks.Patches
             foreach (ItemSettings item in ___items)
             {
                 // Stack 1 mają narzędzia i przedmioty unikalne - nie ruszamy ich.
-                if (item != null && item.maxStackSize > 1 && item.maxStackSize < target)
+                if (item == null)
+                {
+                    continue;
+                }
+                byte original = item.maxStackSize;
+                if (original > 1 && original < target)
                 {
                     item.maxStackSize = target;
                     changed++;
+                }
+                if (ResourceTweaksMod.LogDrops.Value)
+                {
+                    Melon<ResourceTweaksMod>.Logger.Msg($"  przedmiot {item.id} '{item.itemName}': stack {original} -> {item.maxStackSize}");
                 }
             }
 
