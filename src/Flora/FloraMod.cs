@@ -41,6 +41,11 @@ namespace Flora
             LoggerInstance.Msg("Zmiany gęstości działają po ponownym uruchomieniu gry.");
         }
 
+        public override void OnUpdate()
+        {
+            Diagnostics.FloraDebugTool.Update();
+        }
+
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
             if (DumpEnvironment.Value && sceneName == "MainGame")
