@@ -54,18 +54,37 @@ namespace PlanetUnlock.Patches
 
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
+            // Podmieniamy tylko odczyt Id, po którym od razu jest porównanie ze stałą 4 (ldc.i4.4 + conv.i8).
+            // Pozostałe odczyty Id (klucze słowników planet i pierścieni) muszą zostać prawdziwe.
+            List<CodeInstruction> code = new List<CodeInstruction>(instructions);
             int replaced = 0;
-            foreach (CodeInstruction instruction in instructions)
+            for (int i = 0; i < code.Count - 1; i++)
             {
-                if ((instruction.opcode == OpCodes.Callvirt || instruction.opcode == OpCodes.Call) && instruction.operand is MethodInfo method && method == GetId)
+                CodeInstruction instruction = code[i];
+                bool isGetId = (instruction.opcode == OpCodes.Callvirt || instruction.opcode == OpCodes.Call) &&
+                               instruction.operand is MethodInfo method && method == GetId;
+                if (isGetId && IsLoadDemoId(code, i + 1))
                 {
                     replaced++;
-                    yield return new CodeInstruction(OpCodes.Call, IdForDemoCheck).WithLabels(instruction.labels);
-                    continue;
+                    code[i] = new CodeInstruction(OpCodes.Call, IdForDemoCheck).WithLabels(instruction.labels);
                 }
-                yield return instruction;
             }
             Melon<PlanetUnlockMod>.Logger.Msg($"Podmieniono {replaced} sprawdzeń planety demo w LoadPlanets");
+            return code;
+        }
+
+        private static bool IsLoadDemoId(List<CodeInstruction> code, int index)
+        {
+            CodeInstruction next = code[index];
+            if (next.opcode == OpCodes.Ldc_I8 && next.operand is long value)
+            {
+                return value == (long)DemoPlanetId;
+            }
+            bool loadsFour = next.opcode == OpCodes.Ldc_I4_4 ||
+                             (next.opcode == OpCodes.Ldc_I4_S && System.Convert.ToInt32(next.operand) == 4) ||
+                             (next.opcode == OpCodes.Ldc_I4 && System.Convert.ToInt32(next.operand) == 4);
+            return loadsFour && index + 1 < code.Count &&
+                   (code[index + 1].opcode == OpCodes.Conv_I8 || code[index + 1].opcode == OpCodes.Conv_U8);
         }
 
         private static void Postfix(object __instance)

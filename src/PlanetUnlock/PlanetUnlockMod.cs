@@ -1,7 +1,7 @@
 using MelonLoader;
 using PlanetUnlock;
 
-[assembly: MelonInfo(typeof(PlanetUnlockMod), "Planet Unlock", "0.1.0", "mateu")]
+[assembly: MelonInfo(typeof(PlanetUnlockMod), "Planet Unlock", "0.1.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace PlanetUnlock

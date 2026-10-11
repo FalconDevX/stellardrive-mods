@@ -2,6 +2,6 @@
   "id": "stellardrive-planetunlock",
   "name": "Planet Unlock",
   "author": "mateu",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "EKSPERYMENTALNE: wczytuje wszystkie planety układu 442 Otrera (demo wczytuje tylko Otrera b), żeby dało się do nich dolecieć warpem. Obaj gracze potrzebują moda."
 }
