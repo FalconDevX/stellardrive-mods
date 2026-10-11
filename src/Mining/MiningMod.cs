@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.1.8", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.1.9", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -24,6 +24,7 @@ namespace Mining
         internal static MelonPreferences_Entry<float> JetpackAcceleration;
         internal static MelonPreferences_Entry<float> JetpackMaxSpeed;
         internal static MelonPreferences_Entry<float> JetpackVolume;
+        internal static MelonPreferences_Entry<bool> FastRooms;
         internal static MelonPreferences_Entry<float> ReactorPower;
         internal static MelonPreferences_Entry<float> ReactorSecondsPerUranium;
         internal static MelonPreferences_Entry<string> DevAutoLoadWorld;
@@ -56,6 +57,7 @@ namespace Mining
             JetpackMaxSpeed = category.CreateEntry("JetpackMaxSpeed", 7f, description: "Maksymalna prędkość wznoszenia jetpackiem (m/s). Wszyscy gracze muszą mieć to samo");
             category.DeleteEntry("JetpackVolume"); // stara, za głośna wartość domyślna
             JetpackVolume = category.CreateEntry("JetpackFireVolume", 0.45f, description: "Głośność ognia jetpacka (0-1)");
+            FastRooms = category.CreateEntry("FastRooms", true, description: "Szybkie przeliczanie pomieszczeń/tlenu po zmianie statku (mniej lagów przy budowaniu). false = jak w grze. Liczy host");
             RotorSpeed = category.CreateEntry("RotorSpeed", 90f, description: "Prędkość obrotu rotora (stopnie na sekundę). Wystarczy u hosta");
             HydrogenThrustMultiplier = category.CreateEntry("HydrogenThrustMultiplier", 1.8f, description: "Ile razy silnik wodorowy jest mocniejszy od chemicznego. Wystarczy u hosta");
             DevAutoLoadWorld = category.CreateEntry("DevAutoLoadWorld", "",

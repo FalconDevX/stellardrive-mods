@@ -51,7 +51,7 @@ namespace Mining.Patches
             {
                 return false; // RoomsDebouncePatch: jeszcze budujesz - przeliczymy później
             }
-            if (_disabled)
+            if (_disabled || !MiningMod.FastRooms.Value)
             {
                 return true;
             }
