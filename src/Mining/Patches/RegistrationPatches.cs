@@ -26,10 +26,26 @@ namespace Mining.Patches
             () => new[] { HydrogenThruster.Part, ElectrolyzerPart.Part },
             (Items.Model.ItemsConstants.IronItemId, 30), (112, 15), (Items.Model.ItemsConstants.GlassItemId, 10));
 
+        // Rotor z gry (ukryty w demie) za badaniem Doors, w tym samym rzędzie.
+        internal static readonly ModResearch MechanicsResearch = new ModResearch(RotorUnlock.ResearchId, "Mechanics", new Vector2Int(4, 5), 16,
+            () => new[] { RotorUnlock.Rotor },
+            (Items.Model.ItemsConstants.IronItemId, 20), (112, 10));
+
+        // Części gry, których demo nie pokazuje w menu budowania: (część, obok której części gry ją dodać).
+        internal static IEnumerable<(PartSettings part, ushort menuNextTo)> MenuParts()
+        {
+            foreach (var mod in All)
+            {
+                yield return (mod.get(), mod.menuNextTo);
+            }
+            yield return (RotorUnlock.Rotor, RotorUnlock.MenuNextTo);
+        }
+
         internal static void EnsureResearch()
         {
             Excavator.EnsureResearch();
             HydrogenResearch.Ensure();
+            MechanicsResearch.Ensure();
         }
     }
 
@@ -75,14 +91,13 @@ namespace Mining.Patches
                 return;
             }
             var rows = ___tabsConfig.Where(t => t?.rows != null).SelectMany(t => t.rows).Where(r => r?.parts != null).ToList();
-            foreach (var mod in ModParts.All)
+            foreach (var (part, menuNextTo) in ModParts.MenuParts())
             {
-                PartSettings part = mod.get();
                 if (part == null || rows.Any(r => r.parts.Contains(part)))
                 {
                     continue;
                 }
-                BuildMenuTabConfig.BuildMenuRow row = rows.FirstOrDefault(r => r.parts.Any(p => p != null && p.id == mod.menuNextTo)) ?? rows.LastOrDefault();
+                BuildMenuTabConfig.BuildMenuRow row = rows.FirstOrDefault(r => r.parts.Any(p => p != null && p.id == menuNextTo)) ?? rows.LastOrDefault();
                 if (row != null)
                 {
                     row.parts = row.parts.Concat(new[] { part }).ToArray();

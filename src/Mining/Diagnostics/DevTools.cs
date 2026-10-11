@@ -65,6 +65,76 @@ namespace Mining.Diagnostics
             SceneManager.LoadScene("MainGame", LoadSceneMode.Single);
         }
 
+        // Pomiar lagów przy szybkim stawianiu i usuwaniu: 30 podłóg na statku startowym, po jednej na klatkę.
+        private static IEnumerator RunPerfTest()
+        {
+            var log = Melon<MiningMod>.Logger;
+            var shipsServer = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>();
+            var floor = new Ships.Interface.Services.PartSettingsProvider().GetAllPartSettings().FirstOrDefault(p => p.id == 70) as HullPartSettings;
+            Ships.TrackedShipServer ship = shipsServer?.Ships.OrderBy(sh => sh.Id).FirstOrDefault();
+            if (floor == null || ship == null)
+            {
+                log.Msg("[perf] brak statku albo podłogi");
+                yield break;
+            }
+            var frames = new List<float>();
+            for (int i = 0; i < 120; i++) { yield return null; frames.Add(Time.unscaledDeltaTime * 1000f); }
+            log.Msg($"[perf] spoczynek: średnio {frames.Average():0.0} ms, max {frames.Max():0.0} ms");
+
+            var call = new List<double>();
+            frames.Clear();
+            var positions = new List<Ships.Interface.Model.Placement.HullPartPosition>();
+            for (int i = 1; i <= 30; i++)
+            {
+                var placement = new Ships.Interface.Model.Placement.HullPartPlacement(new Vector3Int(i, 0, 0), Ships.Interface.Model.VoxelPartType.Floor,
+                    (Ships.Interface.Model.Placement.PartOrientation)4, (Ships.Interface.Model.Placement.PartOrientation)1);
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                ship.AddHullPart(floor, placement);
+                call.Add(sw.Elapsed.TotalMilliseconds);
+                positions.Add(placement.Position);
+                yield return null;
+                frames.Add(Time.unscaledDeltaTime * 1000f);
+            }
+            for (int i = 0; i < 30; i++) { yield return null; frames.Add(Time.unscaledDeltaTime * 1000f); }
+            log.Msg($"[perf] stawianie: wywołanie serwera średnio {call.Average():0.00} ms (max {call.Max():0.00}), klatki średnio {frames.Average():0.0} ms, max {frames.Max():0.0} ms");
+
+            call.Clear();
+            frames.Clear();
+            foreach (var position in positions.AsEnumerable().Reverse())
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                ship.RemoveHullPart(position);
+                call.Add(sw.Elapsed.TotalMilliseconds);
+                yield return null;
+                frames.Add(Time.unscaledDeltaTime * 1000f);
+            }
+            for (int i = 0; i < 30; i++) { yield return null; frames.Add(Time.unscaledDeltaTime * 1000f); }
+            log.Msg($"[perf] usuwanie: wywołanie serwera średnio {call.Average():0.00} ms (max {call.Max():0.00}), klatki średnio {frames.Average():0.0} ms, max {frames.Max():0.0} ms");
+
+            // Rotor: postawienie na statku, płyta na przegubie i obrót płyty razem z rotorem (kąt ustawiany wprost w stanie).
+            PartSettings rotor = Content.RotorUnlock.Rotor;
+            ushort rotorId = ship.AddStatefulPart(rotor, new Ships.Interface.Model.Placement.FloatingPartPlacement(new Vector3(0f, -0.46f, 0.25f),
+                Ships.Interface.Model.Placement.PartOrientation.Forward, Ships.Interface.Model.Placement.PartOrientation.Up));
+            yield return new WaitForSeconds(1f);
+            ship.TryGetStatefulPart(rotorId, out var rotorPart);
+            var rotorState = rotorPart?.State as Ships.Interface.Model.Parts.State.RotorState;
+            var child = rotorState != null ? shipsServer.GetShip(rotorState.AnchoredShipId) : null;
+            log.Msg($"[rotor] postawiony: {rotorPart != null}, płyta (podstatek): {(child != null ? child.Id.ToString() : "BRAK")}");
+            if (child != null)
+            {
+                Quaternion before = Quaternion.Inverse(ship.LocalPhysicsState.Rotation) * child.LocalPhysicsState.Rotation;
+                Server.RotorDegreesPatch.TestTargetDegrees = 90f;
+                yield return new WaitForSeconds(0.5f);
+                Quaternion mid = Quaternion.Inverse(ship.LocalPhysicsState.Rotation) * child.LocalPhysicsState.Rotation;
+                yield return new WaitForSeconds(2f);
+                Quaternion after = Quaternion.Inverse(ship.LocalPhysicsState.Rotation) * child.LocalPhysicsState.Rotation;
+                Server.RotorDegreesPatch.TestTargetDegrees = null;
+                ship.TryGetStatefulPart(rotorId, out rotorPart);
+                log.Msg($"[rotor] sygnał 90: po 0,5 s płyta obrócona o {Quaternion.Angle(before, mid):0.0}°, po 2,5 s o {Quaternion.Angle(before, after):0.0}° " +
+                        $"(kąt rotora {((Ships.Interface.Model.Parts.State.RotorState)rotorPart.State).Angle * Mathf.Rad2Deg:0.0}°)");
+            }
+        }
+
         private static IEnumerator DumpAfterDelay(float seconds)
         {
             yield return new WaitForSeconds(seconds);
@@ -76,7 +146,11 @@ namespace Mining.Diagnostics
             {
                 Melon<MiningMod>.Logger.Error($"[dev] zrzut nie powiódł się: {e}");
             }
-            if (MiningMod.DevTest.Value)
+            if (MiningMod.DevPerf.Value)
+            {
+                yield return RunPerfTest();
+            }
+            else if (MiningMod.DevTest.Value)
             {
                 yield return RunVisualTest();
             }

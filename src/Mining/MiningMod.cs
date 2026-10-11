@@ -18,10 +18,12 @@ namespace Mining
         internal static MelonPreferences_Entry<bool> ShowSites;
         internal static MelonPreferences_Entry<float> DrillVolume;
         internal static MelonPreferences_Entry<float> HydrogenThrustMultiplier;
+        internal static MelonPreferences_Entry<float> RotorSpeed;
         internal static MelonPreferences_Entry<string> DevAutoLoadWorld;
         internal static MelonPreferences_Entry<bool> DevDump;
         internal static MelonPreferences_Entry<bool> DevQuitAfterDump;
         internal static MelonPreferences_Entry<bool> DevTest;
+        internal static MelonPreferences_Entry<bool> DevPerf;
 
         private static string _message;
         private static float _messageUntil;
@@ -37,12 +39,14 @@ namespace Mining
             SiteRadius = category.CreateEntry("SiteRadius", 5f, description: "Promień złoża (m). Wszyscy gracze muszą mieć to samo");
             ShowSites = category.CreateEntry("ShowSites", true, description: "Pokazuj złoża (pola kamieni z rudą)");
             DrillVolume = category.CreateEntry("DrillVolume", 0.8f, description: "Głośność wiertła (0-1)");
+            RotorSpeed = category.CreateEntry("RotorSpeed", 90f, description: "Prędkość obrotu rotora (stopnie na sekundę). Wystarczy u hosta");
             HydrogenThrustMultiplier = category.CreateEntry("HydrogenThrustMultiplier", 1.8f, description: "Ile razy silnik wodorowy jest mocniejszy od chemicznego. Wystarczy u hosta");
             DevAutoLoadWorld = category.CreateEntry("DevAutoLoadWorld", "",
                 description: "Dla twórcy moda: pełna ścieżka do world.json wczytywanego automatycznie z menu (puste = wyłączone)");
             DevDump = category.CreateEntry("DevDump", false, description: "Dla twórcy moda: zrzut części i materiałów do UserData/Mining/dump.txt");
             DevQuitAfterDump = category.CreateEntry("DevQuitAfterDump", false, description: "Dla twórcy moda: zamknij grę po zrzucie");
             DevTest = category.CreateEntry("DevTest", false, description: "Dla twórcy moda: podgląd koparki i złoża przed kamerą po wczytaniu świata");
+            DevPerf = category.CreateEntry("DevPerf", false, description: "Dla twórcy moda: pomiar lagów przy szybkim stawianiu i usuwaniu części");
             category.SaveToFile(false);
             LoggerInstance.Msg("Press N: direction to the nearest ore deposit.");
         }
