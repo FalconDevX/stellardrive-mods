@@ -300,7 +300,8 @@ namespace Mining.Sites
         }
 
         // Najbliższe złoże do kamery - do komunikatu na ekranie.
-        internal static string DescribeNearest()
+        // uraniumOnly: tylko złoża uranu (klawisz U), szukane dalej - jest ich mniej.
+        internal static string DescribeNearest(bool uraniumOnly = false)
         {
             if (!(ClientOrigin.LocalVisualSpace is PlanetSurfaceSpace space) || Camera.main == null)
             {
@@ -314,10 +315,13 @@ namespace Mining.Sites
             {
                 return "No planet data.";
             }
-            MiningSite nearest = MiningSites.Near(space.PlanetId, cam, Mathf.CeilToInt(2000f / cell)).OrderBy(s => (s.Center - cam).sqrMagnitude).FirstOrDefault();
+            float range = uraniumOnly ? 5000f : 2000f;
+            MiningSite nearest = MiningSites.Near(space.PlanetId, cam, Mathf.CeilToInt(range / cell))
+                .Where(s => !uraniumOnly || s.Kind.ItemId == Content.Uranium.ItemId)
+                .OrderBy(s => (s.Center - cam).sqrMagnitude).FirstOrDefault();
             if (nearest == null)
             {
-                return "No ore deposits within 2 km.";
+                return uraniumOnly ? "No uranium deposits within 5 km (uranium is only on Otrera b)." : "No ore deposits within 2 km.";
             }
             Vector3 visual = (Vector3)transpose.Position(planetSpace, ClientOrigin.LocalVisualSpace, (Vector3Double)nearest.Center);
             Vector3 toSite = visual - Camera.main.transform.position;

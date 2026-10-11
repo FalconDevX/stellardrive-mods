@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.2.0", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.2.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -68,7 +68,7 @@ namespace Mining
             DevJetpack = category.CreateEntry("DevJetpack", false, description: "Dla twórcy moda: test lotu jetpackiem");
             DevPerf = category.CreateEntry("DevPerf", false, description: "Dla twórcy moda: pomiar lagów przy szybkim stawianiu i usuwaniu części");
             category.SaveToFile(false);
-            LoggerInstance.Msg("Press N: direction to the nearest ore deposit. Press J: jetpack on/off.");
+            LoggerInstance.Msg("Press N: nearest ore deposit, U: nearest uranium deposit, J: jetpack on/off.");
         }
 
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
@@ -88,6 +88,10 @@ namespace Mining
                 if (kb != null && kb.nKey.wasPressedThisFrame && !Diagnostics.DevTools.IsTyping())
                 {
                     ShowMessage(Sites.MiningSiteVisuals.DescribeNearest());
+                }
+                if (kb != null && kb.uKey.wasPressedThisFrame && !Diagnostics.DevTools.IsTyping())
+                {
+                    ShowMessage(Sites.MiningSiteVisuals.DescribeNearest(uraniumOnly: true));
                 }
                 if (kb != null && kb.jKey.wasPressedThisFrame && !Diagnostics.DevTools.IsTyping() && Content.Jetpack.IsUnlocked())
                 {
