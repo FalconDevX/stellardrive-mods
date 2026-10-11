@@ -1,7 +1,7 @@
 using Flora;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(FloraMod), "Flora", "0.2.0", "mateu")]
+[assembly: MelonInfo(typeof(FloraMod), "Flora", "0.3.0", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Flora
@@ -9,6 +9,7 @@ namespace Flora
     public class FloraMod : MelonMod
     {
         internal static MelonPreferences_Entry<bool> DumpEnvironment;
+        internal static MelonPreferences_Entry<bool> ScanPlanetResources;
         internal static MelonPreferences_Entry<bool> BushesEnabled;
         internal static MelonPreferences_Entry<float> BushNoiseOffset;
         internal static MelonPreferences_Entry<float> BushViewRange;
@@ -41,6 +42,8 @@ namespace Flora
                 description: "Wielkość pól kwiatów: mniej = większe pola (trawa w grze ma 3200)");
             DumpEnvironment = category.CreateEntry("DumpEnvironment", false,
                 description: "Wypisuje do UserData\\Flora\\ spis roślinności planet (diagnostyka)");
+            ScanPlanetResources = category.CreateEntry("ScanPlanetResources", true,
+                description: "Po wczytaniu świata sprawdza, gdzie na planetach mogą pojawić się złoża (plik UserData/Flora/planet_resources.txt)");
             category.SaveToFile(false);
 
             LoggerInstance.Msg("Zmiany gęstości działają po ponownym uruchomieniu gry.");
@@ -53,6 +56,10 @@ namespace Flora
 
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
+            if (ScanPlanetResources.Value && sceneName == "MainGame")
+            {
+                MelonCoroutines.Start(Diagnostics.PlanetResourceScan.ScanAfterDelay(20f));
+            }
             if (DumpEnvironment.Value && sceneName == "MainGame")
             {
                 MelonCoroutines.Start(Diagnostics.WorldEnvironmentDump.DumpAfterDelay(15f));
