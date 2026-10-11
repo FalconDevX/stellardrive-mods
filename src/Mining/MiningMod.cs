@@ -30,6 +30,7 @@ namespace Mining
         internal static MelonPreferences_Entry<bool> DevQuitAfterDump;
         internal static MelonPreferences_Entry<bool> DevTest;
         internal static MelonPreferences_Entry<bool> DevPerf;
+        internal static MelonPreferences_Entry<bool> DevJetpack;
 
         private static string _message;
         private static float _messageUntil;
@@ -59,6 +60,7 @@ namespace Mining
             DevDump = category.CreateEntry("DevDump", false, description: "Dla twórcy moda: zrzut części i materiałów do UserData/Mining/dump.txt");
             DevQuitAfterDump = category.CreateEntry("DevQuitAfterDump", false, description: "Dla twórcy moda: zamknij grę po zrzucie");
             DevTest = category.CreateEntry("DevTest", false, description: "Dla twórcy moda: podgląd koparki i złoża przed kamerą po wczytaniu świata");
+            DevJetpack = category.CreateEntry("DevJetpack", false, description: "Dla twórcy moda: test lotu jetpackiem");
             DevPerf = category.CreateEntry("DevPerf", false, description: "Dla twórcy moda: pomiar lagów przy szybkim stawianiu i usuwaniu części");
             category.SaveToFile(false);
             LoggerInstance.Msg("Press N: direction to the nearest ore deposit.");

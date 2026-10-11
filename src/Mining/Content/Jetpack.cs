@@ -19,6 +19,7 @@ namespace Mining.Content
 
         // Gracz, którego ruch jest teraz liczony (host: dowolny gracz, klient: lokalny) - ustawiane w Patches/JetpackPhysicsPatch.
         internal static TrackedPlayerServer CurrentServerPlayer;
+        internal static bool TestForceUp; // tylko test (Diagnostics) - jak przytrzymany skok
         internal static bool CurrentIsLocalPrediction;
 
         private static readonly Dictionary<uint, float> Burned = new Dictionary<uint, float>();

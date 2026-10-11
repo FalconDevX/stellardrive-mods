@@ -31,6 +31,17 @@ namespace Mining.Diagnostics
             return selected != null && (selected.GetComponent<TMPro.TMP_InputField>() != null || selected.GetComponent<UnityEngine.UI.InputField>() != null);
         }
 
+        // Parametry startowe gry (--mining-dev-world=<ścieżka>, --mining-dev-test, --mining-dev-quit...) - działają tylko
+        // w instancji uruchomionej z nimi, bez zmiany wspólnego pliku ustawień (gracz może grać równolegle).
+        private static string Arg(string name)
+        {
+            string prefix = "--mining-dev-" + name + "=";
+            string arg = Environment.GetCommandLineArgs().FirstOrDefault(a => a.StartsWith(prefix));
+            return arg?.Substring(prefix.Length).Trim('"');
+        }
+
+        private static bool HasArg(string name) => Environment.GetCommandLineArgs().Contains("--mining-dev-" + name);
+
         internal static string OutDir
         {
             get
@@ -43,13 +54,13 @@ namespace Mining.Diagnostics
 
         internal static void OnSceneLoaded(string sceneName)
         {
-            string world = MiningMod.DevAutoLoadWorld.Value;
+            string world = Arg("world") ?? MiningMod.DevAutoLoadWorld.Value;
             if (!_autoLoaded && !string.IsNullOrEmpty(world) && sceneName != "MainGame" && File.Exists(world))
             {
                 _autoLoaded = true;
                 MelonCoroutines.Start(LoadWorld(world));
             }
-            if (sceneName == "MainGame" && MiningMod.DevDump.Value && !_dumpStarted)
+            if (sceneName == "MainGame" && (HasArg("dump") || MiningMod.DevDump.Value) && !_dumpStarted)
             {
                 _dumpStarted = true; // gra zgłasza wczytanie sceny MainGame dwa razy
                 MelonCoroutines.Start(DumpAfterDelay(25f));
@@ -136,6 +147,47 @@ namespace Mining.Diagnostics
             }
         }
 
+        // Jetpack: skok + "przytrzymany skok" przez 3 s; wysokość i zużycie drewna ze slotu paliwa.
+        private static IEnumerator RunJetpackTest()
+        {
+            var log = Melon<MiningMod>.Logger;
+            var players = Core.Services.ServiceLocator.GetService<Players.Services.PlayersServerTracker>();
+            Players.TrackedPlayerServer player = players?.ActivePlayers.FirstOrDefault();
+            if (player == null)
+            {
+                log.Msg("[jetpack] brak gracza");
+                yield break;
+            }
+            var net = Traverse.Create(player).Property("NetworkState").GetValue<Players.Network.PlayerNetworkState>();
+            net.ServerSetInventorySlot(Content.Jetpack.FuelSlot, new InventorySlot { HasItem = true, ItemId = Content.Jetpack.FuelItem, Quantity = 10 });
+            float oldSeconds = MiningMod.JetpackSecondsPerWood.Value;
+            MiningMod.JetpackSecondsPerWood.Value = 1f;
+            yield return new WaitForSeconds(0.5f);
+            Vector3 start = player.PhysicsState.Position;
+            Vector3 up = player.PhysicsState.Rotation * Vector3.up;
+            log.Msg($"[jetpack] odblokowany: {Content.Jetpack.IsUnlocked()}, drewno w slocie: {net.Inventory[Content.Jetpack.FuelSlot].Quantity}");
+            var step = AccessTools.Method(typeof(Players.TrackedPlayerServer), "DoPlayerPhysicsStep");
+            var jump = new Players.LocalClient.Controls.Model.PlayerControlInput { MoveInput = Vector3.up };
+            step.Invoke(player, new object[] { jump, 0.02f });
+            Content.Jetpack.TestForceUp = true;
+            float maxHeight = 0f;
+            for (float t = 0f; t < 3f; t += Time.deltaTime)
+            {
+                maxHeight = Mathf.Max(maxHeight, Vector3.Dot(player.PhysicsState.Position - start, up));
+                yield return null;
+            }
+            Content.Jetpack.TestForceUp = false;
+            MiningMod.JetpackSecondsPerWood.Value = oldSeconds;
+            // Ekwipunek ze slotem paliwa (zrzut ekranu).
+            var inventoryUi = UnityEngine.Object.FindObjectOfType<UI.Inventory.PlayerInventoryActivator>(true);
+            inventoryUi?.ToggleInventory();
+            yield return new WaitForSeconds(1f);
+            ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, "test_jetpack_inventory.png"));
+            yield return new WaitForSeconds(0.5f);
+            inventoryUi?.ToggleInventory();
+            log.Msg($"[jetpack] po 3 s ciągu: wysokość {Vector3.Dot(player.PhysicsState.Position - start, up):0.0} m (max {maxHeight:0.0} m), drewno w slocie: {net.Inventory[Content.Jetpack.FuelSlot].Quantity}");
+        }
+
         private static IEnumerator DumpAfterDelay(float seconds)
         {
             yield return new WaitForSeconds(seconds);
@@ -147,16 +199,20 @@ namespace Mining.Diagnostics
             {
                 Melon<MiningMod>.Logger.Error($"[dev] zrzut nie powiódł się: {e}");
             }
-            if (MiningMod.DevPerf.Value)
+            if (HasArg("jetpack") || MiningMod.DevJetpack.Value)
+            {
+                yield return RunJetpackTest();
+            }
+            else if (HasArg("perf") || MiningMod.DevPerf.Value)
             {
                 yield return RunPerfTest();
             }
-            else if (MiningMod.DevTest.Value)
+            else if (HasArg("test") || MiningMod.DevTest.Value)
             {
                 yield return RunVisualTest();
             }
             ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, "screen.png"));
-            if (MiningMod.DevQuitAfterDump.Value)
+            if (HasArg("quit") || MiningMod.DevQuitAfterDump.Value)
             {
                 yield return new WaitForSeconds(3f);
                 Application.Quit();

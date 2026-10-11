@@ -49,7 +49,7 @@ namespace Mining.Patches
     {
         private static void Postfix(ref PlayerPhysicsState __0, PlayerControlInput __1, Vector3 ____currentUp, Vector3 ____currentGravity, float ____deltaTime)
         {
-            if (__1.VerticalInput <= 0f || ____currentGravity == Vector3.zero || (Jetpack.CurrentServerPlayer == null && !Jetpack.CurrentIsLocalPrediction))
+            if ((__1.VerticalInput <= 0f && !(Jetpack.TestForceUp && Jetpack.CurrentServerPlayer != null)) || ____currentGravity == Vector3.zero || (Jetpack.CurrentServerPlayer == null && !Jetpack.CurrentIsLocalPrediction))
             {
                 return;
             }
@@ -161,13 +161,35 @@ namespace Mining.Patches
                 }
                 InventorySlotUI slot = ____slots[Jetpack.FuelSlot];
                 var rect = (RectTransform)slot.transform;
-                (slot.gameObject.GetComponent<LayoutElement>() ?? slot.gameObject.AddComponent<LayoutElement>()).ignoreLayout = true;
-                rect.anchorMin = rect.anchorMax = new Vector2(1f, 1f);
-                rect.pivot = new Vector2(0f, 1f);
-                rect.anchoredPosition = new Vector2(28f, -26f);
+                Vector2 size = rect.rect.size;
+                var grid = __instance.GetComponentInChildren<GridLayoutGroup>(true);
+                if (grid != null) size = grid.cellSize;
+
+                // Osobno, poza oknem ekwipunku: nad koszem (kosz stoi obok okna), w tym samym kontenerze co kosz.
+                var trash = __instance.transform.parent != null ? __instance.transform.root.GetComponentsInChildren<DestroySlotUI>(true)
+                    .OrderBy(t => Vector3.Distance(t.transform.position, __instance.transform.position)).FirstOrDefault() : null;
+                if (trash != null)
+                {
+                    var trashRect = (RectTransform)trash.transform;
+                    rect.SetParent(trashRect.parent, false);
+                    rect.anchorMin = trashRect.anchorMin;
+                    rect.anchorMax = trashRect.anchorMax;
+                    rect.pivot = trashRect.pivot;
+                    rect.sizeDelta = size;
+                    rect.anchoredPosition = trashRect.anchoredPosition + new Vector2(0f, trashRect.rect.height * (1f - trashRect.pivot.y) + size.y * rect.pivot.y + 48f);
+                }
+                else
+                {
+                    (slot.gameObject.GetComponent<LayoutElement>() ?? slot.gameObject.AddComponent<LayoutElement>()).ignoreLayout = true;
+                    rect.anchorMin = rect.anchorMax = new Vector2(1f, 1f);
+                    rect.pivot = new Vector2(0f, 1f);
+                    rect.sizeDelta = size;
+                    rect.anchoredPosition = new Vector2(60f, -40f);
+                }
+                rect.SetAsLastSibling();
 
                 // podpis nad slotem (kopia napisu z okna ekwipunku, bez tłumaczenia)
-                TMP_Text template = ___stringEvent != null ? ___stringEvent.GetComponent<TMP_Text>() : __instance.GetComponentInParent<Canvas>()?.GetComponentInChildren<TMP_Text>(true);
+                TMP_Text template = ___stringEvent != null ? ___stringEvent.GetComponent<TMP_Text>() : null;
                 if (template != null)
                 {
                     GameObject label = Object.Instantiate(template.gameObject, rect);
@@ -176,15 +198,16 @@ namespace Mining.Patches
                         Object.DestroyImmediate(c);
                     }
                     var text = label.GetComponent<TMP_Text>();
-                    text.text = "JETPACK\nFUEL";
+                    text.text = "JETPACK FUEL";
                     text.enableWordWrapping = false;
+                    text.fontSize = Mathf.Min(text.fontSize, 16f);
                     text.alignment = TextAlignmentOptions.Bottom;
                     var labelRect = (RectTransform)label.transform;
-                    labelRect.anchorMin = new Vector2(0f, 1f);
-                    labelRect.anchorMax = new Vector2(1f, 1f);
+                    labelRect.anchorMin = new Vector2(0.5f, 1f);
+                    labelRect.anchorMax = new Vector2(0.5f, 1f);
                     labelRect.pivot = new Vector2(0.5f, 0f);
-                    labelRect.anchoredPosition = new Vector2(0f, 4f);
-                    labelRect.sizeDelta = new Vector2(40f, 40f);
+                    labelRect.anchoredPosition = new Vector2(0f, 6f);
+                    labelRect.sizeDelta = new Vector2(160f, 24f);
                 }
             }
             catch (Exception e)
