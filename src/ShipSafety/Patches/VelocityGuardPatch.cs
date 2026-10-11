@@ -42,7 +42,7 @@ namespace ShipSafety.Patches
     [HarmonyPatch(typeof(ShipServerPhysics), "UpdateRootRigidbody")]
     internal static class MassGuardPatch
     {
-        private const float MinMass = 20f;
+        private const float MinMass = 1f;
         private static float _nextLogTime;
 
         private static void Postfix(ShipServerPhysics __instance, ShipPhysicsCalculationProperties props)
