@@ -83,7 +83,12 @@ namespace Mining.Content
 
         internal static ItemInstance CreateItemInstance(uint itemId, int quantity)
         {
-            ItemSettings item = Resources.FindObjectsOfTypeAll<ItemSettings>().FirstOrDefault(i => i.id == itemId);
+            ItemSettings item = Resources.FindObjectsOfTypeAll<ItemSettings>().FirstOrDefault(i => i.id == itemId)
+                                ?? (itemId == Uranium.ItemId ? Uranium.GetOrCreate() : null);
+            if (item == null)
+            {
+                return null; // przedmiot niedostępny - pomijamy go w koszcie, zamiast psuć okno badań/budowania
+            }
             var instance = new ItemInstance();
             Traverse.Create(instance).Field("itemSettings").SetValue(item);
             Traverse.Create(instance).Field("quantity").SetValue(quantity);
@@ -92,7 +97,7 @@ namespace Mining.Content
 
         internal static void SetCost(PartSettings settings, params (uint item, int quantity)[] cost)
         {
-            Traverse.Create(settings).Field("buildingCost").SetValue(cost.Select(c => CreateItemInstance(c.item, c.quantity)).ToList());
+            Traverse.Create(settings).Field("buildingCost").SetValue(cost.Select(c => CreateItemInstance(c.item, c.quantity)).Where(i => i != null).ToList());
         }
     }
 
@@ -145,7 +150,7 @@ namespace Mining.Content
                     _research.techName = _name;
                     _research.unlockedFeatures = new ResearchUnlockableFeature[0];
                     _research.unlockedGuideEntriesIds = new uint[0];
-                    _research.resourceCost = _cost.Select(c => PartFactory.CreateItemInstance(c.item, c.quantity)).ToArray();
+                    _research.resourceCost = _cost.Select(c => PartFactory.CreateItemInstance(c.item, c.quantity)).Where(i => i != null).ToArray();
                     _research.positionInTechTree = _position;
                     _research.availableInDemo = true;
                 }

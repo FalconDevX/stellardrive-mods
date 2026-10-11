@@ -31,6 +31,26 @@ namespace Mining.Content
             {
                 return items;
             }
+            Create(iron);
+            return items.Concat(new[] { _item }).ToArray();
+        }
+
+        // Uran potrzebny wcześniej niż lista przedmiotów (np. w koszcie badania) - tworzymy go od razu na wzór żelaza.
+        internal static ItemSettings GetOrCreate()
+        {
+            if (_item == null)
+            {
+                ItemSettings iron = Resources.FindObjectsOfTypeAll<ItemSettings>().FirstOrDefault(i => i != null && i.id == ItemsConstants.IronItemId);
+                if (iron != null)
+                {
+                    Create(iron);
+                }
+            }
+            return _item;
+        }
+
+        private static void Create(ItemSettings iron)
+        {
             if (_item == null)
             {
                 _item = Object.Instantiate(iron);
@@ -53,7 +73,6 @@ namespace Mining.Content
                 }
                 Melon<MiningMod>.Logger.Msg($"Dodano przedmiot 'Uranium' (id {ItemId})");
             }
-            return items.Concat(new[] { _item }).ToArray();
         }
 
         // Świecący zielony wariant materiału (kamienie złoża, przedmiot).
