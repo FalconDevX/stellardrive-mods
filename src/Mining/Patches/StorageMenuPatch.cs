@@ -30,6 +30,20 @@ namespace Mining.Patches
             }
         }
 
+        internal static bool TryGetOpenExcavator(out uint shipId, out ushort partId)
+        {
+            shipId = 0;
+            partId = 0;
+            var players = ServiceLocator.GetService<IPlayersProviderClient>();
+            if (players == null || !players.TryGetLocalPlayerState(out var state) || state.Type != Players.Interface.Model.PlayerStateType.InteractingWithChest || !IsLocalPlayerUsingExcavator())
+            {
+                return false;
+            }
+            shipId = state.EntityId;
+            partId = state.PartId;
+            return true;
+        }
+
         internal static bool IsLocalPlayerUsingExcavator()
         {
             var players = ServiceLocator.GetService<IPlayersProviderClient>();

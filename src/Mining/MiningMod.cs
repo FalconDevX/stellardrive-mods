@@ -80,13 +80,25 @@ namespace Mining
 
         public override void OnGUI()
         {
+            // Powód, dla którego koparka stoi - nad jej otwartym oknem (tylko u hosta - to serwer liczy wydobycie).
+            if (Patches.StorageMenuPatch.TryGetOpenExcavator(out uint shipId, out ushort partId) && Server.ExcavatorServer.TryGetStatus(shipId, partId, out string status) &&
+                !status.StartsWith("pracuje"))
+            {
+                DrawLabel("Koparka: " + status, Screen.height * 0.1f);
+            }
             if (_message == null || Time.unscaledTime > _messageUntil)
             {
                 return;
             }
+            DrawLabel(_message, Screen.height * 0.18f);
+        }
+
+        private static void DrawLabel(string text, float y)
+        {
+            string _message = text;
             var style = new GUIStyle(GUI.skin.label) { fontSize = 22, alignment = TextAnchor.MiddleCenter };
             style.normal.textColor = Color.white;
-            var rect = new Rect(0, Screen.height * 0.18f, Screen.width, 40);
+            var rect = new Rect(0, y, Screen.width, 40);
             var shadow = new GUIStyle(style);
             shadow.normal.textColor = new Color(0, 0, 0, 0.8f);
             GUI.Label(new Rect(rect.x + 2, rect.y + 2, rect.width, rect.height), _message, shadow);

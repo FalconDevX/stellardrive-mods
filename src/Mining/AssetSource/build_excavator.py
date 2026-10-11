@@ -15,8 +15,10 @@ COLORS = {
     'light': (210, 214, 220), 'orange': (214, 98, 44), 'steel': (168, 174, 182), 'screen': (40, 96, 120),
     'black': (36, 38, 42), 'rubber': (50, 52, 56), 'olive': (112, 122, 72),
 }
-NAMES = list(COLORS)
-CELL, GRID = 64, 4
+# Kreskowanie jak w teksturach gry (ukośne ciemne kreski przy dolnej krawędzi ścianki) - pola z dopiskiem '#h'.
+HATCHED = ('yellow', 'olive', 'grey')
+NAMES = list(COLORS) + [c + '#h' for c in HATCHED]
+CELL, GRID = 128, 4
 
 
 def uv_of(color):
@@ -25,24 +27,67 @@ def uv_of(color):
     return ((cx + 0.5) / GRID, 1 - (cy + 0.5) / GRID)
 
 
+def cell_uv(color, u, v):
+    # (u, v) w [0,1] wewnątrz pola koloru, v = 0 na dole ścianki
+    i = NAMES.index(color)
+    cx, cy = i % GRID, i // GRID
+    m = 0.03
+    return ((cx + m + u * (1 - 2 * m)) / GRID, 1 - (cy + 1 - m - v * (1 - 2 * m)) / GRID)
+
+
+def hatch_cell(img, color, x0, y0):
+    # ukośne kreski, gęste przy dole pola i zanikające ku górze
+    import random
+    rnd = random.Random(hash(color) & 0xffff)
+    base = COLORS[color]
+    stroke = tuple(int(c * 0.5) for c in base)
+    px = img.load()
+    for y in range(CELL):
+        v = 1 - y / (CELL - 1)              # 0 = dół pola
+        for x in range(CELL):
+            px[x0 + x, y0 + y] = base
+    spacing = 9
+    for k in range(-CELL, CELL * 2, spacing):
+        reach = 0.22 + 0.25 * rnd.random()  # jak wysoko sięga kreska (część wysokości pola)
+        for t in range(CELL):
+            x, y = k + t, CELL - 1 - t       # kreska pod kątem 45 stopni od dołu
+            if not (0 <= x < CELL and 0 <= y < CELL):
+                continue
+            v = 1 - y / (CELL - 1)
+            if v > reach:
+                break
+            for w in range(3):
+                if 0 <= x + w < CELL:
+                    px[x0 + x + w, y0 + y] = stroke
+
+
 class Mesh:
     def __init__(self):
         self.v, self.i = [], []
 
-    def tri(self, a, b, c, color, normals=None):
+    def tri(self, a, b, c, color, normals=None, uvs=None):
         if normals is None:
             n = cross(sub(b, a), sub(c, a))
             n = norm(n)
             normals = (n, n, n)
-        uv = uv_of(color)
+        if uvs is None:
+            uvs = (uv_of(color),) * 3
         base = len(self.v)
-        for p, nn in zip((a, b, c), normals):
+        for p, nn, uv in zip((a, b, c), normals, uvs):
             self.v.append((p, nn, uv))
         self.i += [base, base + 1, base + 2]
 
     def quad(self, a, b, c, d, color, normals=None):
-        self.tri(a, b, c, color, normals[:3] if normals else None)
-        self.tri(a, c, d, color, (normals[0], normals[2], normals[3]) if normals else None)
+        # Ściany boczne (a = lewy dół, b = lewa góra, c = prawa góra, d = prawy dół) w kolorach z kreskowaniem
+        # dostają UV na całe pole z kreskami, jeśli są wystarczająco duże.
+        uvs = None
+        vertical = abs(b[1] - a[1]) > 0.12 and abs(a[1] - d[1]) < 1e-6
+        width = math.sqrt(sum((d[i] - a[i]) ** 2 for i in range(3)))
+        if normals is None and color in HATCHED and vertical and width > 0.12:
+            color = color + '#h'
+            uvs = [cell_uv(color, 0, 0), cell_uv(color, 0, 1), cell_uv(color, 1, 1), cell_uv(color, 1, 0)]
+        self.tri(a, b, c, color, normals[:3] if normals else None, (uvs[0], uvs[1], uvs[2]) if uvs else None)
+        self.tri(a, c, d, color, (normals[0], normals[2], normals[3]) if normals else None, (uvs[0], uvs[2], uvs[3]) if uvs else None)
 
     def box(self, center, size, color, colors=None):
         # colors: opcjonalnie inny kolor dla ścian {'top','bottom','front','back','left','right'}
@@ -127,7 +172,7 @@ for sz in (-1, 1):
     body.box((0, 0.62, sz * LZ), (2 * LX, 0.12, 0.12), 'grey', {'bottom': 'dark'})
 for sx in (-1, 1):
     body.box((sx * LX, 0.62, 0), (0.12, 0.12, 2 * LZ), 'grey', {'bottom': 'dark'})
-body.box((0.3, 0.72, 0.1), (0.12, 0.1, 2 * LZ - 0.1), 'dark')
+body.box((0.47, 0.72, 0.1), (0.12, 0.1, 2 * LZ - 0.1), 'dark')
 body.box((-0.1, 0.72, 0.1), (0.12, 0.1, 2 * LZ - 0.1), 'dark')
 
 # --- Duży zasobnik z przodu po lewej (żółte rogi, oliwkowe panele, ciemna pokrywa) ---
@@ -181,10 +226,10 @@ body.cylinder((TX, 2.12, TZ), 0.15, 0.1, 'dark', 12)
 body.cylinder((TX, 2.2, TZ), 0.155, 0.07, 'orange', 12)
 body.cylinder((TX, 2.27, TZ), 0.14, 0.07, 'dark', 12, cap_color='black')
 
-# --- Obudowa wału wiertła ---
-DX, DZ = -0.02, -0.12
-body.cylinder((DX, 0.74, DZ), 0.11, 0.14, 'dark', 12)
-body.cylinder((DX, 0.645, DZ), 0.085, 0.05, 'grey', 12)
+# --- Obudowa wału wiertła pod korpusem, w osi wieżyczki (wał chowa się w korpusie i wieżyczce) ---
+DX, DZ = CX, CZ
+body.cylinder((DX, 0.79, DZ), 0.12, 0.08, 'dark', 12)
+body.cylinder((DX, 0.735, DZ), 0.095, 0.03, 'grey', 12)
 
 # --- Skrzynki przyłączeniowe prądu na zewnętrznych bokach nóg (gniazda wystają poza obrys koparki) ---
 # prąd: prawa przednia i lewa tylna noga (szary daszek), sygnał: lewa przednia noga (żółty daszek)
@@ -193,21 +238,24 @@ for sx, sz, cap in ((1, -1, 'grey'), (-1, 1, 'grey'), (-1, -1, 'yellow')):
     body.box((sx * (LX + 0.15), 0.42, sz * LZ), (0.04, 0.22, 0.04), 'grey')
 
 # --- Wiertło (osobna siatka, oś obrotu w (0,0,0), w modelu w DRILL_PIVOT) ---
-DRILL_PIVOT = (DX, 0.62, DZ)
+DRILL_PIVOT = (DX, 0.72, DZ)
 drill = Mesh()
-# Długie wiertło: w spoczynku schowane w korpusie, przy pracy wysuwa się w dół (ExcavatorVisuals).
-DRILL_LENGTH = 1.12
-drill.cylinder((0, -0.04, 0), 0.07, 0.08, 'dark', 10)
-drill.cylinder((0, -0.55, 0), 0.05, 0.98, 'steel', 8)
-drill.cylinder((0, -1.05, 0), 0.0, 0.14, 'steel', 8, radius_top=0.055)
-turns, steps = 4.5, 64
-top, bottom = -0.12, -0.96
+# Długie wiertło: gładki wał (w spoczynku schowany w korpusie i wieżyczce) + spirala + czubek.
+# Przy pracy wysuwa się w dół (ExcavatorVisuals), a nad ziemią cały czas widać wał wchodzący w korpus.
+DRILL_LENGTH = 1.9
+drill.cylinder((0, -0.04, 0), 0.075, 0.08, 'dark', 10)
+drill.cylinder((0, -0.45, 0), 0.055, 0.74, 'grey', 8)                              # wał
+drill.cylinder((0, -0.83, 0), 0.075, 0.04, 'dark', 10)                             # kołnierz
+drill.cylinder((0, -1.3, 0), 0.05, 0.92, 'steel', 8)
+drill.cylinder((0, -1.83, 0), 0.0, 0.14, 'steel', 8, radius_top=0.055)            # czubek
+turns, steps = 5.0, 70
+top, bottom = -0.86, -1.72
 for k in range(steps):
     t0, t1 = k / steps, (k + 1) / steps
     a0, a1 = t0 * turns * 2 * math.pi, t1 * turns * 2 * math.pi
     y0, y1 = top + (bottom - top) * t0, top + (bottom - top) * t1
     r_in = 0.045
-    r_out, r_out1 = 0.14 - 0.04 * t0, 0.14 - 0.04 * t1
+    r_out, r_out1 = 0.15 - 0.04 * t0, 0.15 - 0.04 * t1
     th = 0.03
     i0 = (math.cos(a0) * r_in, y0, math.sin(a0) * r_in); o0 = (math.cos(a0) * r_out, y0, math.sin(a0) * r_out)
     i1 = (math.cos(a1) * r_in, y1, math.sin(a1) * r_in); o1 = (math.cos(a1) * r_out1, y1, math.sin(a1) * r_out1)
@@ -223,7 +271,10 @@ print('DRILL_PIVOT', DRILL_PIVOT)
 img = Image.new('RGB', (CELL * GRID, CELL * GRID), COLORS['grey'])
 for i, name in enumerate(NAMES):
     x, y = (i % GRID) * CELL, (i // GRID) * CELL
-    img.paste(COLORS[name], (x, y, x + CELL, y + CELL))
+    if name.endswith('#h'):
+        hatch_cell(img, name[:-2], x, y)
+    else:
+        img.paste(COLORS[name], (x, y, x + CELL, y + CELL))
 img.save(os.path.join(OUT, 'excavator_albedo.png'))
 
 if PREVIEW:

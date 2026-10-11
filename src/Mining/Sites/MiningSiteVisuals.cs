@@ -138,7 +138,7 @@ namespace Mining.Sites
                 float r = site.Radius * Mathf.Pow((float)rng.NextDouble(), 0.65f);
                 float a = (float)(rng.NextDouble() * Mathf.PI * 2.0);
                 float edge = 1f - r / site.Radius;
-                float size = Mathf.Lerp(0.22f, 0.7f, (float)rng.NextDouble() * (0.3f + 0.7f * edge)) / rockDiameter;
+                float size = Mathf.Lerp(0.25f, 0.85f, (float)rng.NextDouble() * (0.3f + 0.7f * edge)) / rockDiameter;
 
                 Vector3 local = new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
                 Vector3 planetPoint = site.Center + site.Rotation * local;
@@ -148,9 +148,9 @@ namespace Mining.Sites
                     planetPoint = dir * tracked.PointsProvider.GetElevationAtPoint(dir);
                 }
                 Vector3 p = inv * (planetPoint - site.Center);
-                // Płaskie kamienie (do ok. 25 cm nad ziemią) - nie mają kolizji, więc chodzi się po złożu jak po płaskim terenie.
-                var scale = new Vector3(size, size * Mathf.Lerp(0.25f, 0.42f, (float)rng.NextDouble()), size);
-                p.y -= (rockInfo.Bounds.min.y + rockSize.y * 0.3f) * scale.y; // częściowo w ziemi
+                // Kamienie nie mają kolizji, więc chodzi się po złożu jak po płaskim terenie.
+                var scale = new Vector3(size, size * Mathf.Lerp(0.45f, 0.8f, (float)rng.NextDouble()), size);
+                p.y -= (rockInfo.Bounds.min.y + rockSize.y * 0.2f) * scale.y; // częściowo w ziemi
 
                 var rock = new GameObject("Rock") { layer = rockInfo.Layer };
                 rock.transform.SetParent(go.transform, false);

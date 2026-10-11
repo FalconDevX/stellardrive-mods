@@ -308,7 +308,7 @@ namespace Mining.Diagnostics
             if (mainData2 != null) data2.renderPostProcessing = mainData2.renderPostProcessing;
             for (int shot = 0; shot < 3; shot++)
             {
-                for (int frame = 0; frame < 90; frame++)
+                for (int frame = 0; frame < (shot == 0 ? 90 : 240); frame++)
                 {
                     if (ship != null && shot > 0 && frame % 20 == 0)
                     {
@@ -340,6 +340,16 @@ namespace Mining.Diagnostics
                 bool any = WorldTracking.Interface.Values.ClientScene.PhysicsScene.Raycast(from, (target - from).normalized, out RaycastHit sh, 3f, ~0, QueryTriggerInteraction.Collide);
                 log.Msg($"[test] gniazdo {socket.EntityPartSocket.Socket.SocketId}: promień trafia w {(any ? sh.collider.name + " (warstwa " + LayerMask.LayerToName(sh.collider.gameObject.layer) + ")" : "nic")}" +
                         $"{(any && sh.collider.GetComponentInParent<Ships.Cables.VisualObjects.SocketInteractionObject>() == socket ? " = GNIAZDO OK" : "")}");
+            }
+            // Czy promień z przodu trafia w strefę otwierania koparki (a nie w jej kolizję).
+            if (shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(shipId, 1), out var v3))
+            {
+                Transform t3 = v3.GameObject.transform;
+                Vector3 aim = t3.position + t3.up * 1.05f - t3.forward * 0.6f;
+                Vector3 eye = t3.position + t3.up * 1.6f - t3.forward * 2.2f;
+                bool hitAny = WorldTracking.Interface.Values.ClientScene.PhysicsScene.Raycast(eye, (aim - eye).normalized, out RaycastHit ih, 4f, ~0, QueryTriggerInteraction.Collide);
+                log.Msg($"[test] otwieranie: promień trafia w {(hitAny ? ih.collider.name + " (warstwa " + LayerMask.LayerToName(ih.collider.gameObject.layer) + ")" : "nic")}" +
+                        $"{(hitAny && ih.collider.GetComponent<Ships.Parts.Common.PartInteraction>() != null ? " = STREFA OTWIERANIA OK" : "")}");
             }
             if (ship != null) log.Msg($"[test] statek po 8 s: pozycja {ship.LocalPhysicsState.Position}, nachylenie {Vector3.Angle(ship.LocalPhysicsState.Rotation * Vector3.up, up2):0.0}°");
             cam.enabled = true;
@@ -387,6 +397,16 @@ namespace Mining.Diagnostics
                 }
                 sb.AppendLine($"== PREFAB {label} ==");
                 DumpHierarchy(sb, p.part.transform, 0);
+            }
+
+            sb.AppendLine("== PARTICLES ==");
+            foreach (ParticleSystem ps in Resources.FindObjectsOfTypeAll<ParticleSystem>().GroupBy(x => x.name).Select(g => g.First()))
+            {
+                var r = ps.GetComponent<ParticleSystemRenderer>();
+                Material m = r != null ? r.sharedMaterial : null;
+                Transform root = ps.transform.root;
+                sb.AppendLine($"{ps.name} (korzeń {root.name}) mat={(m != null ? m.name : "-")} shader={(m != null ? m.shader.name : "-")} tex={(m != null && m.mainTexture != null ? m.mainTexture.name : "-")} " +
+                              $"kolor={ps.main.startColor.color} rozmiar={ps.main.startSize.constant} czas={ps.main.startLifetime.constant}");
             }
 
             sb.AppendLine("== AUDIO ==");

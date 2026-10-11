@@ -27,8 +27,8 @@ namespace Mining.Content
         internal const ushort ResearchId = 200;
         internal const string Label = "Excavator";
         internal const int SlotCount = 4;
-        internal static readonly Vector3 DrillPivot = new Vector3(-0.02f, 0.62f, -0.12f); // DRILL_PIVOT z AssetSource/build_excavator.py
-        internal const float DrillLength = 1.12f; // od osi mocowania do czubka (m)
+        internal static readonly Vector3 DrillPivot = new Vector3(0.25f, 0.72f, 0.1f); // DRILL_PIVOT z AssetSource/build_excavator.py
+        internal const float DrillLength = 1.9f; // od osi mocowania do czubka (m)
 
         private const ushort ChestPartId = 30;
         private const ushort GeneratorPartId = 60;
@@ -121,10 +121,11 @@ namespace Mining.Content
             bounds.bounds = b.size;
 
             // Interakcja (otwieranie jak skrzynię) tylko na przednim panelu (zasobnik + ekran) - gdyby obejmowała całą
-            // koparkę, zasłaniałaby gniazda prądu i kabla nie dałoby się podłączyć.
+            // koparkę, zasłaniałaby gniazda prądu i kabla nie dałoby się podłączyć. Musi wystawać przed obrys koparki
+            // (ShipPartBounds, z przodu na z = -0.83 przez stopy), inaczej promień gracza trafia najpierw w kolizję.
             var box = root.transform.Find("Interactions").GetComponentInChildren<BoxCollider>(true);
-            box.center = new Vector3(0f, 1.1f, -0.5f);
-            box.size = new Vector3(1.3f, 0.55f, 0.35f);
+            box.center = new Vector3(-0.05f, 1.05f, -0.6f);
+            box.size = new Vector3(1.2f, 0.6f, 0.56f);
             var interaction = box.GetComponent<PartInteraction>();
             if (interaction != null)
             {
@@ -141,7 +142,7 @@ namespace Mining.Content
             settings.internalStateClass = chest.internalStateClass; // StorageState
             settings.snappingStyle = SnappingStyle.PreciseOnFloor;
             settings.description = $"Wydobywa surowiec spod siebie, gdy stoi na złożu (płaskie pole kamieni z rudą) i ma prąd. Można ją postawić prosto na ziemi. " +
-                                   $"Zbiera do {SlotCount} stosów po 100 - otwórz jak skrzynię, żeby wyjąć urobek.";
+                                   $"Kopie tylko przy sygnale 1 (gniazdo z żółtym daszkiem, np. dźwignia). Zbiera do {SlotCount} stosów po 100 - otwórz jak skrzynię, żeby wyjąć urobek.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
             settings.thumbnailRotation = Quaternion.Euler(0f, 150f, 0f);
@@ -197,7 +198,7 @@ namespace Mining.Content
             relayed.SetValue(new[] { copies[1] });
             Traverse.Create(copies[1]).Field("relayedSockets").SetValue(new[] { copies[0] });
 
-            // Wejście sygnału (kopia gniazda sygnałowego zaworu): 0 = stop, 1 = praca, bez kabla = praca.
+            // Wejście sygnału (kopia gniazda sygnałowego zaworu): kopie tylko przy sygnale 1.
             SocketObject signalSource = Resources.FindObjectsOfTypeAll<SocketObject>().FirstOrDefault(s => s.Type == CableType.Signal && s.visualObject != null && s.interactive != null);
             if (signalSource == null)
             {

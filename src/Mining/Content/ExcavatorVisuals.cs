@@ -1,3 +1,4 @@
+using System.Linq;
 using Items.Model;
 using Mining.Audio;
 using Ships.Interface.Model.Parts;
@@ -13,8 +14,8 @@ namespace Mining.Content
     internal class ExcavatorVisuals : DefaultShipPartVisuals
     {
         private const float MaxRpm = 240f;
-        private const float RestLift = 0.55f;  // w spoczynku wiertło schowane w korpusie
-        private const float Extend = 0.85f;    // przy pracy wysuwa się tyle w dół (w ziemię)
+        private const float RestLift = 1.23f;  // w spoczynku wał schowany w korpusie i wieżyczce, czubek tuż nad ziemią
+        private const float Extend = 0.9f;     // przy pracy wysuwa się tyle w dół (w ziemię)
         private const float MaxHearDistance = 35f;
 
         private Transform _drill;
@@ -28,6 +29,11 @@ namespace Mining.Content
 
         internal bool ForceWorking;
 
+        // Pył spod wiertła: kopia mgiełki, którą gra pokazuje przy ścinaniu drzew (DustPoof).
+        private static ParticleSystem _dustTemplate;
+        private ParticleSystem _dust;
+        private bool _dustPlaying;
+
         private void Awake()
         {
             _drill = transform.Find("DrillPivot");
@@ -35,6 +41,44 @@ namespace Mining.Content
             {
                 _drillRest = _drill.localPosition;
             }
+            CreateDust();
+        }
+
+        private void CreateDust()
+        {
+            if (_dustTemplate == null)
+            {
+                _dustTemplate = Resources.FindObjectsOfTypeAll<ParticleSystem>().FirstOrDefault(p => p.name == "DustPoof");
+            }
+            if (_dustTemplate == null || _drill == null)
+            {
+                return;
+            }
+            _dust = Instantiate(_dustTemplate.gameObject, transform).GetComponent<ParticleSystem>();
+            _dust.name = "DrillDust";
+            // Przy ziemi pod wiertłem, cząsteczki lecą w górę.
+            _dust.transform.localPosition = new Vector3(_drillRest.x, 0.05f, _drillRest.z);
+            _dust.transform.localRotation = Quaternion.LookRotation(Vector3.up, Vector3.forward);
+            _dust.transform.localScale = Vector3.one;
+            _dust.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            // W grze to jednorazowy duży obłok (8 m, 12 s) - tu ciągła, niska chmurka kurzu przy wiertle.
+            var main = _dust.main;
+            main.loop = true;
+            main.duration = 1f;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(1.8f, 3f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.6f, 1.4f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.2f, 0.7f);
+            main.maxParticles = 40;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            var emission = _dust.emission;
+            emission.enabled = true;
+            emission.rateOverTime = 7f;
+            emission.SetBursts(new ParticleSystem.Burst[0]);
+            var shape = _dust.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 55f;
+            shape.radius = 0.25f;
         }
 
         public override void SetNetworkState(IStatefulPartState state)
@@ -82,7 +126,27 @@ namespace Mining.Content
                 _drill.localPosition = _drillRest + Vector3.up * RestLift - Vector3.up * (Extend * Mathf.SmoothStep(0f, 1f, _extend));
                 _drill.Rotate(Vector3.up, _speed * MaxRpm * 6f * Time.deltaTime, Space.Self);
             }
+            UpdateDust();
             UpdateSound();
+        }
+
+        private void UpdateDust()
+        {
+            if (_dust == null)
+            {
+                return;
+            }
+            bool digging = _extend > 0.25f;
+            if (digging && !_dustPlaying)
+            {
+                _dust.Play(true);
+                _dustPlaying = true;
+            }
+            else if (!digging && _dustPlaying)
+            {
+                _dust.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                _dustPlaying = false;
+            }
         }
 
         private void UpdateSound()

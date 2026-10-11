@@ -36,10 +36,25 @@ namespace Mining.Server
         private static float _nextSiteRefresh;
         private static bool _loggedError;
 
+        // Stan każdej koparki (do okna koparki u hosta i do logu).
+        private static readonly Dictionary<(uint ship, ushort part), string> Status = new Dictionary<(uint, ushort), string>();
+
         internal static void Reset()
         {
             Progress.Clear();
             SiteCache.Clear();
+            Status.Clear();
+        }
+
+        internal static bool TryGetStatus(uint shipId, ushort partId, out string status) => Status.TryGetValue((shipId, partId), out status);
+
+        private static void SetStatus((uint ship, ushort part) key, string status)
+        {
+            if (!Status.TryGetValue(key, out string previous) || previous != status)
+            {
+                Status[key] = status;
+                Melon<MiningMod>.Logger.Msg($"Koparka (statek {key.ship}, część {key.part}): {status}");
+            }
         }
 
         [HarmonyPostfix]
@@ -74,9 +89,17 @@ namespace Mining.Server
                 foreach (StatefulPart part in Excavators(__instance))
                 {
                     var key = (__instance.Id, part.Id);
-                    if (!CanWork(__instance, part, out MiningSite site) ||
-                        !power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, part.Id, PowerSocketId), out PowerGroupServerState group) ||
-                        group.NormalizedConsumerRate <= 0f)
+                    MiningSite site = FindSite(__instance, part);
+                    PowerGroupServerState group = null;
+                    string status =
+                        site == null ? "brak złoża pod wiertłem" :
+                        !SignalAllows(__instance, part) ? "brak sygnału 1 - podłącz dźwignię do gniazda z żółtym daszkiem" :
+                        !HasSpace((StorageState)part.State, site.Kind.ItemId) ? "pełna - wyjmij urobek" :
+                        !power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, part.Id, PowerSocketId), out group) ? "brak kabla prądu" :
+                        group.NormalizedConsumerRate <= 0f ? "za mało prądu (generator pusty albo przeciążony)" :
+                        $"pracuje - {site.Kind.Name}";
+                    SetStatus(key, status);
+                    if (!status.StartsWith("pracuje"))
                     {
                         continue;
                     }
@@ -112,12 +135,13 @@ namespace Mining.Server
             return site != null && SignalAllows(ship, part) && HasSpace((StorageState)part.State, site.Kind.ItemId);
         }
 
-        // Wejście sygnału: bez kabla koparka pracuje, z kablem tylko przy sygnale >= 0,5 (czyli 1).
+        // Wejście sygnału: koparka kopie tylko wtedy, gdy kablem dochodzi teraz sygnał 1 (>= 0,5).
+        // Bez kabla albo przy 0 stoi - sprawdzane w każdej klatce, nic nie jest zapamiętywane.
         private static bool SignalAllows(TrackedShipServer ship, StatefulPart part)
         {
             var connections = ServiceLocator.GetService<Ships.Cables.ConnectionsServerTracker>();
             var socket = new EntityPartSocket(ship.Id, part.Id, Excavator.SignalSocketId);
-            return connections == null || !connections.TryGetSignalConnectionGroupWithSocket(socket, out _) || connections.GetSignalValue(socket) >= 0.5;
+            return connections != null && connections.TryGetSignalConnectionGroupWithSocket(socket, out _) && connections.GetSignalValue(socket) >= 0.5;
         }
 
         private static MiningSite FindSite(TrackedShipServer ship, StatefulPart part)
