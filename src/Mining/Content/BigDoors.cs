@@ -5,6 +5,7 @@ using HarmonyLib;
 using MelonLoader;
 using Ships.Interface.Model.Parts;
 using Ships.Interface.Settings;
+using Ships.Parts.Common;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -39,15 +40,17 @@ namespace Mining.Content
             {
                 return existing;
             }
-            var door = PartFactory.Find(gameParts, DoorPartId) as HullPartSettings;
-            if (door?.part == null)
+            List<PartSettings> list = gameParts.ToList();
+            var door = PartFactory.Find(list, DoorPartId) as HullPartSettings;
+            PartSettings chest = PartFactory.Find(list, 30);
+            if (door?.part == null || chest?.part == null)
             {
                 return null;
             }
             var variant = Variants.First(v => v.id == id);
             try
             {
-                PartSettings part = Build(door, variant);
+                PartSettings part = Build(door, chest, variant);
                 Parts[id] = part;
                 Melon<MiningMod>.Logger.Msg($"Dodano część '{part.fullLabel}' (id {id})");
                 return part;
@@ -60,11 +63,12 @@ namespace Mining.Content
             }
         }
 
-        private static PartSettings Build(HullPartSettings door, (ushort id, string name, int width, int height, int iron) v)
+        private static PartSettings Build(HullPartSettings door, PartSettings chest, (ushort id, string name, int width, int height, int iron) v)
         {
             GameObject root = Object.Instantiate(door.part, PartFactory.Holder);
             root.name = "MiningDoor" + v.width + "x" + v.height;
             Scale(root, v.width / door.size.x, v.height / door.size.y);
+            ReplaceLook(root, chest);
 
             HullPartSettings settings = Object.Instantiate(door);
             settings.name = root.name;
@@ -81,6 +85,26 @@ namespace Mining.Content
             }
             PartFactory.SetCost(settings, (Items.Model.ItemsConstants.IronItemId, v.iron), (112, Mathf.Max(2, v.iron / 8)));
             return settings;
+        }
+
+        // Wygląd z gry (rozciągnięty) zastępujemy własnym modelem (Content/BigDoorModel) z animacją skrzydeł.
+        // Kolizje i pole interakcji drzwi z gry zostają (przeskalowane) - dzięki nim działa blokowanie przejścia i E.
+        private static void ReplaceLook(GameObject root, PartSettings chest)
+        {
+            MeshRenderer look = chest.part.transform.Find("Visual")?.GetComponentInChildren<MeshRenderer>(true) ?? chest.part.GetComponentInChildren<MeshRenderer>(true);
+            Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("reactor_albedo.png"), "BigDoor");
+
+            var visuals = root.GetComponentInChildren<DefaultShipPartVisuals>(true);
+            GameObject host = visuals != null ? visuals.gameObject : root;
+            foreach (Animator a in root.GetComponentsInChildren<Animator>(true)) Object.DestroyImmediate(a);
+            if (visuals != null) Object.DestroyImmediate(visuals);
+            foreach (Renderer r in root.GetComponentsInChildren<Renderer>(true))
+            {
+                Object.DestroyImmediate(r);
+            }
+            host.AddComponent<BigDoorVisuals>();
+            var bounds = root.GetComponent<ShipPartBounds>();
+            BigDoorModel.Build(root.transform, bounds.GetBounds(), material, look);
         }
 
         // Wygląd, kolizje i pole interakcji rosną w osiach X (szerokość) i Y (wysokość); lewy dolny róg zostaje

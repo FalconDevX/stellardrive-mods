@@ -2,7 +2,7 @@
   <PropertyGroup>
     <AssemblyName>Mining</AssemblyName>
     <RootNamespace>Mining</RootNamespace>
-    <Version>0.2.5</Version>
+    <Version>0.2.6</Version>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\*" LogicalName="Mining.Assets.%(Filename)%(Extension)" />
