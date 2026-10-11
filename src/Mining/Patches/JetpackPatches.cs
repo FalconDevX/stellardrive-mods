@@ -161,9 +161,10 @@ namespace Mining.Patches
                 }
                 InventorySlotUI slot = ____slots[Jetpack.FuelSlot];
                 var rect = (RectTransform)slot.transform;
-                Vector2 size = rect.rect.size;
-                var grid = __instance.GetComponentInChildren<GridLayoutGroup>(true);
-                if (grid != null) size = grid.cellSize;
+                // Rozmiar na ekranie jak zwykłe sloty - kosz ma inną skalę niż siatka ekwipunku, więc liczymy w świecie.
+                var corners = new Vector3[4];
+                rect.GetWorldCorners(corners);
+                Vector2 worldSize = new Vector2(Vector3.Distance(corners[0], corners[3]), Vector3.Distance(corners[0], corners[1]));
 
                 // Osobno, poza oknem ekwipunku: nad koszem (kosz stoi obok okna), w tym samym kontenerze co kosz.
                 var trash = __instance.transform.parent != null ? __instance.transform.root.GetComponentsInChildren<DestroySlotUI>(true)
@@ -172,18 +173,22 @@ namespace Mining.Patches
                 {
                     var trashRect = (RectTransform)trash.transform;
                     rect.SetParent(trashRect.parent, false);
+                    rect.localScale = Vector3.one;
+                    Vector3 parentScale = trashRect.parent.lossyScale;
+                    Vector2 size = new Vector2(worldSize.x / Mathf.Max(1e-4f, parentScale.x), worldSize.y / Mathf.Max(1e-4f, parentScale.y));
                     rect.anchorMin = trashRect.anchorMin;
                     rect.anchorMax = trashRect.anchorMax;
                     rect.pivot = trashRect.pivot;
                     rect.sizeDelta = size;
-                    rect.anchoredPosition = trashRect.anchoredPosition + new Vector2(0f, trashRect.rect.height * (1f - trashRect.pivot.y) + size.y * rect.pivot.y + 48f);
+                    rect.anchoredPosition = trashRect.anchoredPosition + new Vector2(0f, trashRect.rect.height * (1f - trashRect.pivot.y) + size.y * rect.pivot.y + size.y * 0.3f);
                 }
                 else
                 {
                     (slot.gameObject.GetComponent<LayoutElement>() ?? slot.gameObject.AddComponent<LayoutElement>()).ignoreLayout = true;
                     rect.anchorMin = rect.anchorMax = new Vector2(1f, 1f);
                     rect.pivot = new Vector2(0f, 1f);
-                    rect.sizeDelta = size;
+                    Vector3 parentScale = rect.parent.lossyScale;
+                    rect.sizeDelta = new Vector2(worldSize.x / Mathf.Max(1e-4f, parentScale.x), worldSize.y / Mathf.Max(1e-4f, parentScale.y));
                     rect.anchoredPosition = new Vector2(60f, -40f);
                 }
                 rect.SetAsLastSibling();
@@ -200,14 +205,18 @@ namespace Mining.Patches
                     var text = label.GetComponent<TMP_Text>();
                     text.text = "JETPACK FUEL";
                     text.enableWordWrapping = false;
-                    text.fontSize = Mathf.Min(text.fontSize, 16f);
+                    // czcionka tej samej wielkości na ekranie co w oknie ekwipunku (inna skala kontenera)
+                    float scale = template.transform.lossyScale.y / Mathf.Max(1e-4f, rect.lossyScale.y);
+                    text.enableAutoSizing = false;
+                    text.fontSize = Mathf.Clamp(template.fontSize * 0.5f, 12f, 20f) * scale;
                     text.alignment = TextAlignmentOptions.Bottom;
                     var labelRect = (RectTransform)label.transform;
                     labelRect.anchorMin = new Vector2(0.5f, 1f);
                     labelRect.anchorMax = new Vector2(0.5f, 1f);
                     labelRect.pivot = new Vector2(0.5f, 0f);
-                    labelRect.anchoredPosition = new Vector2(0f, 6f);
-                    labelRect.sizeDelta = new Vector2(160f, 24f);
+                    labelRect.localScale = Vector3.one;
+                    labelRect.anchoredPosition = new Vector2(0f, 4f * scale);
+                    labelRect.sizeDelta = new Vector2(200f * scale, 30f * scale);
                 }
             }
             catch (Exception e)
@@ -221,6 +230,19 @@ namespace Mining.Patches
     [HarmonyPatch(typeof(PlayerJetpackEffects), nameof(PlayerJetpackEffects.UpdateRcsEffects))]
     internal static class JetpackEffectsPatch
     {
+        private static bool _loggedError;
+
+        // Efekty to tylko wygląd - błąd w nich nie może przerwać aktualizacji gracza (zastyganie w powietrzu).
+        private static Exception Finalizer(Exception __exception)
+        {
+            if (__exception != null && !_loggedError)
+            {
+                _loggedError = true;
+                Melon<MiningMod>.Logger.Warning($"Efekty jetpacka: {__exception}");
+            }
+            return null;
+        }
+
         private static readonly HashSet<PlayerJetpackEffects> Flying = new HashSet<PlayerJetpackEffects>();
         private static readonly HashSet<PlayerJetpackEffects> WithModel = new HashSet<PlayerJetpackEffects>();
         private static Mesh _mesh;
@@ -237,7 +259,7 @@ namespace Mining.Patches
             if (unlocked && !WithModel.Contains(__instance))
             {
                 WithModel.Add(__instance);
-                AttachModel(__instance, ___leftShoulderRcs, ___rightShoulderRcs, ___leftHipRcs, ___rightHipRcs);
+                AttachModel(__instance, __0.Rotation, ___leftShoulderRcs, ___rightShoulderRcs, ___leftHipRcs, ___rightHipRcs);
             }
             ISpace space = ____spaces.GetSpace(__0.SpaceId);
             bool onPlanet = space is PlanetSurfaceSpace || space is ShipRelativeSpace;
@@ -249,9 +271,12 @@ namespace Mining.Patches
                 {
                     audio?.PlayAudioEvent3D("Event:/Players/JetpackThruster", __instance.gameObject);
                 }
-                var thruster = Traverse.Create(__instance);
-                thruster.Method("UpdateThruster", new[] { typeof(ParticleSystem), typeof(Quaternion), typeof(Vector3) }).GetValue(___leftHipRcs, __0.Rotation, Vector3.down);
-                thruster.Method("UpdateThruster", new[] { typeof(ParticleSystem), typeof(Quaternion), typeof(Vector3) }).GetValue(___rightHipRcs, __0.Rotation, Vector3.down);
+                // Nie każdy model gracza ma dysze biodrowe - wtedy barkowe. Brak dysz = bez płomieni (nie wolno rzucić
+                // wyjątkiem: przerwałby aktualizację gracza i postać zastygała w powietrzu).
+                ParticleSystem left = ___leftHipRcs != null ? ___leftHipRcs : ___leftShoulderRcs;
+                ParticleSystem right = ___rightHipRcs != null ? ___rightHipRcs : ___rightShoulderRcs;
+                Flame(left, __0.Rotation);
+                Flame(right, __0.Rotation);
                 return false;
             }
             if (Flying.Remove(__instance))
@@ -263,8 +288,21 @@ namespace Mining.Patches
             return true;
         }
 
+        private static void Flame(ParticleSystem vfx, Quaternion rotation)
+        {
+            if (vfx == null)
+            {
+                return;
+            }
+            vfx.transform.rotation = rotation * Quaternion.LookRotation(Vector3.down);
+            if (!vfx.isPlaying)
+            {
+                vfx.Play();
+            }
+        }
+
         // Plecak między dyszami na plecach (dysze barkowe i biodrowe kostiumu wyznaczają plecy).
-        private static void AttachModel(PlayerJetpackEffects effects, params ParticleSystem[] nozzles)
+        private static void AttachModel(PlayerJetpackEffects effects, Quaternion bodyRotation, params ParticleSystem[] nozzles)
         {
             try
             {
@@ -287,8 +325,15 @@ namespace Mining.Patches
                 Vector3 center = points.Aggregate(Vector3.zero, (sum, t) => sum + t.position) / points.Length;
                 var go = new GameObject("MiningJetpack") { layer = effects.gameObject.layer };
                 go.transform.SetParent(anchor, true);
-                go.transform.position = center;
-                go.transform.rotation = effects.transform.rotation;
+                // Plecy: dysze kostiumu siedzą na plecach, więc kierunek od środka postaci do dysz to "do tyłu".
+                // Gdy nie da się tego ustalić - przeciwieństwo kierunku patrzenia postaci.
+                Vector3 up = bodyRotation * Vector3.up;
+                Vector3 back = Vector3.ProjectOnPlane(center - anchor.position, up);
+                Vector3 facingBack = Vector3.ProjectOnPlane(bodyRotation * Vector3.back, up).normalized;
+                back = back.magnitude > 0.05f && Vector3.Dot(back.normalized, facingBack) > -0.2f ? back.normalized : facingBack;
+                // model: plecy gracza = +Z modelu, płyta dosunięta do kostiumu
+                go.transform.rotation = Quaternion.LookRotation(back, up);
+                go.transform.position = center + back * 0.06f;
                 go.AddComponent<MeshFilter>().sharedMesh = _mesh;
                 go.AddComponent<MeshRenderer>().sharedMaterial = _material;
             }
