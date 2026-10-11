@@ -33,9 +33,9 @@ namespace Mining.Patches
     // na terenie: klient dopasowuje ją do nachylenia (teren pod czterema nogami), a serwer zakłada statek z samą koparką.
     internal static class GroundPlacement
     {
-        // Pozycje stóp (x, z) względem środka koparki - FOOT_UNITY z AssetSource/process_excavator.py.
+        // Pozycje stóp (x, z) względem środka koparki - LX, LZ z AssetSource/build_excavator.py.
         // Kolejność: lewy przód, prawy przód, lewy tył, prawy tył (przekątne 0-3 i 1-2).
-        internal static readonly Vector2[] Feet = { new Vector2(-0.685f, -0.536f), new Vector2(0.758f, -0.649f), new Vector2(-0.695f, 0.693f), new Vector2(0.769f, 0.68f) };
+        internal static readonly Vector2[] Feet = { new Vector2(-0.72f, -0.62f), new Vector2(0.72f, -0.62f), new Vector2(-0.72f, 0.62f), new Vector2(0.72f, 0.62f) };
     }
 
     [HarmonyPatch(typeof(PartPreview), "IsPartPlaceableInWorld")]

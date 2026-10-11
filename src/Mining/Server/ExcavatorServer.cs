@@ -109,7 +109,15 @@ namespace Mining.Server
         private static bool CanWork(TrackedShipServer ship, StatefulPart part, out MiningSite site)
         {
             site = FindSite(ship, part);
-            return site != null && HasSpace((StorageState)part.State, site.Kind.ItemId);
+            return site != null && SignalAllows(ship, part) && HasSpace((StorageState)part.State, site.Kind.ItemId);
+        }
+
+        // Wejście sygnału: bez kabla koparka pracuje, z kablem tylko przy sygnale >= 0,5 (czyli 1).
+        private static bool SignalAllows(TrackedShipServer ship, StatefulPart part)
+        {
+            var connections = ServiceLocator.GetService<Ships.Cables.ConnectionsServerTracker>();
+            var socket = new EntityPartSocket(ship.Id, part.Id, Excavator.SignalSocketId);
+            return connections == null || !connections.TryGetSignalConnectionGroupWithSocket(socket, out _) || connections.GetSignalValue(socket) >= 0.5;
         }
 
         private static MiningSite FindSite(TrackedShipServer ship, StatefulPart part)

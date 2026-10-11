@@ -18,7 +18,7 @@ namespace Mining.Content
 {
     // Koparka to nowa część statku zbudowana na bazie skrzyni (Storage Chest):
     //  - ten sam stan (StorageState), więc zapis gry, sieć i okno ekwipunku działają bez zmian,
-    //  - własny wygląd (model z Meshy przygotowany skryptem AssetSource/process_excavator.py) i wiertło, które kręci się podczas pracy,
+    //  - własny wygląd (model z prostych brył na wzór modelu z Meshy, AssetSource/build_excavator.py) i wiertło, które kręci się podczas pracy,
     //  - gniazda prądu skopiowane z generatora na drewno,
     //  - nowe badanie "Mining" w drzewie badań.
     internal static class Excavator
@@ -27,8 +27,8 @@ namespace Mining.Content
         internal const ushort ResearchId = 200;
         internal const string Label = "Excavator";
         internal const int SlotCount = 4;
-        internal static readonly Vector3 DrillPivot = new Vector3(0.1955f, 0.36f, 0.322f); // DRILL_PIVOT_UNITY z AssetSource/process_excavator.py
-        internal const float DrillLength = 0.68f; // od osi mocowania do czubka (m)
+        internal static readonly Vector3 DrillPivot = new Vector3(-0.02f, 0.62f, -0.12f); // DRILL_PIVOT z AssetSource/build_excavator.py
+        internal const float DrillLength = 1.12f; // od osi mocowania do czubka (m)
 
         private const ushort ChestPartId = 30;
         private const ushort GeneratorPartId = 60;
@@ -93,20 +93,12 @@ namespace Mining.Content
 
             Mesh bodyMesh = ModAssets.LoadMesh("excavator_body.bin");
             Mesh drillMesh = ModAssets.LoadMesh("excavator_drill.bin");
-            Texture2D albedo = ModAssets.LoadTexture("excavator_albedo.jpg");
-            Texture2D normal = ModAssets.LoadTexture("excavator_normal.jpg", linear: true);
-            Texture2D roughness = ModAssets.LoadTexture("excavator_roughness.jpg", linear: true);
+            Texture2D albedo = ModAssets.LoadTexture("excavator_albedo.png");
 
             Transform visual = root.transform.Find("Visual");
             MeshRenderer chestRenderer = visual.GetComponentInChildren<MeshRenderer>(true);
             var material = new Material(chestRenderer.sharedMaterial) { name = "Excavator" };
             material.SetTexture("_Albedo", albedo);
-            // Detale z oryginału Meshy (milion trójkątów) zapisane w mapie normalnych i chropowatości.
-            material.SetTexture("_Normal", normal);
-            material.EnableKeyword("_NORMALMAP");
-            material.SetTexture("_RoughnessMap", roughness);
-            material.SetFloat("_Roughness", 1f);
-            material.SetFloat("_CullMode", 0f); // model z Meshy ma miejscami odwrócone ścianki
             var look = (chestRenderer.gameObject.layer, chestRenderer.shadowCastingMode, chestRenderer.renderingLayerMask);
 
             // Usuwamy model skrzyni i wstawiamy korpus + wiertło (na osobnym obiekcie, żeby się kręciło).
@@ -128,10 +120,11 @@ namespace Mining.Content
             bounds.center = b.center;
             bounds.bounds = b.size;
 
-            // Interakcja (otwieranie jak skrzynię) na całym korpusie.
+            // Interakcja (otwieranie jak skrzynię) tylko na przednim panelu (zasobnik + ekran) - gdyby obejmowała całą
+            // koparkę, zasłaniałaby gniazda prądu i kabla nie dałoby się podłączyć.
             var box = root.transform.Find("Interactions").GetComponentInChildren<BoxCollider>(true);
-            box.center = b.center;
-            box.size = b.size;
+            box.center = new Vector3(0f, 1.1f, -0.5f);
+            box.size = new Vector3(1.3f, 0.55f, 0.35f);
             var interaction = box.GetComponent<PartInteraction>();
             if (interaction != null)
             {
@@ -176,8 +169,12 @@ namespace Mining.Content
         }
 
         // Dwa gniazda prądu (połączone ze sobą, jak w generatorze) na ścianach żółtego korpusu: prawy bok i tył.
-        private static readonly Vector3[] SocketPositions = { new Vector3(0.652f, 0.774f, 0.058f), new Vector3(0.23f, 0.774f, 0.451f) };
-        private static readonly float[] SocketYaw = { 270f, 180f };
+        // Na skrzynkach przyłączeniowych przy nogach (prawa przednia, lewa tylna), tuż poza obrysem koparki (ShipPartBounds) -
+        // inaczej promień narzędzia trafia w kolizję koparki zamiast w gniazdo.
+        private static readonly Vector3[] SocketPositions = { new Vector3(0.95f, 0.42f, -0.62f), new Vector3(-0.95f, 0.42f, 0.62f) };
+        private static readonly float[] SocketYaw = { 270f, 90f };
+        internal const byte SignalSocketId = 2;
+        private static readonly Vector3 SignalSocketPosition = new Vector3(-0.95f, 0.42f, -0.62f); // lewa przednia noga (żółty daszek)
 
         private static void AddPowerSockets(GameObject root, GameObject generator, Bounds body)
         {
@@ -199,6 +196,20 @@ namespace Mining.Content
             var relayed = Traverse.Create(copies[0]).Field("relayedSockets");
             relayed.SetValue(new[] { copies[1] });
             Traverse.Create(copies[1]).Field("relayedSockets").SetValue(new[] { copies[0] });
+
+            // Wejście sygnału (kopia gniazda sygnałowego zaworu): 0 = stop, 1 = praca, bez kabla = praca.
+            SocketObject signalSource = Resources.FindObjectsOfTypeAll<SocketObject>().FirstOrDefault(s => s.Type == CableType.Signal && s.visualObject != null && s.interactive != null);
+            if (signalSource == null)
+            {
+                Melon<MiningMod>.Logger.Warning("Nie znaleziono gniazda sygnałowego do skopiowania - koparka bez wejścia sygnału");
+                return;
+            }
+            SocketObject signal = Object.Instantiate(signalSource.gameObject, root.transform).GetComponent<SocketObject>();
+            signal.name = "SignalSocket";
+            signal.transform.localPosition = SignalSocketPosition;
+            signal.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+            Traverse.Create(signal).Field("id").SetValue(SignalSocketId);
+            Traverse.Create(signal).Field("relayedSockets").SetValue(new SocketObject[0]);
         }
 
         internal static ItemInstance CreateItemInstance(uint itemId, int quantity)

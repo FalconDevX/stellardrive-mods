@@ -7,7 +7,7 @@ using UnityEngine.Rendering;
 namespace Mining.Content
 {
     // Pliki osadzone w DLL (Assets/*): siatki koparki w prostym formacie binarnym i tekstura.
-    // Siatki i tekstury przygotowuje w Blenderze skrypt AssetSource/process_excavator.py z modelu Meshy (GLB).
+    // Siatki i paletę kolorów generuje skrypt AssetSource/build_excavator.py.
     internal static class ModAssets
     {
         internal static byte[] Read(string name)

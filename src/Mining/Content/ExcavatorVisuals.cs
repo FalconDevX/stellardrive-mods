@@ -8,12 +8,13 @@ using UnityEngine;
 
 namespace Mining.Content
 {
-    // Wygląd koparki u każdego gracza: wiertło opuszcza się i kręci, a silnik warczy, gdy koparka pracuje.
+    // Wygląd koparki u każdego gracza: wiertło rozkręca się, wysuwa w ziemię i kręci, a silnik warczy, gdy koparka pracuje.
     // Klient nie zna stanu zasilania, więc "pracuje" = w ostatnich sekundach przybyło rudy w slotach.
     internal class ExcavatorVisuals : DefaultShipPartVisuals
     {
         private const float MaxRpm = 240f;
-        private const float DrillDrop = 0.25f;
+        private const float RestLift = 0.55f;  // w spoczynku wiertło schowane w korpusie
+        private const float Extend = 0.85f;    // przy pracy wysuwa się tyle w dół (w ziemię)
         private const float MaxHearDistance = 35f;
 
         private Transform _drill;
@@ -21,6 +22,7 @@ namespace Mining.Content
         private int _lastTotal = -1;
         private float _lastProducedAt = -100f;
         private float _speed;
+        private float _extend;
         private FMOD.Channel _channel;
         private bool _hasChannel;
 
@@ -75,7 +77,9 @@ namespace Mining.Content
 
             if (_drill != null)
             {
-                _drill.localPosition = _drillRest + Vector3.down * (DrillDrop * Mathf.SmoothStep(0f, 1f, _speed));
+                // Najpierw się rozkręca, potem powoli wysuwa w dół; po zatrzymaniu chowa się z powrotem.
+                _extend = Mathf.MoveTowards(_extend, _speed > 0.6f ? 1f : 0f, Time.deltaTime * (_speed > 0.6f ? 0.25f : 0.4f));
+                _drill.localPosition = _drillRest + Vector3.up * RestLift - Vector3.up * (Extend * Mathf.SmoothStep(0f, 1f, _extend));
                 _drill.Rotate(Vector3.up, _speed * MaxRpm * 6f * Time.deltaTime, Space.Self);
             }
             UpdateSound();

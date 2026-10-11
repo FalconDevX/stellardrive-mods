@@ -331,6 +331,16 @@ namespace Mining.Diagnostics
                 yield return null;
                 yield return null;
             }
+            // Czy promień "z ręki gracza" trafia w gniazdo prądu, a nie w kolizję koparki.
+            foreach (var socket in UnityEngine.Object.FindObjectsOfType<Ships.Cables.VisualObjects.SocketInteractionObject>().Where(o => o.EntityPartSocket.EntityId == shipId))
+            {
+                Vector3 target = socket.transform.position;
+                Vector3 outward = (target - (ship != null && shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(shipId, 1), out var v2) ? v2.GameObject.transform.position + v2.GameObject.transform.up * 0.42f : target - up2)).normalized;
+                Vector3 from = target + outward * 1.2f + up2 * 0.3f;
+                bool any = WorldTracking.Interface.Values.ClientScene.PhysicsScene.Raycast(from, (target - from).normalized, out RaycastHit sh, 3f, ~0, QueryTriggerInteraction.Collide);
+                log.Msg($"[test] gniazdo {socket.EntityPartSocket.Socket.SocketId}: promień trafia w {(any ? sh.collider.name + " (warstwa " + LayerMask.LayerToName(sh.collider.gameObject.layer) + ")" : "nic")}" +
+                        $"{(any && sh.collider.GetComponentInParent<Ships.Cables.VisualObjects.SocketInteractionObject>() == socket ? " = GNIAZDO OK" : "")}");
+            }
             if (ship != null) log.Msg($"[test] statek po 8 s: pozycja {ship.LocalPhysicsState.Position}, nachylenie {Vector3.Angle(ship.LocalPhysicsState.Rotation * Vector3.up, up2):0.0}°");
             cam.enabled = true;
             UnityEngine.Object.Destroy(testCam2.gameObject);
