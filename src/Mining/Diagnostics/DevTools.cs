@@ -71,7 +71,8 @@ namespace Mining.Diagnostics
             var log = Melon<MiningMod>.Logger;
             var shipsServer = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>();
             var floor = new Ships.Interface.Services.PartSettingsProvider().GetAllPartSettings().FirstOrDefault(p => p.id == 70) as HullPartSettings;
-            Ships.TrackedShipServer ship = shipsServer?.Ships.OrderBy(sh => sh.Id).FirstOrDefault();
+            Ships.TrackedShipServer ship = shipsServer?.Ships.OrderByDescending(sh => sh.GetStateSnapshot().HullParts.Length).FirstOrDefault();
+            log.Msg($"[perf] statek {ship?.Id}: {ship?.GetStateSnapshot().HullParts.Length} elementów kadłuba, {ship?.StatefulParts.Count()} części");
             if (floor == null || ship == null)
             {
                 log.Msg("[perf] brak statku albo podłogi");
@@ -86,7 +87,7 @@ namespace Mining.Diagnostics
             var positions = new List<Ships.Interface.Model.Placement.HullPartPosition>();
             for (int i = 1; i <= 30; i++)
             {
-                var placement = new Ships.Interface.Model.Placement.HullPartPlacement(new Vector3Int(i, 0, 0), Ships.Interface.Model.VoxelPartType.Floor,
+                var placement = new Ships.Interface.Model.Placement.HullPartPlacement(new Vector3Int(i, 40, 0), Ships.Interface.Model.VoxelPartType.Floor,
                     (Ships.Interface.Model.Placement.PartOrientation)4, (Ships.Interface.Model.Placement.PartOrientation)1);
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 ship.AddHullPart(floor, placement);
@@ -200,7 +201,7 @@ namespace Mining.Diagnostics
 
             // Nowe części napędu wodorowego obok koparki (sam wygląd).
             var provider = new Ships.Interface.Services.PartSettingsProvider();
-            foreach (var (id, offset) in new[] { (Content.HydrogenThruster.PartId, -2.2f), (Content.ElectrolyzerPart.PartId, 2.4f) })
+            foreach (var (id, offset) in new[] { (Content.HydrogenThruster.PartId, -2.2f), (Content.ElectrolyzerPart.PartId, 2.4f), (Content.Reactor.PartId, 5.6f) })
             {
                 PartSettings extra = provider.GetAllPartSettings().FirstOrDefault(p => p.id == id);
                 log.Msg($"[test] część {id}: {(extra != null ? extra.fullLabel : "BRAK")}");

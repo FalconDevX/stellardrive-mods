@@ -15,10 +15,16 @@ namespace Mining
         internal static MelonPreferences_Entry<float> SiteSpacing;
         internal static MelonPreferences_Entry<float> SiteChance;
         internal static MelonPreferences_Entry<float> SiteRadius;
+        internal static MelonPreferences_Entry<float> UraniumChance;
         internal static MelonPreferences_Entry<bool> ShowSites;
         internal static MelonPreferences_Entry<float> DrillVolume;
         internal static MelonPreferences_Entry<float> HydrogenThrustMultiplier;
         internal static MelonPreferences_Entry<float> RotorSpeed;
+        internal static MelonPreferences_Entry<float> JetpackSecondsPerWood;
+        internal static MelonPreferences_Entry<float> JetpackAcceleration;
+        internal static MelonPreferences_Entry<float> JetpackMaxSpeed;
+        internal static MelonPreferences_Entry<float> ReactorPower;
+        internal static MelonPreferences_Entry<float> ReactorSecondsPerUranium;
         internal static MelonPreferences_Entry<string> DevAutoLoadWorld;
         internal static MelonPreferences_Entry<bool> DevDump;
         internal static MelonPreferences_Entry<bool> DevQuitAfterDump;
@@ -31,14 +37,21 @@ namespace Mining
         public override void OnInitializeMelon()
         {
             var category = MelonPreferences.CreateCategory("Mining");
-            SecondsPerItem = category.CreateEntry("SecondsPerItem", 4f, description: "Co ile sekund koparka wydobywa 1 sztukę rudy (przy pełnym zasilaniu)");
+            category.DeleteEntry("SecondsPerItem"); // stara wartość domyślna (4 s) - zastąpiona szybszą
+            SecondsPerItem = category.CreateEntry("SecondsPerOre", 1f, description: "Co ile sekund koparka wydobywa 1 sztukę rudy (przy pełnym zasilaniu). Wystarczy u hosta");
             PowerWatts = category.CreateEntry("PowerWatts", 1500f, description: "Pobór prądu koparki (W). Generator na drewno daje 4000 W");
             SiteSpacing = category.CreateEntry("SiteSpacing", 300f,
                 description: "Rozmiar komórki siatki złóż (m) - w każdej może być jedno złoże. Mniej = złoża gęściej. Wszyscy gracze muszą mieć to samo");
             SiteChance = category.CreateEntry("SiteChance", 0.5f, description: "Szansa na złoże w komórce (0-1). Wszyscy gracze muszą mieć to samo");
             SiteRadius = category.CreateEntry("SiteRadius", 5f, description: "Promień złoża (m). Wszyscy gracze muszą mieć to samo");
+            UraniumChance = category.CreateEntry("UraniumChance", 0.12f, description: "Jaka część złóż na Otrera b to uran (0-1). Wszyscy gracze muszą mieć to samo");
             ShowSites = category.CreateEntry("ShowSites", true, description: "Pokazuj złoża (pola kamieni z rudą)");
             DrillVolume = category.CreateEntry("DrillVolume", 0.8f, description: "Głośność wiertła (0-1)");
+            ReactorPower = category.CreateEntry("ReactorPower", 20000f, description: "Moc reaktora (W). Generator na drewno daje 4000 W. Wystarczy u hosta");
+            ReactorSecondsPerUranium = category.CreateEntry("ReactorSecondsPerUranium", 120f, description: "Na ile sekund pracy na pełnej mocy starcza 1 uran. Wystarczy u hosta");
+            JetpackSecondsPerWood = category.CreateEntry("JetpackSecondsPerWood", 20f, description: "Ile sekund lotu jetpackiem daje 1 drewno. Wystarczy u hosta");
+            JetpackAcceleration = category.CreateEntry("JetpackAcceleration", 6f, description: "Przyspieszenie jetpacka w górę ponad grawitację (m/s^2). Wszyscy gracze muszą mieć to samo");
+            JetpackMaxSpeed = category.CreateEntry("JetpackMaxSpeed", 7f, description: "Maksymalna prędkość wznoszenia jetpackiem (m/s). Wszyscy gracze muszą mieć to samo");
             RotorSpeed = category.CreateEntry("RotorSpeed", 90f, description: "Prędkość obrotu rotora (stopnie na sekundę). Wystarczy u hosta");
             HydrogenThrustMultiplier = category.CreateEntry("HydrogenThrustMultiplier", 1.8f, description: "Ile razy silnik wodorowy jest mocniejszy od chemicznego. Wystarczy u hosta");
             DevAutoLoadWorld = category.CreateEntry("DevAutoLoadWorld", "",

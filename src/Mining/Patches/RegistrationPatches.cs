@@ -19,6 +19,7 @@ namespace Mining.Patches
             (Excavator.PartId, Excavator.GetOrCreatePart, () => Excavator.Part, 30),            // obok skrzyni
             (HydrogenThruster.PartId, HydrogenThruster.GetOrCreatePart, () => HydrogenThruster.Part, 19), // obok silnika chemicznego
             (ElectrolyzerPart.PartId, ElectrolyzerPart.GetOrCreatePart, () => ElectrolyzerPart.Part, 80), // obok destylatora
+            (Reactor.PartId, Reactor.GetOrCreatePart, () => Reactor.Part, 60),                  // obok generatora na drewno
         };
 
         // Napęd wodorowy za badaniem Mining (w tym samym rzędzie drzewa).
@@ -30,6 +31,16 @@ namespace Mining.Patches
         internal static readonly ModResearch MechanicsResearch = new ModResearch(RotorUnlock.ResearchId, "Mechanics", new Vector2Int(4, 5), 16,
             () => new[] { RotorUnlock.Rotor },
             (Items.Model.ItemsConstants.IronItemId, 20), (112, 10));
+
+        // Reaktor za napędem wodorowym (w tym samym rzędzie); do badania potrzebny uran.
+        internal static readonly ModResearch NuclearResearch = new ModResearch(204, "Nuclear Power", new Vector2Int(6, 4), 201,
+            () => new[] { Reactor.Part },
+            (Items.Model.ItemsConstants.IronItemId, 40), (112, 20), (Uranium.ItemId, 10));
+
+        // Ulepszenie kostiumu: jetpack na drewno - za badaniem Beacons (2,1), w tym samym rzędzie.
+        internal static readonly ModResearch JetpackResearch = new ModResearch(Jetpack.ResearchId, "Jetpack", new Vector2Int(3, 1), 14,
+            () => new PartSettings[0],
+            (Items.Model.ItemsConstants.IronItemId, 25), (112, 10), (Items.Model.ItemsConstants.WoodItemId, 30)) { AllowNoParts = true };
 
         // Części gry, których demo nie pokazuje w menu budowania: (część, obok której części gry ją dodać).
         internal static IEnumerable<(PartSettings part, ushort menuNextTo)> MenuParts()
@@ -46,6 +57,8 @@ namespace Mining.Patches
             Excavator.EnsureResearch();
             HydrogenResearch.Ensure();
             MechanicsResearch.Ensure();
+            NuclearResearch.Ensure();
+            JetpackResearch.Ensure();
         }
     }
 

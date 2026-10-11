@@ -190,7 +190,7 @@ namespace Mining.Sites
                 model.transform.SetParent(go.transform, false);
                 model.AddComponent<MeshFilter>().sharedMesh = CombineRocks(rockInfo.Mesh, matrices, go.name);
                 var renderer = model.AddComponent<MeshRenderer>();
-                renderer.sharedMaterials = rockInfo.Materials;
+                renderer.sharedMaterials = MaterialsFor(site, rockInfo);
                 renderer.shadowCastingMode = ShadowCastingMode.On;
                 return go;
             }
@@ -202,10 +202,13 @@ namespace Mining.Sites
                 rock.transform.localRotation = m.rotation;
                 rock.transform.localScale = m.lossyScale;
                 rock.AddComponent<MeshFilter>().sharedMesh = rockInfo.Mesh;
-                rock.AddComponent<MeshRenderer>().sharedMaterials = rockInfo.Materials;
+                rock.AddComponent<MeshRenderer>().sharedMaterials = MaterialsFor(site, rockInfo);
             }
             return go;
         }
+
+        private static Material[] MaterialsFor(MiningSite site, Rock rock) =>
+            site.Kind.Glowing ? rock.Materials.Select(Content.Uranium.Glow).ToArray() : rock.Materials;
 
         private static Mesh CombineRocks(Mesh rock, List<Matrix4x4> matrices, string name)
         {

@@ -106,6 +106,7 @@ namespace Mining.Content
         private readonly Func<PartSettings[]> _parts;
         private readonly (uint item, int quantity)[] _cost;
         private ResearchSettings _research;
+        internal bool AllowNoParts; // badanie odblokowujące funkcję (np. jetpack), a nie część
 
         internal ModResearch(ushort id, string name, Vector2Int position, ushort requiredId, Func<PartSettings[]> parts, params (uint, int)[] cost)
         {
@@ -120,7 +121,7 @@ namespace Mining.Content
         internal void Ensure()
         {
             PartSettings[] parts = _parts().Where(p => p != null).ToArray();
-            if (parts.Length == 0)
+            if (parts.Length == 0 && !AllowNoParts)
             {
                 return;
             }

@@ -20,6 +20,7 @@ namespace Mining.Sites
         internal string Name;
         internal uint ItemId;
         internal GameObject RockPrefab;
+        internal bool Glowing; // uran: kamienie w świecącym zielonym materiale
     }
 
     internal sealed class MiningSite
@@ -53,6 +54,7 @@ namespace Mining.Sites
             internal ResourceKind[] Kinds;
             internal PlanetDensePlacementConfig Forest;
             internal float ForestThreshold;
+            internal ResourceKind Uranium; // tylko na Otrera b (na razie)
         }
 
         private static readonly Dictionary<ulong, PlanetInfo> Planets = new Dictionary<ulong, PlanetInfo>();
@@ -154,6 +156,11 @@ namespace Mining.Sites
             Vector3 dir = FromCell(face, u, v);
             ResourceKind kind = info.Kinds[rng.Next(info.Kinds.Length)];
             float radius = MiningMod.SiteRadius.Value * (0.85f + 0.3f * (float)rng.NextDouble());
+            // Uran losowany osobno (nie zmienia położenia ani rodzaju pozostałych złóż).
+            if (info.Uranium != null && Hash((ulong)key ^ 0x55AA55AA55UL) % 1000 < (ulong)(MiningMod.UraniumChance.Value * 1000f))
+            {
+                kind = info.Uranium;
+            }
 
             // Na polach: z dala od lasu i na w miarę płaskim terenie.
             if (info.Forest != null && info.Forest.EvaluateNoiseAtPosition(dir) >= info.ForestThreshold)
@@ -210,6 +217,14 @@ namespace Mining.Sites
                 CellsPerFace = Mathf.Clamp(Mathf.RoundToInt(planet.Radius * Mathf.PI * 0.5f / spacing), 1, 1 << 19),
                 Kinds = FindKinds(planet),
             };
+            if (planet.Id == 4 || planet.name.Contains("Otrera b"))
+            {
+                GameObject rock = info.Kinds.FirstOrDefault(k => k.Key == "Iron")?.RockPrefab ?? info.Kinds.FirstOrDefault()?.RockPrefab;
+                if (rock != null)
+                {
+                    info.Uranium = new ResourceKind { Key = "Uranium", Name = "uranium", ItemId = Content.Uranium.ItemId, RockPrefab = rock, Glowing = true };
+                }
+            }
 
             var dense = planet.GetComponent<PlanetDenseEnvironment>();
             var hotspots = planet.GetComponent<PlanetHotspotsEnvironment>();
@@ -220,7 +235,7 @@ namespace Mining.Sites
                 info.ForestThreshold = avoid.denseEnvThreshold;
             }
             Planets[planetId] = info;
-            Melon<MiningMod>.Logger.Msg($"Złoża na {planet.name}: {string.Join(", ", info.Kinds.Select(k => k.Name))} " +
+            Melon<MiningMod>.Logger.Msg($"Złoża na {planet.name}: {string.Join(", ", info.Kinds.Select(k => k.Name))}{(info.Uranium != null ? ", uranium" : "")} " +
                                         $"(co ok. {spacing:0} m, szansa {MiningMod.SiteChance.Value:0.##}, las: {(info.Forest != null ? "omijany" : "brak")})");
             return info;
         }

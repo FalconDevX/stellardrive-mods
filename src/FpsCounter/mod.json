@@ -1,0 +1,7 @@
+{
+  "id": "stellardrive-fpscounter",
+  "name": "FPS Counter",
+  "author": "mateu",
+  "version": "0.1.0",
+  "description": "Licznik FPS (i najdłuższej klatki) w prawym górnym rogu ekranu. F3 włącza/wyłącza, ustawienie ShowFps."
+}
