@@ -180,7 +180,7 @@ namespace Mining.Patches
                     rect.anchorMax = trashRect.anchorMax;
                     rect.pivot = trashRect.pivot;
                     rect.sizeDelta = size;
-                    rect.anchoredPosition = trashRect.anchoredPosition + new Vector2(0f, trashRect.rect.height * (1f - trashRect.pivot.y) + size.y * rect.pivot.y + size.y * 0.3f);
+                    rect.anchoredPosition = trashRect.anchoredPosition + new Vector2(0f, trashRect.rect.height * (1f - trashRect.pivot.y) + size.y * rect.pivot.y + size.y * 0.65f);
                 }
                 else
                 {
