@@ -279,10 +279,21 @@ namespace Mining.Diagnostics
             Quaternion rot2 = Quaternion.LookRotation(-fwd2, up2);
             Patches.CreateShipWithExcavatorPatch.AlignToTerrain(ref groundPos, ref rot2, up2);
             log.Msg($"[test] nachylenie terenu pod koparką: {Vector3.Angle(rot2 * Vector3.up, up2):0.0}°");
-            uint shipId = Patches.ServerCreateShipPatch.CreateExcavatorShip(part, new WorldTracking.Interface.Model.WorldTransform
+            // Przez prawdziwą metodę serwera (z łatką Mining), jak po kliknięciu narzędziem budowania.
+            var shipsBefore = new HashSet<uint>(Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>().Ships.Select(sh => sh.Id));
+            var interaction = UnityEngine.Object.FindObjectOfType<Managers.Server.Services.ShipInteractionService>();
+            var conn = FishNet.InstanceFinder.ServerManager.Clients.Values.FirstOrDefault();
+            var testPlayer = conn != null ? Core.Services.ServiceLocator.GetService<Players.Services.PlayersServerTracker>().GetTrackedPlayerFromConnectionId(conn.ClientId) : null;
+            log.Msg($"[test] połączenie: {(conn != null ? conn.ClientId.ToString() : "brak")}, gracz: {(testPlayer != null ? "jest" : "brak")}");
+            testPlayer?.AddItemToInventory(new ItemDrop { ItemId = 101, Quantity = 30 });
+            testPlayer?.AddItemToInventory(new ItemDrop { ItemId = 112, Quantity = 10 });
+            var rpc = AccessTools.Method(typeof(Managers.Server.Services.ShipInteractionService), "RpcLogic___CreateShip_ServerRPC___2476380455");
+            rpc.Invoke(interaction, new object[] { new Managers.Interface.Model.CreateShipNetworkRequest
             {
-                SpaceId = WorldTracking.Interface.Values.ClientOrigin.LocalPhysicsSpaceId, Position = groundPos, Rotation = rot2,
-            });
+                PartId = Content.Excavator.PartId,
+                WorldTransform = new WorldTracking.Interface.Model.WorldTransform { SpaceId = WorldTracking.Interface.Values.ClientOrigin.LocalPhysicsSpaceId, Position = groundPos, Rotation = rot2 },
+            }, conn });
+            uint shipId = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>().Ships.Select(sh => sh.Id).FirstOrDefault(id => !shipsBefore.Contains(id));
             log.Msg($"[test] statek z koparką: {shipId}");
             UnityEngine.Object.Destroy(excavator);
             yield return new WaitForSeconds(3f);

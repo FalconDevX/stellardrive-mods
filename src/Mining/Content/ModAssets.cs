@@ -7,7 +7,7 @@ using UnityEngine.Rendering;
 namespace Mining.Content
 {
     // Pliki osadzone w DLL (Assets/*): siatki koparki w prostym formacie binarnym i tekstura.
-    // Siatki i paleta kolorów generuje skrypt AssetSource/build_excavator.py.
+    // Siatki i tekstury przygotowuje w Blenderze skrypt AssetSource/process_excavator.py z modelu Meshy (GLB).
     internal static class ModAssets
     {
         internal static byte[] Read(string name)
@@ -71,10 +71,11 @@ namespace Mining.Content
             }
         }
 
-        internal static Texture2D LoadTexture(string name)
+        // linear: dane zamiast koloru (mapa normalnych, chropowatość) - bez korekcji sRGB.
+        internal static Texture2D LoadTexture(string name, bool linear = false)
         {
             byte[] data = Read(name) ?? throw new FileNotFoundException(name);
-            var tex = new Texture2D(2, 2, TextureFormat.RGBA32, true) { name = Path.GetFileNameWithoutExtension(name) };
+            var tex = new Texture2D(2, 2, TextureFormat.RGBA32, true, linear) { name = Path.GetFileNameWithoutExtension(name) };
             // ImageConversion wywołujemy przez refleksję: moduł jest zbudowany na netstandard 2.1, a mody na net472.
             var loadImage = Type.GetType("UnityEngine.ImageConversion, UnityEngine.ImageConversionModule")
                 ?.GetMethod("LoadImage", new[] { typeof(Texture2D), typeof(byte[]), typeof(bool) });

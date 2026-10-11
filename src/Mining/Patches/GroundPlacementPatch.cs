@@ -33,8 +33,9 @@ namespace Mining.Patches
     // na terenie: klient dopasowuje ją do nachylenia (teren pod czterema nogami), a serwer zakłada statek z samą koparką.
     internal static class GroundPlacement
     {
-        // Pozycje stóp względem środka koparki (model low-poly z AssetSource/build_excavator.py).
-        internal static readonly Vector2[] Feet = { new Vector2(-0.74f, -0.62f), new Vector2(0.74f, -0.62f), new Vector2(-0.74f, 0.62f), new Vector2(0.74f, 0.62f) };
+        // Pozycje stóp (x, z) względem środka koparki - FOOT_UNITY z AssetSource/process_excavator.py.
+        // Kolejność: lewy przód, prawy przód, lewy tył, prawy tył (przekątne 0-3 i 1-2).
+        internal static readonly Vector2[] Feet = { new Vector2(-0.685f, -0.536f), new Vector2(0.758f, -0.649f), new Vector2(-0.695f, 0.693f), new Vector2(0.769f, 0.68f) };
     }
 
     [HarmonyPatch(typeof(PartPreview), "IsPartPlaceableInWorld")]
@@ -45,6 +46,41 @@ namespace Mining.Patches
             if (!__result && isOnGround && Excavator.IsExcavator(____actualPreviewSettings))
             {
                 __result = true;
+            }
+        }
+    }
+
+    // Hologram podglądu: na ziemi pokazujemy koparkę przechyloną zgodnie z terenem (tak, jak zostanie postawiona).
+    // Przechylamy dzieci obiektu podglądu, bo jego własny obrót gra wykorzystuje w następnej klatce.
+    [HarmonyPatch(typeof(PartPreview), "Update")]
+    internal static class PreviewTiltPatch
+    {
+        private static void Postfix(PartSettings ____actualPreviewSettings, GameObject ____objectPreview, object ____snappedPlacement)
+        {
+            if (____objectPreview == null || !Excavator.IsExcavator(____actualPreviewSettings))
+            {
+                return;
+            }
+            Transform root = ____objectPreview.transform;
+            Vector3 position = root.position;
+            Quaternion rotation = root.rotation;
+            bool tilt = false;
+            if (____snappedPlacement == null)
+            {
+                Vector3 up = ServiceLocator.GetService<IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
+                tilt = CreateShipWithExcavatorPatch.AlignToTerrain(ref position, ref rotation, up) == GroundPlacement.Feet.Length;
+            }
+            foreach (Transform child in root)
+            {
+                if (tilt)
+                {
+                    child.SetPositionAndRotation(position, rotation);
+                }
+                else
+                {
+                    child.localPosition = Vector3.zero;
+                    child.localRotation = Quaternion.identity;
+                }
             }
         }
     }
@@ -78,19 +114,27 @@ namespace Mining.Patches
         }
 
         // Teren pod każdą stopą (promień w dół wzdłuż "góry" gracza), z tego płaszczyzna: obrót i wysokość.
-        internal static void AlignToTerrain(ref Vector3 position, ref Quaternion rotation, Vector3 up)
+        // Zwraca, pod iloma stopami znaleziono teren.
+        internal static int AlignToTerrain(ref Vector3 position, ref Quaternion rotation, Vector3 up)
         {
             Vector3 forward = Vector3.ProjectOnPlane(rotation * Vector3.forward, up).normalized;
             if (forward.sqrMagnitude < 0.01f) forward = Vector3.ProjectOnPlane(Vector3.forward, up).normalized;
             Vector3 right = Vector3.Cross(up, forward);
             var hits = new Vector3[GroundPlacement.Feet.Length];
+            int found = 0;
             for (int i = 0; i < hits.Length; i++)
             {
                 Vector2 f = GroundPlacement.Feet[i];
                 Vector3 above = position + right * f.x + forward * f.y + up * 3f;
-                hits[i] = ClientScene.PhysicsScene.Raycast(above, -up, out RaycastHit hit, 8f, RaycastMasks.BuildDetectionLayer)
-                    ? hit.point
-                    : above - up * 3f;
+                if (ClientScene.PhysicsScene.Raycast(above, -up, out RaycastHit hit, 8f, RaycastMasks.BuildDetectionLayer) && hit.collider.CompareTag("Planet"))
+                {
+                    hits[i] = hit.point;
+                    found++;
+                }
+                else
+                {
+                    hits[i] = above - up * 3f;
+                }
             }
             // Przekątne stóp (0-3 i 1-2) wyznaczają nachylenie.
             Vector3 normal = Vector3.Cross(hits[3] - hits[0], hits[1] - hits[2]).normalized;
@@ -106,6 +150,7 @@ namespace Mining.Patches
             Vector3 center = (hits[0] + hits[1] + hits[2] + hits[3]) / 4f;
             foreach (Vector3 h in hits) best = Mathf.Max(best, Vector3.Dot(h - center, normal));
             position = center + normal * (best + 0.03f);
+            return found;
         }
     }
 
@@ -113,8 +158,11 @@ namespace Mining.Patches
     [HarmonyPatch(typeof(ShipInteractionService), "RpcLogic___CreateShip_ServerRPC___2476380455")]
     internal static class ServerCreateShipPatch
     {
-        private static bool Prefix(CreateShipNetworkRequest P_0, FishNet.Connection.NetworkConnection P_1)
+        // Parametry po pozycji (__0, __1) - nazwy w skompilowanej grze różnią się od tych z dekompilacji.
+        private static bool Prefix(CreateShipNetworkRequest __0, FishNet.Connection.NetworkConnection __1)
         {
+            CreateShipNetworkRequest P_0 = __0;
+            FishNet.Connection.NetworkConnection P_1 = __1;
             var parts = new PartSettingsProvider();
             PartSettings settings;
             try
@@ -135,11 +183,13 @@ namespace Mining.Patches
                 var players = ServiceLocator.GetService<PlayersServerTracker>();
                 if (P_1 == null || !spaces.HasSpace(P_0.WorldTransform.SpaceId))
                 {
+                    Melon<MiningMod>.Logger.Warning($"Koparka na ziemi: brak połączenia albo przestrzeni {P_0.WorldTransform.SpaceId}");
                     return false;
                 }
                 TrackedPlayerServer player = players.GetTrackedPlayerFromConnectionId(P_1.ClientId);
                 if (player == null)
                 {
+                    Melon<MiningMod>.Logger.Warning($"Koparka na ziemi: nie znaleziono gracza {P_1.ClientId}");
                     return false;
                 }
                 if (!player.IsUsingCheatFreeBuild)
@@ -147,6 +197,7 @@ namespace Mining.Patches
                     List<ItemDrop> cost = settings.BuildingCost;
                     if (!player.HasItemsInInventory(cost))
                     {
+                        Melon<MiningMod>.Logger.Msg("Koparka na ziemi: za mało surowców w ekwipunku");
                         return false;
                     }
                     player.RemoveItemsFromInventory(cost);

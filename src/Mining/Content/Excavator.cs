@@ -18,7 +18,7 @@ namespace Mining.Content
 {
     // Koparka to nowa część statku zbudowana na bazie skrzyni (Storage Chest):
     //  - ten sam stan (StorageState), więc zapis gry, sieć i okno ekwipunku działają bez zmian,
-    //  - własny wygląd (model low-poly z AssetSource/build_excavator.py) i wiertło, które kręci się podczas pracy,
+    //  - własny wygląd (model z Meshy przygotowany skryptem AssetSource/process_excavator.py) i wiertło, które kręci się podczas pracy,
     //  - gniazda prądu skopiowane z generatora na drewno,
     //  - nowe badanie "Mining" w drzewie badań.
     internal static class Excavator
@@ -27,8 +27,8 @@ namespace Mining.Content
         internal const ushort ResearchId = 200;
         internal const string Label = "Excavator";
         internal const int SlotCount = 4;
-        internal static readonly Vector3 DrillPivot = new Vector3(0.08f, 0.53f, 0.02f); // jak DRILL_PIVOT w AssetSource/build_excavator.py
-        internal const float DrillLength = 0.8f; // od osi mocowania do czubka (m)
+        internal static readonly Vector3 DrillPivot = new Vector3(0.1955f, 0.36f, 0.322f); // DRILL_PIVOT_UNITY z AssetSource/process_excavator.py
+        internal const float DrillLength = 0.68f; // od osi mocowania do czubka (m)
 
         private const ushort ChestPartId = 30;
         private const ushort GeneratorPartId = 60;
@@ -93,12 +93,20 @@ namespace Mining.Content
 
             Mesh bodyMesh = ModAssets.LoadMesh("excavator_body.bin");
             Mesh drillMesh = ModAssets.LoadMesh("excavator_drill.bin");
-            Texture2D albedo = ModAssets.LoadTexture("excavator_albedo.png");
+            Texture2D albedo = ModAssets.LoadTexture("excavator_albedo.jpg");
+            Texture2D normal = ModAssets.LoadTexture("excavator_normal.jpg", linear: true);
+            Texture2D roughness = ModAssets.LoadTexture("excavator_roughness.jpg", linear: true);
 
             Transform visual = root.transform.Find("Visual");
             MeshRenderer chestRenderer = visual.GetComponentInChildren<MeshRenderer>(true);
             var material = new Material(chestRenderer.sharedMaterial) { name = "Excavator" };
             material.SetTexture("_Albedo", albedo);
+            // Detale z oryginału Meshy (milion trójkątów) zapisane w mapie normalnych i chropowatości.
+            material.SetTexture("_Normal", normal);
+            material.EnableKeyword("_NORMALMAP");
+            material.SetTexture("_RoughnessMap", roughness);
+            material.SetFloat("_Roughness", 1f);
+            material.SetFloat("_CullMode", 0f); // model z Meshy ma miejscami odwrócone ścianki
             var look = (chestRenderer.gameObject.layer, chestRenderer.shadowCastingMode, chestRenderer.renderingLayerMask);
 
             // Usuwamy model skrzyni i wstawiamy korpus + wiertło (na osobnym obiekcie, żeby się kręciło).
@@ -168,7 +176,7 @@ namespace Mining.Content
         }
 
         // Dwa gniazda prądu (połączone ze sobą, jak w generatorze) na ścianach żółtego korpusu: prawy bok i tył.
-        private static readonly Vector3[] SocketPositions = { new Vector3(0.58f, 1.02f, 0.22f), new Vector3(0.32f, 1.02f, 0.47f) };
+        private static readonly Vector3[] SocketPositions = { new Vector3(0.652f, 0.774f, 0.058f), new Vector3(0.23f, 0.774f, 0.451f) };
         private static readonly float[] SocketYaw = { 270f, 180f };
 
         private static void AddPowerSockets(GameObject root, GameObject generator, Bounds body)
