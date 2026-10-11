@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.2.2", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.2.3", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -47,7 +47,8 @@ namespace Mining
                 description: "Rozmiar komórki siatki złóż (m) - w każdej może być jedno złoże. Mniej = złoża gęściej. Wszyscy gracze muszą mieć to samo");
             SiteChance = category.CreateEntry("SiteChance", 0.5f, description: "Szansa na złoże w komórce (0-1). Wszyscy gracze muszą mieć to samo");
             SiteRadius = category.CreateEntry("SiteRadius", 5f, description: "Promień złoża (m). Wszyscy gracze muszą mieć to samo");
-            UraniumChance = category.CreateEntry("UraniumChance", 0.12f, description: "Jaka część złóż na Otrera b to uran (0-1). Wszyscy gracze muszą mieć to samo");
+            category.DeleteEntry("UraniumChance"); // stara wartość (0.12) - uranu było za mało
+            UraniumChance = category.CreateEntry("UraniumShare", 0.3f, description: "Jaka część złóż na Otrera b to uran (0-1). Wszyscy gracze muszą mieć to samo");
             ShowSites = category.CreateEntry("ShowSites", true, description: "Pokazuj złoża (pola kamieni z rudą)");
             DrillVolume = category.CreateEntry("DrillVolume", 0.8f, description: "Głośność wiertła (0-1)");
             ReactorPower = category.CreateEntry("ReactorPower", 20000f, description: "Moc reaktora (W). Generator na drewno daje 4000 W. Wystarczy u hosta");
