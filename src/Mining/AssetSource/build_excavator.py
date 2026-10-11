@@ -208,6 +208,10 @@ body.box((-0.3, 1.62, 0.22), (0.56, 0.04, 0.5), 'dark')
 body.box((-0.3, 1.43, -0.015), (0.3, 0.12, 0.01), 'dark')
 body.cylinder((-0.08, 1.52, 0.33), 0.035, 0.3, 'dark', 8)
 body.cylinder((-0.08, 1.35, 0.33), 0.035, 0.3, 'dark', 8)
+# rura wydechowa na skrzyni silnika (z niej leci dym - EXHAUST_TOP)
+body.cylinder((-0.44, 1.8, 0.34), 0.05, 0.32, 'dark', 10)
+body.cylinder((-0.44, 1.97, 0.34), 0.065, 0.04, 'black', 10)
+EXHAUST_TOP = (-0.44, 1.99, 0.34)
 
 # --- Wieżyczka: szara rama portalowa, żółty środek, czarne sprężyny, nakrętka z pomarańczowym pierścieniem ---
 TX, TZ = CX, CZ
@@ -266,7 +270,7 @@ for k in range(steps):
 
 body.write(os.path.join(OUT, 'excavator_body.bin'))
 drill.write(os.path.join(OUT, 'excavator_drill.bin'))
-print('DRILL_PIVOT', DRILL_PIVOT)
+print('DRILL_PIVOT', DRILL_PIVOT, 'EXHAUST_TOP', EXHAUST_TOP)
 
 img = Image.new('RGB', (CELL * GRID, CELL * GRID), COLORS['grey'])
 for i, name in enumerate(NAMES):

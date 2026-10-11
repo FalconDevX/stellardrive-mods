@@ -28,9 +28,12 @@ namespace Mining.Content
         internal bool ForceWorking;
 
         // Pył spod wiertła: kopia mgiełki, którą gra pokazuje przy ścinaniu drzew (DustPoof).
-        private static ParticleSystem _dustTemplate;
+        // Dym z rury wydechowej: kopia dymu gry (SmokePoof). W grze to jednorazowe obłoki - tu ciągłe strumienie.
+        private static readonly Vector3 ExhaustTop = new Vector3(-0.44f, 1.99f, 0.34f); // EXHAUST_TOP z AssetSource/build_excavator.py
         private ParticleSystem _dust;
+        private ParticleSystem _smoke;
         private bool _dustPlaying;
+        private bool _smokePlaying;
 
         private void Awake()
         {
@@ -38,45 +41,66 @@ namespace Mining.Content
             if (_drill != null)
             {
                 _drillRest = _drill.localPosition;
+                _dust = CreateEffect("DustPoof", "DrillDust", new Vector3(_drillRest.x, 0.05f, _drillRest.z),
+                    lifetime: (1.8f, 3f), size: (0.6f, 1.4f), speed: (0.2f, 0.7f), rate: 7f, angle: 55f, radius: 0.25f, grow: 1f);
             }
-            CreateDust();
+            _smoke = CreateEffect("SmokePoof", "ExhaustSmoke", ExhaustTop,
+                lifetime: (2.5f, 3.5f), size: (0.15f, 0.3f), speed: (0.9f, 1.3f), rate: 6f, angle: 8f, radius: 0.03f, grow: 5f);
+            if (_smoke != null)
+            {
+                // Szary i półprzezroczysty, pod koniec znika (dym gry jest biały albo czarny i gęsty).
+                var main = _smoke.main;
+                main.startColor = new Color(0.55f, 0.55f, 0.56f, 0.32f);
+                var color = _smoke.colorOverLifetime;
+                color.enabled = true;
+                var gradient = new Gradient
+                {
+                    colorKeys = new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(new Color(0.85f, 0.85f, 0.85f), 1f) },
+                    alphaKeys = new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.15f), new GradientAlphaKey(0.6f, 0.6f), new GradientAlphaKey(0f, 1f) },
+                };
+                color.color = new ParticleSystem.MinMaxGradient(gradient);
+            }
         }
 
-        private void CreateDust()
+        private ParticleSystem CreateEffect(string templateName, string name, Vector3 localPosition, (float, float) lifetime, (float, float) size,
+            (float, float) speed, float rate, float angle, float radius, float grow)
         {
-            if (_dustTemplate == null)
+            ParticleSystem template = Resources.FindObjectsOfTypeAll<ParticleSystem>().FirstOrDefault(p => p.name == templateName);
+            if (template == null)
             {
-                _dustTemplate = Resources.FindObjectsOfTypeAll<ParticleSystem>().FirstOrDefault(p => p.name == "DustPoof");
+                return null;
             }
-            if (_dustTemplate == null || _drill == null)
-            {
-                return;
-            }
-            _dust = Instantiate(_dustTemplate.gameObject, transform).GetComponent<ParticleSystem>();
-            _dust.name = "DrillDust";
-            // Przy ziemi pod wiertłem, cząsteczki lecą w górę.
-            _dust.transform.localPosition = new Vector3(_drillRest.x, 0.05f, _drillRest.z);
-            _dust.transform.localRotation = Quaternion.LookRotation(Vector3.up, Vector3.forward);
-            _dust.transform.localScale = Vector3.one;
-            _dust.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            // W grze to jednorazowy duży obłok (8 m, 12 s) - tu ciągła, niska chmurka kurzu przy wiertle.
-            var main = _dust.main;
+            ParticleSystem effect = Instantiate(template.gameObject, transform).GetComponent<ParticleSystem>();
+            effect.name = name;
+            effect.transform.localPosition = localPosition;
+            effect.transform.localRotation = Quaternion.LookRotation(Vector3.up, Vector3.forward); // stożek w górę
+            effect.transform.localScale = Vector3.one;
+            effect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = effect.main;
             main.loop = true;
             main.duration = 1f;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(1.8f, 3f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.6f, 1.4f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(0.2f, 0.7f);
+            main.startLifetime = new ParticleSystem.MinMaxCurve(lifetime.Item1, lifetime.Item2);
+            main.startSize = new ParticleSystem.MinMaxCurve(size.Item1, size.Item2);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(speed.Item1, speed.Item2);
             main.maxParticles = 40;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
-            var emission = _dust.emission;
+            var emission = effect.emission;
             emission.enabled = true;
-            emission.rateOverTime = 7f;
+            emission.rateOverTime = rate;
             emission.SetBursts(new ParticleSystem.Burst[0]);
-            var shape = _dust.shape;
+            var shape = effect.shape;
             shape.enabled = true;
             shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 55f;
-            shape.radius = 0.25f;
+            shape.angle = angle;
+            shape.radius = radius;
+            if (grow > 1f)
+            {
+                // dym rośnie i rozwiewa się w miarę unoszenia
+                var sizeOverLifetime = effect.sizeOverLifetime;
+                sizeOverLifetime.enabled = true;
+                sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, grow));
+            }
+            return effect;
         }
 
         private bool _serverWorking;
@@ -111,21 +135,25 @@ namespace Mining.Content
 
         private void UpdateDust()
         {
-            if (_dust == null)
+            SetPlaying(_dust, ref _dustPlaying, _extend > 0.25f && _speed > 0.5f); // kurz, gdy wiertło jest w ziemi
+            SetPlaying(_smoke, ref _smokePlaying, _speed > 0.3f);                  // dym, gdy silnik pracuje
+        }
+
+        private static void SetPlaying(ParticleSystem effect, ref bool playing, bool shouldPlay)
+        {
+            if (effect == null || playing == shouldPlay)
             {
                 return;
             }
-            bool digging = _extend > 0.25f && _speed > 0.5f;
-            if (digging && !_dustPlaying)
+            if (shouldPlay)
             {
-                _dust.Play(true);
-                _dustPlaying = true;
+                effect.Play(true);
             }
-            else if (!digging && _dustPlaying)
+            else
             {
-                _dust.Stop(true, ParticleSystemStopBehavior.StopEmitting);
-                _dustPlaying = false;
+                effect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
             }
+            playing = shouldPlay;
         }
 
         private void UpdateSound()

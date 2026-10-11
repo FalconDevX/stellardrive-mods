@@ -318,6 +318,8 @@ namespace Mining.Diagnostics
                     if (shipsClient != null && shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(shipId, 1), out var visual))
                     {
                         Transform t = visual.GameObject.transform;
+                        var ev = visual.GameObject.GetComponent<Content.ExcavatorVisuals>();
+                        if (ev != null) ev.ForceWorking = shot > 0;
                         Vector3 offset = shot == 0 ? (-t.forward * 4.2f + t.right * 2.2f + t.up * 1.8f)
                             : shot == 1 ? (t.right * 3.8f + t.up * 1.3f + t.forward * 0.6f)
                             : (t.forward * 3.8f - t.right * 1.8f + t.up * 1.2f);
