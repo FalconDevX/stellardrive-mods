@@ -87,29 +87,34 @@ namespace Mining.Content
             return settings;
         }
 
-        // Wygląd z gry (rozciągnięty) zastępujemy własnym modelem (Content/BigDoorModel) z animacją skrzydeł.
-        // Kolizje i pole interakcji drzwi z gry zostają (przeskalowane) - dzięki nim działa blokowanie przejścia i E.
+        // Wygląd z gry zastępujemy własnym modelem (Content/BigDoorModel) z animacją skrzydeł; kolizje i pole interakcji
+        // drzwi z gry zostają (powiększone) - dzięki nim działa blokowanie przejścia, E i szczelność.
         private static void ReplaceLook(GameObject root, PartSettings chest)
         {
             MeshRenderer look = chest.part.transform.Find("Visual")?.GetComponentInChildren<MeshRenderer>(true) ?? chest.part.GetComponentInChildren<MeshRenderer>(true);
             Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("reactor_albedo.png"), "BigDoor");
 
             var visuals = root.GetComponentInChildren<DefaultShipPartVisuals>(true);
-            GameObject host = visuals != null ? visuals.gameObject : root;
+            Transform host = visuals != null ? visuals.transform : root.transform;
             foreach (Animator a in root.GetComponentsInChildren<Animator>(true)) Object.DestroyImmediate(a);
             if (visuals != null) Object.DestroyImmediate(visuals);
-            foreach (Renderer r in root.GetComponentsInChildren<Renderer>(true))
-            {
-                Object.DestroyImmediate(r);
-            }
-            host.AddComponent<BigDoorVisuals>();
+            foreach (Renderer r in root.GetComponentsInChildren<Renderer>(true)) Object.DestroyImmediate(r);
+            host.gameObject.AddComponent<BigDoorVisuals>();
+
+            // Gra tworzy w statku kopię samego obiektu wyglądu (bez rodzica), więc model jest jego dzieckiem,
+            // ustawionym tak, żeby jego układ był układem całej części.
             var bounds = root.GetComponent<ShipPartBounds>();
-            BigDoorModel.Build(root.transform, bounds.GetBounds(), material, look);
+            Matrix4x4 hostToRoot = root.transform.worldToLocalMatrix * host.localToWorldMatrix;
+            Transform model = BigDoorModel.Build(host, bounds.GetBounds(), material, look);
+            Matrix4x4 inv = hostToRoot.inverse;
+            model.localPosition = inv.GetColumn(3);
+            model.localRotation = inv.rotation;
+            model.localScale = inv.lossyScale;
         }
 
-        // Wygląd, kolizje i pole interakcji rosną w osiach X (szerokość) i Y (wysokość); lewy dolny róg zostaje
-        // na miejscu (część zajmuje pola od pola położenia w prawo i w górę). Wszystko wkładamy do obiektu "Scaled",
-        // a animator drzwi (jeśli był na korzeniu) przenosimy na niego, żeby ścieżki animacji dalej pasowały.
+        // Kolizje i pole interakcji rosną w osiach X (szerokość) i Y (wysokość); lewy dolny róg zostaje na miejscu
+        // (część zajmuje pola od pola położenia w prawo i w górę). Gra kopiuje osobno każdy obiekt z korzenia części
+        // (wygląd, kolizje drzwi, interakcje) - bez rodzica - więc skalujemy wewnątrz każdego z nich.
         private static void Scale(GameObject root, float sx, float sy)
         {
             var bounds = root.GetComponent<ShipPartBounds>();
@@ -118,40 +123,29 @@ namespace Mining.Content
             Vector3 min0 = c0 - b0 * 0.5f;
             Vector3 b1 = Vector3.Scale(b0, s);
             Vector3 c1 = min0 + b1 * 0.5f;
-
-            Transform scaled = new GameObject("Scaled").transform;
-            scaled.SetParent(root.transform, false);
-            foreach (Transform child in root.transform.Cast<Transform>().Where(t => t != scaled).ToArray())
-            {
-                child.SetParent(scaled, false);
-            }
-            scaled.localPosition = c1 - Vector3.Scale(s, c0);
-            scaled.localScale = s;
             bounds.center = c1;
             bounds.bounds = b1;
 
-            Animator rootAnimator = root.GetComponent<Animator>();
-            if (rootAnimator != null)
+            foreach (Transform unit in root.transform.Cast<Transform>().ToArray())
             {
-                Animator moved = scaled.gameObject.AddComponent<Animator>();
-                moved.runtimeAnimatorController = rootAnimator.runtimeAnimatorController;
-                moved.avatar = rootAnimator.avatar;
-                moved.cullingMode = rootAnimator.cullingMode;
-                moved.updateMode = rootAnimator.updateMode;
-                foreach (Component c in root.GetComponentsInChildren<Component>(true))
+                // punkt p w układzie obiektu: w układzie części to unit.pos + p; ma trafić w c1 + S(unit.pos + p - c0)
+                Vector3 offset = c1 - Vector3.Scale(s, c0) + Vector3.Scale(s - Vector3.one, unit.localPosition);
+                var scaled = new GameObject("Scaled").transform;
+                scaled.SetParent(unit, false);
+                foreach (Transform child in unit.Cast<Transform>().Where(t => t != scaled).ToArray())
                 {
-                    if (c == null) continue;
-                    foreach (var field in AccessTools.GetDeclaredFields(c.GetType()).Where(f => f.FieldType == typeof(Animator)))
-                    {
-                        if ((Animator)field.GetValue(c) == rootAnimator)
-                        {
-                            field.SetValue(c, moved);
-                        }
-                    }
+                    child.SetParent(scaled, false);
                 }
-                Object.DestroyImmediate(rootAnimator);
+                scaled.localPosition = offset;
+                scaled.localScale = s;
+                foreach (BoxCollider box in unit.GetComponents<BoxCollider>())
+                {
+                    box.center = offset + Vector3.Scale(s, box.center);
+                    box.size = Vector3.Scale(s, box.size);
+                }
+                Melon<MiningMod>.Logger.Msg($"Drzwi {root.name}: {unit.name} pos={unit.localPosition} rot={unit.localEulerAngles} scale={unit.localScale}");
             }
-            Melon<MiningMod>.Logger.Msg($"Drzwi {root.name}: obrys {c0}/{b0} -> {c1}/{b1}, animator na korzeniu: {rootAnimator != null}");
+            Melon<MiningMod>.Logger.Msg($"Drzwi {root.name}: obrys {c0}/{b0} -> {c1}/{b1}");
         }
     }
 }

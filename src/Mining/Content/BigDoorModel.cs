@@ -24,7 +24,7 @@ namespace Mining.Content
 
         internal static bool IsLift(float width) => width > 4.5f;
 
-        internal static void Build(Transform root, Bounds b, Material material, MeshRenderer look)
+        internal static Transform Build(Transform root, Bounds b, Material material, MeshRenderer look)
         {
             var model = new GameObject(ModelName).transform;
             model.SetParent(root, false);
@@ -118,6 +118,7 @@ namespace Mining.Content
                     PartFactory.CreateRenderer(side == 0 ? "LeafL" : "LeafR", model, leaf.ToMesh("BigDoorLeaf"), material, look);
                 }
             }
+            return model;
         }
 
         private static Vector2 Uv(string color)
@@ -177,8 +178,7 @@ namespace Mining.Content
 
         private void Awake()
         {
-            Transform root = GetComponentInParent<ShipPartBounds>()?.transform;
-            Transform model = root != null ? root.Find(BigDoorModel.ModelName) : null;
+            Transform model = transform.Find(BigDoorModel.ModelName);
             if (model == null)
             {
                 return;
