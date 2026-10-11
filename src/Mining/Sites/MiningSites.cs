@@ -42,7 +42,7 @@ namespace Mining.Sites
     {
         private static readonly (string key, string name, uint item)[] KnownKinds =
         {
-            ("Iron", "żelazo", 101), ("Copper", "miedź", 112), ("Aluminum", "aluminium", 104), ("Glass", "szkło", 102), ("Ice", "lód", 109),
+            ("Iron", "iron", 101), ("Copper", "copper", 112), ("Aluminum", "aluminum", 104), ("Glass", "glass", 102), ("Ice", "ice", 109),
         };
 
         private sealed class PlanetInfo

@@ -10,7 +10,7 @@ using UnityEngine;
 namespace Mining.Content
 {
     // Wygląd koparki u każdego gracza: wiertło rozkręca się, wysuwa w ziemię i kręci, a silnik warczy, gdy koparka pracuje.
-    // Klient nie zna stanu zasilania, więc "pracuje" = w ostatnich sekundach przybyło rudy w slotach.
+    // "Pracuje" = znacznik ustawiany przez serwer w ukrytym slocie (Excavator.WorkingMarkerSlot) - zmienia się od razu po odcięciu prądu lub sygnału.
     internal class ExcavatorVisuals : DefaultShipPartVisuals
     {
         private const float MaxRpm = 240f;
@@ -20,8 +20,6 @@ namespace Mining.Content
 
         private Transform _drill;
         private Vector3 _drillRest;
-        private int _lastTotal = -1;
-        private float _lastProducedAt = -100f;
         private float _speed;
         private float _extend;
         private FMOD.Channel _channel;
@@ -81,43 +79,24 @@ namespace Mining.Content
             shape.radius = 0.25f;
         }
 
+        private bool _serverWorking;
+
         public override void SetNetworkState(IStatefulPartState state)
         {
             base.SetNetworkState(state);
-            _lastTotal = CountItems(state);
+            _serverWorking = state is StorageState s && Excavator.HasWorkingMarker(s);
         }
 
         public override void ReactToNetworkStateChange(StatefulPartStateChangeEvent change)
         {
             base.ReactToNetworkStateChange(change);
-            int total = CountItems(change.NewState);
-            if (_lastTotal >= 0 && total > _lastTotal)
-            {
-                _lastProducedAt = Time.time;
-            }
-            _lastTotal = total;
-        }
-
-        private static int CountItems(IStatefulPartState state)
-        {
-            if (!(state is StorageState storage))
-            {
-                return 0;
-            }
-            int total = 0;
-            for (byte i = 0; i < Excavator.SlotCount; i++)
-            {
-                InventorySlot slot = storage.GetSlot(i);
-                if (slot.HasItem) total += slot.Quantity;
-            }
-            return total;
+            _serverWorking = change.NewState is StorageState s && Excavator.HasWorkingMarker(s);
         }
 
         private void Update()
         {
-            float window = MiningMod.SecondsPerItem.Value * 1.5f + 1f;
-            bool working = ForceWorking || Time.time - _lastProducedAt < window;
-            _speed = Mathf.MoveTowards(_speed, working ? 1f : 0f, Time.deltaTime * (working ? 0.8f : 0.5f));
+            bool working = ForceWorking || _serverWorking;
+            _speed = Mathf.MoveTowards(_speed, working ? 1f : 0f, Time.deltaTime * (working ? 0.8f : 2.5f)); // zatrzymuje się szybko
 
             if (_drill != null)
             {
@@ -136,7 +115,7 @@ namespace Mining.Content
             {
                 return;
             }
-            bool digging = _extend > 0.25f;
+            bool digging = _extend > 0.25f && _speed > 0.5f;
             if (digging && !_dustPlaying)
             {
                 _dust.Play(true);

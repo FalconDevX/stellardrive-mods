@@ -27,6 +27,18 @@ namespace Mining.Content
         internal const ushort ResearchId = 200;
         internal const string Label = "Excavator";
         internal const int SlotCount = 4;
+        // Ukryty slot 10 jako znacznik "pracuje" dla wszystkich graczy (serwer ustawia go w tej samej klatce, w której
+        // koparka rusza albo staje). Ilość 0 - nic nie waży i nie da się go wyjąć.
+        internal const byte WorkingMarkerSlot = 9;
+
+        internal static bool HasWorkingMarker(Ships.Interface.Model.Parts.State.StorageState state)
+        {
+            InventorySlot slot = state.GetSlot(WorkingMarkerSlot);
+            return slot.HasItem && slot.Quantity == 0;
+        }
+
+        internal static InventorySlot WorkingMarker(bool working) =>
+            working ? new InventorySlot { HasItem = true, ItemId = ItemsConstants.IronItemId, Quantity = 0 } : default(InventorySlot);
         internal static readonly Vector3 DrillPivot = new Vector3(0.25f, 0.72f, 0.1f); // DRILL_PIVOT z AssetSource/build_excavator.py
         internal const float DrillLength = 1.9f; // od osi mocowania do czubka (m)
 
@@ -141,8 +153,8 @@ namespace Mining.Content
             settings.fullLabel = Label;
             settings.internalStateClass = chest.internalStateClass; // StorageState
             settings.snappingStyle = SnappingStyle.PreciseOnFloor;
-            settings.description = $"Wydobywa surowiec spod siebie, gdy stoi na złożu (płaskie pole kamieni z rudą) i ma prąd. Można ją postawić prosto na ziemi. " +
-                                   $"Kopie tylko przy sygnale 1 (gniazdo z żółtym daszkiem, np. dźwignia). Zbiera do {SlotCount} stosów po 100 - otwórz jak skrzynię, żeby wyjąć urobek.";
+            settings.description = $"Mines the ore beneath it when standing on an ore deposit (a patch of ore rocks) and powered. Can be placed directly on the ground. " +
+                                   $"Works only with signal 1 (socket with the yellow cap, e.g. a lever). Holds up to {SlotCount} stacks of 100 - open it like a chest to take the ore.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
             settings.thumbnailRotation = Quaternion.Euler(0f, 150f, 0f);

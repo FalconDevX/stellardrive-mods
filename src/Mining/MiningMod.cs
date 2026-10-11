@@ -42,7 +42,7 @@ namespace Mining
             DevQuitAfterDump = category.CreateEntry("DevQuitAfterDump", false, description: "Dla twórcy moda: zamknij grę po zrzucie");
             DevTest = category.CreateEntry("DevTest", false, description: "Dla twórcy moda: podgląd koparki i złoża przed kamerą po wczytaniu świata");
             category.SaveToFile(false);
-            LoggerInstance.Msg("Klawisz N: kierunek do najbliższego złoża.");
+            LoggerInstance.Msg("Press N: direction to the nearest ore deposit.");
         }
 
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
@@ -82,9 +82,9 @@ namespace Mining
         {
             // Powód, dla którego koparka stoi - nad jej otwartym oknem (tylko u hosta - to serwer liczy wydobycie).
             if (Patches.StorageMenuPatch.TryGetOpenExcavator(out uint shipId, out ushort partId) && Server.ExcavatorServer.TryGetStatus(shipId, partId, out string status) &&
-                !status.StartsWith("pracuje"))
+                !status.StartsWith("working"))
             {
-                DrawLabel("Koparka: " + status, Screen.height * 0.1f);
+                DrawLabel("Excavator: " + status, Screen.height * 0.1f);
             }
             if (_message == null || Time.unscaledTime > _messageUntil)
             {

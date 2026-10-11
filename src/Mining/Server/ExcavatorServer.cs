@@ -53,7 +53,7 @@ namespace Mining.Server
             if (!Status.TryGetValue(key, out string previous) || previous != status)
             {
                 Status[key] = status;
-                Melon<MiningMod>.Logger.Msg($"Koparka (statek {key.ship}, część {key.part}): {status}");
+                Melon<MiningMod>.Logger.Msg($"Excavator (ship {key.ship}, part {key.part}): {status}");
             }
         }
 
@@ -92,14 +92,19 @@ namespace Mining.Server
                     MiningSite site = FindSite(__instance, part);
                     PowerGroupServerState group = null;
                     string status =
-                        site == null ? "brak złoża pod wiertłem" :
-                        !SignalAllows(__instance, part) ? "brak sygnału 1 - podłącz dźwignię do gniazda z żółtym daszkiem" :
-                        !HasSpace((StorageState)part.State, site.Kind.ItemId) ? "pełna - wyjmij urobek" :
-                        !power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, part.Id, PowerSocketId), out group) ? "brak kabla prądu" :
-                        group.NormalizedConsumerRate <= 0f ? "za mało prądu (generator pusty albo przeciążony)" :
-                        $"pracuje - {site.Kind.Name}";
+                        site == null ? "no ore deposit under the drill" :
+                        !SignalAllows(__instance, part) ? "no signal 1 - connect a lever to the socket with the yellow cap" :
+                        !HasSpace((StorageState)part.State, site.Kind.ItemId) ? "full - take the ore out" :
+                        !power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, part.Id, PowerSocketId), out group) ? "no power cable" :
+                        group.NormalizedConsumerRate <= 0f ? "not enough power (generator empty or overloaded)" :
+                        $"working - {site.Kind.Name}";
                     SetStatus(key, status);
-                    if (!status.StartsWith("pracuje"))
+                    bool working = status.StartsWith("working");
+                    if (Excavator.HasWorkingMarker((StorageState)part.State) != working)
+                    {
+                        __instance.UpdatePartState(part.Id, (StorageState)((StorageState)part.State).WithUpdatedSlot(Excavator.WorkingMarkerSlot, Excavator.WorkingMarker(working)));
+                    }
+                    if (!working)
                     {
                         continue;
                     }

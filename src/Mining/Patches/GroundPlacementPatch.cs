@@ -183,13 +183,13 @@ namespace Mining.Patches
                 var players = ServiceLocator.GetService<PlayersServerTracker>();
                 if (P_1 == null || !spaces.HasSpace(P_0.WorldTransform.SpaceId))
                 {
-                    Melon<MiningMod>.Logger.Warning($"Koparka na ziemi: brak połączenia albo przestrzeni {P_0.WorldTransform.SpaceId}");
+                    Melon<MiningMod>.Logger.Warning($"Excavator on ground: no connection or space {P_0.WorldTransform.SpaceId}");
                     return false;
                 }
                 TrackedPlayerServer player = players.GetTrackedPlayerFromConnectionId(P_1.ClientId);
                 if (player == null)
                 {
-                    Melon<MiningMod>.Logger.Warning($"Koparka na ziemi: nie znaleziono gracza {P_1.ClientId}");
+                    Melon<MiningMod>.Logger.Warning($"Excavator on ground: player {P_1.ClientId} not found");
                     return false;
                 }
                 if (!player.IsUsingCheatFreeBuild)
@@ -197,13 +197,13 @@ namespace Mining.Patches
                     List<ItemDrop> cost = settings.BuildingCost;
                     if (!player.HasItemsInInventory(cost))
                     {
-                        Melon<MiningMod>.Logger.Msg("Koparka na ziemi: za mało surowców w ekwipunku");
+                        Melon<MiningMod>.Logger.Msg("Excavator on ground: not enough resources in inventory");
                         return false;
                     }
                     player.RemoveItemsFromInventory(cost);
                 }
                 uint id = CreateExcavatorShip(settings, P_0.WorldTransform);
-                Melon<MiningMod>.Logger.Msg($"Postawiono koparkę na ziemi (statek {id})");
+                Melon<MiningMod>.Logger.Msg($"Excavator placed on the ground (ship {id})");
             }
             catch (Exception e)
             {

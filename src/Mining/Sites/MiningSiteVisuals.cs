@@ -247,7 +247,7 @@ namespace Mining.Sites
         {
             if (!(ClientOrigin.LocalVisualSpace is PlanetSurfaceSpace space) || Camera.main == null)
             {
-                return "Nie jesteś na planecie.";
+                return "You are not on a planet.";
             }
             var transpose = ServiceLocator.GetService<IWorldTransposeClient>();
             var planetSpace = new PlanetSurfaceSpace { PlanetId = space.PlanetId, Center = Vector3Double.Zero };
@@ -255,12 +255,12 @@ namespace Mining.Sites
             float cell = MiningSites.CellSize(space.PlanetId);
             if (cell <= 0f)
             {
-                return "Brak danych o planecie.";
+                return "No planet data.";
             }
             MiningSite nearest = MiningSites.Near(space.PlanetId, cam, Mathf.CeilToInt(2000f / cell)).OrderBy(s => (s.Center - cam).sqrMagnitude).FirstOrDefault();
             if (nearest == null)
             {
-                return "W promieniu 2 km nie ma złóż.";
+                return "No ore deposits within 2 km.";
             }
             Vector3 visual = (Vector3)transpose.Position(planetSpace, ClientOrigin.LocalVisualSpace, (Vector3Double)nearest.Center);
             Vector3 toSite = visual - Camera.main.transform.position;
@@ -269,8 +269,8 @@ namespace Mining.Sites
             Vector3 flatTo = Vector3.ProjectOnPlane(toSite, up);
             Vector3 flatFwd = Vector3.ProjectOnPlane(Camera.main.transform.forward, up);
             float angle = Vector3.SignedAngle(flatFwd, flatTo, up);
-            string side = Mathf.Abs(angle) < 25f ? "przed tobą" : Mathf.Abs(angle) > 155f ? "za tobą" : angle > 0 ? "w prawo" : "w lewo";
-            return $"Najbliższe złoże: {nearest.Kind.Name}, {flatTo.magnitude:0} m {side}";
+            string side = Mathf.Abs(angle) < 25f ? "ahead" : Mathf.Abs(angle) > 155f ? "behind you" : angle > 0 ? "to the right" : "to the left";
+            return $"Nearest ore deposit: {nearest.Kind.Name}, {flatTo.magnitude:0} m {side}";
         }
     }
 }
