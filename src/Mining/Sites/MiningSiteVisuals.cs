@@ -18,8 +18,8 @@ namespace Mining.Sites
     // spłaszczonych kopii kamienia rudy z gry (ten sam materiał i kontury co prawdziwe skały), wtopionych w teren.
     internal static class MiningSiteVisuals
     {
-        private const float ShowDistance = 450f;
-        private const float HideDistance = 550f;
+        private const float ShowDistance = 300f;
+        private const float HideDistance = 380f;
 
         private sealed class Spawned
         {
@@ -40,14 +40,32 @@ namespace Mining.Sites
         private static readonly Dictionary<GameObject, Rock> RockCache = new Dictionary<GameObject, Rock>();
         private static float _nextScan;
         private static ulong _planetId;
+        // Złoża do zbudowania - najwyżej jedno na klatkę, żeby w locie nie było przycięć.
+        private static readonly Queue<MiningSite> Pending = new Queue<MiningSite>();
 
         internal static void Clear()
         {
             foreach (Spawned s in Active.Values)
             {
-                if (s.Object != null) Object.Destroy(s.Object);
+                DestroySite(s.Object);
             }
             Active.Clear();
+            Pending.Clear();
+        }
+
+        // Złączona siatka kamieni należy tylko do tego złoża - usuwamy ją razem z obiektem.
+        private static void DestroySite(GameObject site)
+        {
+            if (site == null)
+            {
+                return;
+            }
+            var filter = site.GetComponentInChildren<MeshFilter>();
+            if (filter != null && filter.sharedMesh != null && filter.sharedMesh.name.StartsWith("MiningSite_"))
+            {
+                Object.Destroy(filter.sharedMesh);
+            }
+            Object.Destroy(site);
         }
 
         internal static void Update()
@@ -79,6 +97,14 @@ namespace Mining.Sites
                 Vector3 camPlanet = (Vector3)transpose.Position(ClientOrigin.LocalVisualSpace, planetSpace, (Vector3Double)Camera.main.transform.position);
                 Scan(space.PlanetId, camPlanet);
             }
+            if (Pending.Count > 0)
+            {
+                MiningSite next = Pending.Dequeue();
+                if (Active.TryGetValue(next.Key, out Spawned slot) && slot.Object == null)
+                {
+                    slot.Object = Build(next);
+                }
+            }
 
             // Pozycje co klatkę (pływające origin gry przesuwa świat wokół gracza).
             foreach (Spawned s in Active.Values)
@@ -101,7 +127,8 @@ namespace Mining.Sites
             {
                 if (!Active.ContainsKey(site.Key) && (site.Center - camPlanet).magnitude < ShowDistance)
                 {
-                    Active[site.Key] = new Spawned { Site = site, Object = Build(site) };
+                    Active[site.Key] = new Spawned { Site = site };
+                    Pending.Enqueue(site);
                 }
             }
             foreach (long key in Active.Keys.ToList())
@@ -109,7 +136,7 @@ namespace Mining.Sites
                 Spawned s = Active[key];
                 if ((s.Site.Center - camPlanet).magnitude > HideDistance)
                 {
-                    if (s.Object != null) Object.Destroy(s.Object);
+                    DestroySite(s.Object);
                     Active.Remove(key);
                 }
             }
@@ -132,6 +159,7 @@ namespace Mining.Sites
             Quaternion inv = Quaternion.Inverse(site.Rotation);
 
             int count = Mathf.RoundToInt(site.Radius * site.Radius * 5.5f);
+            var matrices = new List<Matrix4x4>(count);
             for (int n = 0; n < count; n++)
             {
                 // Gęściej w środku, rzadziej na brzegu (jak plamy rudy w Factorio).
@@ -151,23 +179,49 @@ namespace Mining.Sites
                 // Kamienie nie mają kolizji, więc chodzi się po złożu jak po płaskim terenie.
                 var scale = new Vector3(size, size * Mathf.Lerp(0.45f, 0.8f, (float)rng.NextDouble()), size);
                 p.y -= (rockInfo.Bounds.min.y + rockSize.y * 0.2f) * scale.y; // częściowo w ziemi
+                var rot = Quaternion.Euler((float)rng.NextDouble() * 16f - 8f, (float)rng.NextDouble() * 360f, (float)rng.NextDouble() * 16f - 8f);
+                matrices.Add(Matrix4x4.TRS(p, rot, scale) * rockInfo.Base);
+            }
 
-                var rock = new GameObject("Rock") { layer = rockInfo.Layer };
-                rock.transform.SetParent(go.transform, false);
-                rock.transform.localPosition = p;
-                rock.transform.localRotation = Quaternion.Euler((float)rng.NextDouble() * 16f - 8f, (float)rng.NextDouble() * 360f, (float)rng.NextDouble() * 16f - 8f);
-                rock.transform.localScale = scale;
-                var model = new GameObject("Model") { layer = rockInfo.Layer };
-                model.transform.SetParent(rock.transform, false);
-                model.transform.localPosition = rockInfo.Base.GetColumn(3);
-                model.transform.localRotation = rockInfo.Base.rotation;
-                model.transform.localScale = rockInfo.Base.lossyScale;
-                model.AddComponent<MeshFilter>().sharedMesh = rockInfo.Mesh;
+            // Wszystkie kamienie złoża w jednej siatce = jedno rysowanie zamiast setek osobnych obiektów.
+            if (rockInfo.Mesh.isReadable)
+            {
+                var model = new GameObject("Rocks") { layer = rockInfo.Layer };
+                model.transform.SetParent(go.transform, false);
+                model.AddComponent<MeshFilter>().sharedMesh = CombineRocks(rockInfo.Mesh, matrices, go.name);
                 var renderer = model.AddComponent<MeshRenderer>();
                 renderer.sharedMaterials = rockInfo.Materials;
-                renderer.shadowCastingMode = size * rockDiameter > 0.35f ? ShadowCastingMode.On : ShadowCastingMode.Off;
+                renderer.shadowCastingMode = ShadowCastingMode.On;
+                return go;
+            }
+            foreach (Matrix4x4 m in matrices)
+            {
+                var rock = new GameObject("Rock") { layer = rockInfo.Layer };
+                rock.transform.SetParent(go.transform, false);
+                rock.transform.localPosition = m.GetColumn(3);
+                rock.transform.localRotation = m.rotation;
+                rock.transform.localScale = m.lossyScale;
+                rock.AddComponent<MeshFilter>().sharedMesh = rockInfo.Mesh;
+                rock.AddComponent<MeshRenderer>().sharedMaterials = rockInfo.Materials;
             }
             return go;
+        }
+
+        private static Mesh CombineRocks(Mesh rock, List<Matrix4x4> matrices, string name)
+        {
+            var perSubmesh = new CombineInstance[rock.subMeshCount];
+            for (int sub = 0; sub < rock.subMeshCount; sub++)
+            {
+                var part = new Mesh { indexFormat = IndexFormat.UInt32 };
+                part.CombineMeshes(matrices.Select(m => new CombineInstance { mesh = rock, subMeshIndex = sub, transform = m }).ToArray(), true, true);
+                perSubmesh[sub] = new CombineInstance { mesh = part, transform = Matrix4x4.identity };
+            }
+            var combined = new Mesh { name = name, indexFormat = IndexFormat.UInt32 };
+            combined.CombineMeshes(perSubmesh, false, false);
+            foreach (CombineInstance c in perSubmesh) Object.Destroy(c.mesh);
+            combined.RecalculateBounds();
+            combined.UploadMeshData(true);
+            return combined;
         }
 
         private static Rock GetRock(GameObject prefab)
@@ -197,7 +251,7 @@ namespace Mining.Sites
                     Base = baseMatrix,
                     Bounds = bounds,
                 };
-                MelonLoader.Melon<MiningMod>.Logger.Msg($"Kamień złoża {prefab.name}: siatka {filter.sharedMesh.name}, rozmiar {bounds.size}");
+                MelonLoader.Melon<MiningMod>.Logger.Msg($"Kamień złoża {prefab.name}: siatka {filter.sharedMesh.name} ({filter.sharedMesh.vertexCount} wierzch., odczyt: {filter.sharedMesh.isReadable}), rozmiar {bounds.size}");
             }
             else
             {

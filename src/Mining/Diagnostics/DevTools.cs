@@ -206,7 +206,9 @@ namespace Mining.Diagnostics
                 for (int shot = 0; shot < targets.Count * 2; shot++)
                 {
                     Sites.MiningSite target = targets[shot / 2];
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
                     GameObject real = Sites.MiningSiteVisuals.Build(target);
+                    log.Msg($"[test] budowa złoża {target.Kind.Name}: {sw.Elapsed.TotalMilliseconds:0.0} ms, renderery: {real.GetComponentsInChildren<MeshRenderer>().Length}");
                     for (int frame = 0; frame < 30; frame++)
                     {
                         Vector3 center = (Vector3)transpose.Position(planetSpace, surface2, (Core.Values.Vector3Double)target.Center);
