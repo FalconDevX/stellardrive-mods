@@ -22,6 +22,7 @@ namespace Mining.Diagnostics
     internal static class DevTools
     {
         private static bool _autoLoaded;
+        private static bool _dumpStarted;
 
         // Czy gracz pisze w polu tekstowym (np. nazwa beacona) - wtedy skróty klawiszowe moda nie działają.
         internal static bool IsTyping()
@@ -48,8 +49,9 @@ namespace Mining.Diagnostics
                 _autoLoaded = true;
                 MelonCoroutines.Start(LoadWorld(world));
             }
-            if (sceneName == "MainGame" && MiningMod.DevDump.Value)
+            if (sceneName == "MainGame" && MiningMod.DevDump.Value && !_dumpStarted)
             {
+                _dumpStarted = true; // gra zgłasza wczytanie sceny MainGame dwa razy
                 MelonCoroutines.Start(DumpAfterDelay(25f));
             }
         }
@@ -265,21 +267,28 @@ namespace Mining.Diagnostics
                 if (encode != null) File.WriteAllBytes(Path.Combine(OutDir, "test_thumb.png"), (byte[])encode.Invoke(null, new object[] { copy }));
             }
 
-            // Prawdziwa część na statku z save'a (obok stołu badawczego), z ręcznie dokładaną rudą, żeby ruszyło wiertło.
-            var shipsServer = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>();
-            Ships.TrackedShipServer ship = shipsServer?.Ships.FirstOrDefault(sh => sh.GetAllStatefulParts<Ships.Interface.Model.Parts.State.ResearchTableState>().Any());
-            if (ship == null)
+            // Koparka postawiona na ziemi tak jak przez narzędzie budowania (dopasowanie do terenu + statek bez podłogi).
+            Vector3 up2 = Core.Services.ServiceLocator.GetService<Players.Interface.Services.IPlayerUpProvider>()?.WorldPlayerUp ?? cam.transform.up;
+            Vector3 fwd2 = Vector3.ProjectOnPlane(cam.transform.forward, up2).normalized;
+            Vector3 groundPos = cam.transform.position + fwd2 * 6f;
+            if (WorldTracking.Interface.Values.ClientScene.PhysicsScene.Raycast(groundPos + up2 * 10f, -up2, out RaycastHit gHit, 30f, Tools.Common.RaycastMasks.BuildDetectionLayer))
             {
-                log.Msg("[test] brak statku ze stołem badawczym");
-                yield break;
+                groundPos = gHit.point;
+                log.Msg($"[test] ziemia (scena klienta): {gHit.collider.name} tag={gHit.collider.tag}");
             }
-            var table = ship.GetAllStatefulParts<Ships.Interface.Model.Parts.State.ResearchTableState>().First();
-            Vector3 coord = table.LocalPosition + new Vector3(0f, 0f, -3f);
-            ushort partId = ship.AddStatefulPart(part, new Ships.Interface.Model.Placement.FloatingPartPlacement(coord,
-                Ships.Interface.Model.Placement.PartOrientation.Forward, Ships.Interface.Model.Placement.PartOrientation.Up));
-            log.Msg($"[test] dodano koparkę na statku {ship.Id} jako część {partId} w {coord} (stół w {table.LocalPosition})");
-            yield return new WaitForSeconds(2f);
+            Quaternion rot2 = Quaternion.LookRotation(-fwd2, up2);
+            Patches.CreateShipWithExcavatorPatch.AlignToTerrain(ref groundPos, ref rot2, up2);
+            log.Msg($"[test] nachylenie terenu pod koparką: {Vector3.Angle(rot2 * Vector3.up, up2):0.0}°");
+            uint shipId = Patches.ServerCreateShipPatch.CreateExcavatorShip(part, new WorldTracking.Interface.Model.WorldTransform
+            {
+                SpaceId = WorldTracking.Interface.Values.ClientOrigin.LocalPhysicsSpaceId, Position = groundPos, Rotation = rot2,
+            });
+            log.Msg($"[test] statek z koparką: {shipId}");
+            UnityEngine.Object.Destroy(excavator);
+            yield return new WaitForSeconds(3f);
 
+            var shipsServer = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>();
+            Ships.TrackedShipServer ship = shipsServer.GetShip(shipId);
             var shipsClient = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsClientTracker>();
             var testCam2 = new GameObject("MiningTestCam2").AddComponent<Camera>();
             testCam2.CopyFrom(cam);
@@ -290,25 +299,28 @@ namespace Mining.Diagnostics
             {
                 for (int frame = 0; frame < 90; frame++)
                 {
-                    if (shot > 0 && frame % 20 == 0)
+                    if (ship != null && shot > 0 && frame % 20 == 0)
                     {
-                        ship.TryGetChestSlot(partId, 0, out InventorySlot slot);
-                        ship.SetChestSlot(partId, 0, new InventorySlot { HasItem = true, ItemId = 112, Quantity = (byte)(slot.Quantity + 1) });
+                        ship.TryGetChestSlot(1, 0, out InventorySlot slot);
+                        ship.SetChestSlot(1, 0, new InventorySlot { HasItem = true, ItemId = 112, Quantity = (byte)(slot.Quantity + 1) });
                     }
-                    if (shipsClient != null && shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(ship.Id, partId), out var visual))
+                    if (shipsClient != null && shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(shipId, 1), out var visual))
                     {
                         Transform t = visual.GameObject.transform;
-                        Vector3 offset = shot == 2 ? (t.forward * 1.5f - t.right * 3.5f + t.up * 0.6f) : (-t.forward * 4.5f + t.right * 1.5f + t.up * 2.2f);
+                        Vector3 offset = shot == 0 ? (-t.forward * 4.2f + t.right * 2.2f + t.up * 1.8f)
+                            : shot == 1 ? (t.right * 3.8f + t.up * 1.3f + t.forward * 0.6f)
+                            : (t.forward * 3.8f - t.right * 1.8f + t.up * 1.2f);
                         testCam2.transform.position = t.position + offset;
-                        testCam2.transform.rotation = Quaternion.LookRotation(t.position + t.up * 0.7f - testCam2.transform.position, t.up);
+                        testCam2.transform.rotation = Quaternion.LookRotation(t.position + t.up * 0.8f - testCam2.transform.position, up2);
                         cam.enabled = false;
                     }
                     yield return null;
                 }
-                ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, $"test_ship{shot}.png"));
+                ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, $"test_ground{shot}.png"));
                 yield return null;
                 yield return null;
             }
+            if (ship != null) log.Msg($"[test] statek po 8 s: pozycja {ship.LocalPhysicsState.Position}, nachylenie {Vector3.Angle(ship.LocalPhysicsState.Rotation * Vector3.up, up2):0.0}°");
             cam.enabled = true;
             UnityEngine.Object.Destroy(testCam2.gameObject);
         }

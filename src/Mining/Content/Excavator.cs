@@ -18,7 +18,7 @@ namespace Mining.Content
 {
     // Koparka to nowa część statku zbudowana na bazie skrzyni (Storage Chest):
     //  - ten sam stan (StorageState), więc zapis gry, sieć i okno ekwipunku działają bez zmian,
-    //  - własny wygląd (model z GLB) i wiertło, które kręci się podczas pracy,
+    //  - własny wygląd (model low-poly z AssetSource/build_excavator.py) i wiertło, które kręci się podczas pracy,
     //  - gniazda prądu skopiowane z generatora na drewno,
     //  - nowe badanie "Mining" w drzewie badań.
     internal static class Excavator
@@ -27,8 +27,8 @@ namespace Mining.Content
         internal const ushort ResearchId = 200;
         internal const string Label = "Excavator";
         internal const int SlotCount = 4;
-        internal static readonly Vector3 DrillPivot = new Vector3(0.1955f, 0.36f, 0.322f);
-        internal const float DrillLength = 0.68f; // od osi mocowania do czubka (m)
+        internal static readonly Vector3 DrillPivot = new Vector3(0.08f, 0.53f, 0.02f); // jak DRILL_PIVOT w AssetSource/build_excavator.py
+        internal const float DrillLength = 0.8f; // od osi mocowania do czubka (m)
 
         private const ushort ChestPartId = 30;
         private const ushort GeneratorPartId = 60;
@@ -93,13 +93,12 @@ namespace Mining.Content
 
             Mesh bodyMesh = ModAssets.LoadMesh("excavator_body.bin");
             Mesh drillMesh = ModAssets.LoadMesh("excavator_drill.bin");
-            Texture2D albedo = ModAssets.LoadTexture("excavator_albedo.jpg");
+            Texture2D albedo = ModAssets.LoadTexture("excavator_albedo.png");
 
             Transform visual = root.transform.Find("Visual");
             MeshRenderer chestRenderer = visual.GetComponentInChildren<MeshRenderer>(true);
             var material = new Material(chestRenderer.sharedMaterial) { name = "Excavator" };
             material.SetTexture("_Albedo", albedo);
-            material.SetFloat("_CullMode", 0f); // model z Meshy ma miejscami odwrócone ścianki
             var look = (chestRenderer.gameObject.layer, chestRenderer.shadowCastingMode, chestRenderer.renderingLayerMask);
 
             // Usuwamy model skrzyni i wstawiamy korpus + wiertło (na osobnym obiekcie, żeby się kręciło).
@@ -140,7 +139,7 @@ namespace Mining.Content
             settings.fullLabel = Label;
             settings.internalStateClass = chest.internalStateClass; // StorageState
             settings.snappingStyle = SnappingStyle.PreciseOnFloor;
-            settings.description = $"Wydobywa surowiec spod siebie, gdy stoi na złożu (płaskie pole kamieni z rudą) i ma prąd. " +
+            settings.description = $"Wydobywa surowiec spod siebie, gdy stoi na złożu (płaskie pole kamieni z rudą) i ma prąd. Można ją postawić prosto na ziemi. " +
                                    $"Zbiera do {SlotCount} stosów po 100 - otwórz jak skrzynię, żeby wyjąć urobek.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
@@ -168,7 +167,10 @@ namespace Mining.Content
             r.renderingLayerMask = look.renderingLayers;
         }
 
-        // Dwa gniazda prądu (połączone ze sobą, jak w generatorze) po bokach korpusu, przy podłodze.
+        // Dwa gniazda prądu (połączone ze sobą, jak w generatorze) na ścianach żółtego korpusu: prawy bok i tył.
+        private static readonly Vector3[] SocketPositions = { new Vector3(0.58f, 1.02f, 0.22f), new Vector3(0.32f, 1.02f, 0.47f) };
+        private static readonly float[] SocketYaw = { 270f, 180f };
+
         private static void AddPowerSockets(GameObject root, GameObject generator, Bounds body)
         {
             SocketObject[] source = generator.GetComponentsInChildren<SocketObject>(true).Where(s => s.Type == CableType.Power).OrderBy(s => s.Id).ToArray();
@@ -181,9 +183,9 @@ namespace Mining.Content
             {
                 SocketObject copy = Object.Instantiate(source[i].gameObject, root.transform).GetComponent<SocketObject>();
                 copy.name = source[i].name;
-                float side = i == 0 ? -1f : 1f;
-                copy.transform.localPosition = new Vector3(side * 0.62f, 0.07f, body.center.z - 0.15f);
-                copy.transform.localRotation = Quaternion.Euler(0f, i == 0 ? 90f : 270f, 0f);
+                // Gniazdo leży na ścianie korpusu; jego lokalne +Z wskazuje do wnętrza części (jak w generatorze).
+                copy.transform.localPosition = SocketPositions[i];
+                copy.transform.localRotation = Quaternion.Euler(0f, SocketYaw[i], 0f);
                 copies[i] = copy;
             }
             var relayed = Traverse.Create(copies[0]).Field("relayedSockets");
