@@ -198,7 +198,10 @@ namespace Mining.Patches
                     rect.anchorMax = trashRect.anchorMax;
                     rect.pivot = trashRect.pivot;
                     rect.sizeDelta = size;
-                    rect.anchoredPosition = trashRect.anchoredPosition + new Vector2(0f, trashRect.rect.height * (1f - trashRect.pivot.y) + size.y * rect.pivot.y + size.y * 0.65f);
+                    rect.pivot = new Vector2(0.5f, 0.5f);
+                    // układ okna ustala się dopiero po otwarciu - pozycję nad koszem pilnujemy co klatkę
+                    var follow = slot.gameObject.AddComponent<FuelSlotAboveTrash>();
+                    follow.Trash = trashRect;
                 }
                 else
                 {
@@ -241,6 +244,30 @@ namespace Mining.Patches
             {
                 Melon<MiningMod>.Logger.Warning($"Slot paliwa jetpacka: {e.Message}");
             }
+        }
+    }
+
+    // Trzyma slot paliwa nad koszem (w świecie, więc niezależnie od skali i kotwic kontenera), z odstępem.
+    internal sealed class FuelSlotAboveTrash : MonoBehaviour
+    {
+        internal RectTransform Trash;
+        private readonly Vector3[] _corners = new Vector3[4];
+
+        private void LateUpdate()
+        {
+            if (Trash == null)
+            {
+                return;
+            }
+            var rect = (RectTransform)transform;
+            Trash.GetWorldCorners(_corners); // 0 lewy dół, 1 lewa góra, 2 prawa góra, 3 prawy dół
+            Vector3 up = (_corners[1] - _corners[0]).normalized;
+            Vector3 topCenter = (_corners[1] + _corners[2]) * 0.5f;
+            float trashHeight = Vector3.Distance(_corners[0], _corners[1]);
+            rect.GetWorldCorners(_corners);
+            float slotHeight = Vector3.Distance(_corners[0], _corners[1]);
+            // odstęp: miejsce na napis "JETPACK FUEL" nad koszem
+            rect.position = topCenter + up * (slotHeight * 0.5f + Mathf.Max(trashHeight * 0.35f, slotHeight * 0.3f));
         }
     }
 

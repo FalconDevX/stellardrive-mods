@@ -41,6 +41,9 @@ namespace Mining.Patches
         private static readonly HashSet<ShipRoomsVoxelsTreeNode> ClearedSet = new HashSet<ShipRoomsVoxelsTreeNode>(ReferenceComparer.Instance);
         private static readonly List<ShipRoomsVoxelsTreeNode> OutsideTouched = new List<ShipRoomsVoxelsTreeNode>();
         private static readonly List<ShipRoomsVoxelsTreeNode> SeedVisited = new List<ShipRoomsVoxelsTreeNode>();
+        // Węzły uznane w tym przeliczeniu za "na zewnątrz" (przy wczesnym zakończeniu nie przechodzimy całego obszaru,
+        // więc kolejne zalewanie, które na nie trafi, też jest na zewnątrz - inaczej powstawały fałszywe pomieszczenia).
+        private static readonly HashSet<ShipRoomsVoxelsTreeNode> KnownOutside = new HashSet<ShipRoomsVoxelsTreeNode>(ReferenceComparer.Instance);
         private static readonly List<ShipRoomsVoxelsTreeNode> AllVisited = new List<ShipRoomsVoxelsTreeNode>();
         private static readonly HashSet<ushort> PreviousRooms = new HashSet<ushort>();
         private static readonly NodeHeap Heap = new NodeHeap();
@@ -101,6 +104,7 @@ namespace Mining.Patches
                 OutsideTouched.Clear();
                 AllVisited.Clear();
                 SeedVisited.Clear();
+                KnownOutside.Clear();
                 Stack.Clear();
                 Heap.Clear();
                 clear.Clear();
@@ -162,8 +166,17 @@ namespace Mining.Patches
             bool outside = false;
             while (Heap.Count > 0)
             {
-                ShipRoomsVoxelsTreeNode node = Heap.Pop();
-                if (node.Visited || node.RoomId > noRoom || node.WallCount > 0)
+                ShipRoomsVoxelsTreeNode node = Heap.PopAny();
+                if (node.Visited)
+                {
+                    if (KnownOutside.Contains(node))
+                    {
+                        outside = true; // styka się z obszarem, który już okazał się zewnętrzem
+                        break;
+                    }
+                    continue;
+                }
+                if (node.RoomId > noRoom || node.WallCount > 0)
                 {
                     continue;
                 }
@@ -198,7 +211,11 @@ namespace Mining.Patches
             }
             if (outside)
             {
-                foreach (ShipRoomsVoxelsTreeNode node in SeedVisited) node.RoomId = 0;
+                foreach (ShipRoomsVoxelsTreeNode node in SeedVisited)
+                {
+                    node.RoomId = 0;
+                    KnownOutside.Add(node);
+                }
                 return;
             }
             ushort roomId = tree.RegisterNewRoomId();
@@ -228,7 +245,7 @@ namespace Mining.Patches
 
             public void Push(ShipRoomsVoxelsTreeNode node)
             {
-                if (node.Visited) return;
+                if (node.Visited && !KnownOutside.Contains(node)) return; // odwiedzone wcześniej w tym zalewaniu
                 _items.Add(node);
                 int i = _items.Count - 1;
                 while (i > 0)
@@ -240,7 +257,7 @@ namespace Mining.Patches
                 }
             }
 
-            public ShipRoomsVoxelsTreeNode Pop()
+            public ShipRoomsVoxelsTreeNode PopAny()
             {
                 ShipRoomsVoxelsTreeNode top = _items[0];
                 int last = _items.Count - 1;
@@ -265,6 +282,30 @@ namespace Mining.Patches
             public static readonly ReferenceComparer Instance = new ReferenceComparer();
             public bool Equals(ShipRoomsVoxelsTreeNode a, ShipRoomsVoxelsTreeNode b) => ReferenceEquals(a, b);
             public int GetHashCode(ShipRoomsVoxelsTreeNode n) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(n);
+        }
+    }
+}
+
+namespace Mining.Patches
+{
+    // Zapis może zawierać pomieszczenie, którego po wczytaniu już nie ma (np. fałszywe pomieszczenia z Mining 0.1.6-0.2.1).
+    // Gra wypisuje wtedy błąd z pełnym zrzutem stosu - setki takich błędów wydłużały wczytywanie o ~20 s. Pomijamy po cichu.
+    [HarmonyLib.HarmonyPatch(typeof(Ships.Rooms.ShipRoomsGases), nameof(Ships.Rooms.ShipRoomsGases.LoadRoom))]
+    internal static class RoomsLoadMissingPatch
+    {
+        private static int _skipped;
+
+        private static bool Prefix(ushort __0)
+        {
+            if (__0 != Ships.Interface.Values.ShipRoomsConstants.NoRoomId)
+            {
+                return true;
+            }
+            if (++_skipped == 1)
+            {
+                MelonLoader.Melon<MiningMod>.Logger.Msg("Pominięto zapisane pomieszczenia, których już nie ma (znikną przy następnym zapisie)");
+            }
+            return false;
         }
     }
 }
