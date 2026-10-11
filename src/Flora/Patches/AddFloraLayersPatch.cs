@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Flora.Patches
 {
-    // Dokłada do planety dwie nowe warstwy roślinności (krzaki i kwiaty) NA KOŃCU listy configs.
+    // Dokłada do planety nową warstwę roślinności (kwiaty) NA KOŃCU listy configs.
     // Istniejące warstwy (jodły = 0, trawa = 1) zostają nietknięte, więc zapisy (ścięte drzewa są zapisane
     // po numerze warstwy) działają jak wcześniej. Nowe rośliny nie mają fizyki - są tylko dekoracją,
     // nic o nich nie trafia do zapisu.
@@ -35,7 +35,8 @@ namespace Flora.Patches
 
         private static void AddLayers(PlanetDenseEnvironment env)
         {
-            if (env.configs == null || env.configs.Length < 2 || env.configs.Any(c => c?.objectsSpawn?.Any(s => s.prefab != null && s.prefab.name.StartsWith("Flora")) == true))
+            if (!FloraMod.FlowersEnabled.Value || env.configs == null || env.configs.Length < 2 ||
+                env.configs.Any(c => c?.objectsSpawn?.Any(s => s.prefab != null && s.prefab.name.StartsWith("Flora")) == true))
             {
                 return;
             }
@@ -54,7 +55,6 @@ namespace Flora.Patches
                 Material bark = FindMaterial(trees, "Bark") ?? FindMaterial(trees, null);
                 FloraPrefabs.SetTemplate(bark);
                 FloraPrefabs.SetGrassTemplate(FindMaterial(grass, null));
-                FloraPrefabs.SetLeavesTemplate(FindMaterial(trees, "Leaves"));
                 if (!FloraPrefabs.IsReady)
                 {
                     Melon<FloraMod>.Logger.Warning("Brak materiału roślin do skopiowania - pomijam");
@@ -63,26 +63,11 @@ namespace Flora.Patches
             }
 
             var layers = env.configs.ToList();
-            if (FloraMod.BushesEnabled.Value)
-            {
-                var bushes = CreateLayer(trees, FloraPrefabs.CreateBushes(), FloraMod.BushNoiseOffset.Value, FloraMod.BushViewRange.Value,
-                    alignWithTerrain: false, noiseShift: new Vector3(13.7f, -4.1f, 8.3f), noiseFrequency: FloraMod.BushNoiseFrequency.Value);
-                // Ten sam poziom co drzewa = te same punkty siatki, więc krzaki wyrastały w pniach.
-                // Poziom niżej to drobniejsza siatka - punkty krzaków nie pokrywają się z drzewami.
-                if (bushes.level > 0)
-                {
-                    bushes.level -= 1;
-                }
-                layers.Add(bushes);
-            }
-            if (FloraMod.FlowersEnabled.Value)
-            {
-                layers.Add(CreateLayer(grass, FloraPrefabs.CreateFlowers(), FloraMod.FlowerNoiseOffset.Value, FloraMod.FlowerViewRange.Value,
-                    alignWithTerrain: true, noiseShift: new Vector3(-21.3f, 7.9f, 3.1f), noiseFrequency: FloraMod.FlowerNoiseFrequency.Value));
-            }
+            layers.Add(CreateLayer(grass, FloraPrefabs.CreateFlowers(), FloraMod.FlowerNoiseOffset.Value, FloraMod.FlowerViewRange.Value,
+                alignWithTerrain: true, noiseShift: new Vector3(-21.3f, 7.9f, 3.1f), noiseFrequency: FloraMod.FlowerNoiseFrequency.Value));
             env.configs = layers.ToArray();
 
-            Melon<FloraMod>.Logger.Msg($"{env.gameObject.name}: dodano {layers.Count - 2} warstw roślin " +
+            Melon<FloraMod>.Logger.Msg($"{env.gameObject.name}: dodano pola kwiatów " +
                                        $"(szum drzew: {Describe(trees)}, trawy: {Describe(grass)})");
         }
 

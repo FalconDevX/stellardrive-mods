@@ -53,7 +53,7 @@ namespace Flora.Diagnostics
             Transform t = cam.transform;
             Vector3 forward = Vector3.ProjectOnPlane(t.forward, t.up).normalized;
             Vector3 basePos = t.position + forward * 3f - t.up * 1.6f;
-            GameObject[] all = FloraPrefabs.CreateBushes().Take(2).Concat(FloraPrefabs.CreateFlowers().Take(3)).ToArray();
+            GameObject[] all = FloraPrefabs.CreateFlowers().Take(3).ToArray();
             for (int i = 0; i < all.Length; i++)
             {
                 Vector3 pos = basePos + Vector3.Cross(t.up, forward) * ((i - all.Length / 2) * 1.5f);

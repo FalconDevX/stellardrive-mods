@@ -155,36 +155,6 @@ namespace Flora.Models
             }
         }
 
-        // Krzak: 3-5 nachodzących na siebie kęp liści, opcjonalnie owoce (podsiatka 1).
-        internal static Mesh Bush(int seed, float size, bool berries)
-        {
-            var rng = new System.Random(seed);
-            var b = new Builder(berries ? 2 : 1);
-            int blobs = 3 + rng.Next(3);
-            var centers = new List<Vector3>();
-            for (int i = 0; i < blobs; i++)
-            {
-                float angle = (float)(rng.NextDouble() * Mathf.PI * 2f);
-                float dist = i == 0 ? 0f : size * (0.25f + 0.25f * (float)rng.NextDouble());
-                float r = size * (0.45f + 0.2f * (float)rng.NextDouble()) * (i == 0 ? 1.15f : 1f);
-                var c = new Vector3(Mathf.Cos(angle) * dist, r * 0.75f, Mathf.Sin(angle) * dist);
-                centers.Add(c);
-                Blob(b, 0, c, new Vector3(r, r * 0.8f, r), rng, 0.18f);
-            }
-            if (berries)
-            {
-                int count = 6 + rng.Next(6);
-                for (int i = 0; i < count; i++)
-                {
-                    Vector3 c = centers[rng.Next(centers.Count)];
-                    Vector3 dir = new Vector3((float)rng.NextDouble() * 2f - 1f, (float)rng.NextDouble() * 0.9f, (float)rng.NextDouble() * 2f - 1f).normalized;
-                    float r = size * 0.5f;
-                    Blob(b, 1, c + dir * r * 0.95f, Vector3.one * size * 0.07f, rng, 0.1f);
-                }
-            }
-            return b.Build($"FloraBush_{seed}", softCenter: new Vector3(0f, size * 0.6f, 0f));
-        }
-
         // Kępa kwiatów: kilka łodyg z liśćmi (podsiatka 0), płatki (podsiatka 1) i środek (podsiatka 2).
         internal static Mesh FlowerClump(int seed, int flowers, float height)
         {

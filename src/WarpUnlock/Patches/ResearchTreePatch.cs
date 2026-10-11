@@ -56,6 +56,17 @@ namespace WarpUnlock.Patches
                 }
             }
 
+            // Schowane zastępstwo (np. "Demo Complete") dawało jakieś części - odblokowujemy też prawdziwe badania z tymi częściami
+            // (dla "Demo Complete" to "Sensors"), żeby po schowaniu nic nie zniknęło z gry.
+            foreach (ResearchSettings placeholder in toUnlock.Where(r => !r.availableInDemo).SelectMany(r => FindPlaceholders(r, provider.Researches)).ToList())
+            {
+                foreach (ResearchSettings research in provider.Researches.Where(r => r != null && r != placeholder && !r.availableInDemo &&
+                                                                                     SharesPart(r, placeholder)))
+                {
+                    AddWithRequirements(research, toUnlock);
+                }
+            }
+
             foreach (ResearchSettings research in toUnlock.Where(r => !r.availableInDemo))
             {
                 research.availableInDemo = true;
@@ -64,14 +75,32 @@ namespace WarpUnlock.Patches
             }
         }
 
+        private static IEnumerable<ResearchSettings> FindPlaceholders(ResearchSettings research, IEnumerable<ResearchSettings> all)
+        {
+            return all.Where(r => r != null && r != research && r.exclusiveToDemo && r.availableInDemo && !r.hideFromTechTree &&
+                                  r.positionInTechTree == research.positionInTechTree);
+        }
+
+        private static bool SharesPart(ResearchSettings a, ResearchSettings b)
+        {
+            return a.unlockedParts != null && b.unlockedParts != null && a.unlockedParts.Any(p => p != null && b.unlockedParts.Contains(p));
+        }
+
         // W demie w miejscu ukrytego badania stoi zwykle jego zastępstwo (np. "Demo Complete" zamiast "Stellar Travel"),
-        // a przyciski na tej samej pozycji się zasłaniają. Przesuwamy odblokowane badanie na wolne miejsce w tej kolumnie.
+        // a przyciski na tej samej pozycji się zasłaniają. Zastępstwo dostępne tylko w demie chowamy, żeby odblokowane
+        // badanie zostało na swoim miejscu (linia do wymaganego badania jest wtedy prosta). Gdy pozycję zajmuje
+        // zwykłe badanie, przesuwamy odblokowane na wolne miejsce w tej kolumnie.
         private static void MoveToFreeSpot(ResearchSettings research, IEnumerable<ResearchSettings> all)
         {
+            UnityEngine.Vector2Int position = research.positionInTechTree;
+            foreach (ResearchSettings placeholder in FindPlaceholders(research, all).ToList())
+            {
+                placeholder.hideFromTechTree = true;
+                Melon<WarpUnlockMod>.Logger.Msg($"Schowano zastępstwo z dema: '{placeholder.techName}'");
+            }
             var taken = new HashSet<UnityEngine.Vector2Int>(all
                 .Where(r => r != null && r != research && r.availableInDemo && !r.hideFromTechTree)
                 .Select(r => r.positionInTechTree));
-            UnityEngine.Vector2Int position = research.positionInTechTree;
             if (!taken.Contains(position))
             {
                 return;

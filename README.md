@@ -7,12 +7,14 @@ Nie są powiązane z twórcą gry.
 |---|---|
 | **Resource Tweaks** | 3x więcej surowców z wydobycia (bez narzędzi), stacki do 100, szybsze kopanie (drzewa -50% czasu, reszta -25%) |
 | **Crouch** | Kucanie na lewy Ctrl (niższa postać i kamera, wolniejszy chód) |
-| **Flora** | Nowe krzaki i pola kwiatów na planecie (tylko dekoracja) |
+| **Flora** | Pola kwiatów na planecie (tylko dekoracja) |
 | **Pick Block** | Z narzędziem budowania: środkowy przycisk myszy na części = buduj tą samą częścią |
 | **Shared Piloting** | Kilka foteli pilota: obraca statkiem ten, kto rusza myszą (wbudowany żyroskop bezczynnego fotela nie blokuje). Wystarczy u hosta |
 | **Ship Safety** | Naprawia błąd gry, który wyrzuca statek z prędkością wielu c miliony km od planety (paliwo w zbiornikach liczone na minusie → ujemna masa statku). Dodatkowo pilnuje masy, skoków prędkości i limitu 5000 m/s. Wystarczy u hosta |
 | **Velocity Indicator** | Wskaźnik prędkości na statku nie przeskakuje nagle w bok przy wejściu na orbitę (pokazuje prędkość względem powierzchni planety) i nie pokazuje fałszywego zera. Każdy gracz potrzebuje moda |
-| **Warp Unlock** | Pokazuje w drzewie badań dema ukryte badanie Warp Drive (i badania wymagane przed nim), żeby dało się latać do innych planet. Obaj gracze potrzebują moda |
+| **Warp Unlock** | Pokazuje w drzewie badań dema ukryte badanie Warp Drive (i badania wymagane przed nim), żeby dało się latać do innych planet. Chowa "Demo Complete" (czujniki są w odblokowanym badaniu "Sensors"). Obaj gracze potrzebują moda |
+| **Mining** | Złoża na planetach (płaskie pola kamieni z rudą, widać jaka to ruda) i koparka do zbudowania po badaniu "Mining": stawiasz ją na złożu, podłączasz prąd, a ona sama wydobywa rudę (do 4 stosów po 100, otwierasz jak skrzynię). Klawisz N pokazuje kierunek do najbliższego złoża. Obaj gracze potrzebują moda |
+| **Drop Items** | Wyrzucanie przedmiotów: Q z wybranego slotu paska, X ze slotu pod kursorem w ekwipunku (z Shiftem połowa stosu) |
 | **Planet Unlock** | EKSPERYMENTALNE: wczytuje wszystkie planety układu 442 Otrera (demo wczytuje tylko Otrera b), żeby dało się do nich dolecieć warpem. Obaj gracze potrzebują moda |
 
 Ustawienia (mnożnik, stack, gęstość roślin...) są w `StellarDrive Demo\UserData\MelonPreferences.cfg`

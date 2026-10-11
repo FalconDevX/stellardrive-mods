@@ -1,0 +1,7 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>DropItems</AssemblyName>
+    <RootNamespace>DropItems</RootNamespace>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+</Project>

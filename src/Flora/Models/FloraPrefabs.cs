@@ -13,15 +13,9 @@ namespace Flora.Models
         private static GameObject _holder;
         private static Material _template;
         private static Material _grassTemplate;
-        private static Material _leavesTemplate;
         private static readonly Dictionary<string, Material> Materials = new Dictionary<string, Material>();
 
         // Kolory dobrane do palety gry (stonowane, lekko przygaszone jak liście jodeł).
-        private static readonly Color[] BushGreens =
-        {
-            new Color(0.33f, 0.45f, 0.26f), new Color(0.40f, 0.50f, 0.28f), new Color(0.28f, 0.40f, 0.25f),
-        };
-        private static readonly Color BerryRed = new Color(0.70f, 0.20f, 0.20f);
         private static readonly Color StemGreen = new Color(0.36f, 0.50f, 0.27f);
         private static readonly Color FlowerCenter = new Color(0.93f, 0.76f, 0.30f);
         private static readonly Color[] PetalColors =
@@ -59,41 +53,10 @@ namespace Flora.Models
             }
         }
 
-        // Krzaki używają kopii materiału liści jodły (bez mapy normalnych) - na korze bez jej tekstury
-        // normalnych wychodziły czarne.
-        internal static void SetLeavesTemplate(Material leaves)
-        {
-            if (_leavesTemplate == null && leaves != null)
-            {
-                _leavesTemplate = leaves;
-            }
-        }
-
-        private static GameObject[] _bushes;
         private static GameObject[] _flowers;
 
         // Prefaby tworzymy raz i używamy na wszystkich planetach.
-        internal static GameObject[] CreateBushes() => _bushes ?? (_bushes = BuildBushes());
-
         internal static GameObject[] CreateFlowers() => _flowers ?? (_flowers = BuildFlowers());
-
-        private static GameObject[] BuildBushes()
-        {
-            var list = new List<GameObject>();
-            for (int i = 0; i < 6; i++)
-            {
-                bool berries = i % 3 == 2;
-                float size = 0.8f + 0.25f * (i % 3);
-                Mesh mesh = LowPolyMeshes.Bush(1000 + i, size, berries);
-                var mats = new List<Material> { GetMaterial("leaves" + i % BushGreens.Length, BushGreens[i % BushGreens.Length], true, leaves: true) };
-                if (berries)
-                {
-                    mats.Add(GetMaterial("berries", BerryRed, false, leaves: true));
-                }
-                list.Add(CreatePrefab($"FloraBush{i}", mesh, mats.ToArray()));
-            }
-            return list.ToArray();
-        }
 
         private static GameObject[] BuildFlowers()
         {
@@ -128,16 +91,15 @@ namespace Flora.Models
             return root;
         }
 
-        private static Material GetMaterial(string key, Color color, bool wind, bool grass = false, bool leaves = false)
+        private static Material GetMaterial(string key, Color color, bool wind, bool grass = false)
         {
             bool useGrass = grass && _grassTemplate != null;
-            bool useLeaves = !useGrass && leaves && _leavesTemplate != null;
-            key = (useGrass ? "grass_" : useLeaves ? "leaf_" : "") + key;
+            key = (useGrass ? "grass_" : "") + key;
             if (Materials.TryGetValue(key, out Material existing))
             {
                 return existing;
             }
-            var mat = new Material(useGrass ? _grassTemplate : useLeaves ? _leavesTemplate : _template) { name = "Flora_" + key };
+            var mat = new Material(useGrass ? _grassTemplate : _template) { name = "Flora_" + key };
             // Tekstura z narysowanym obrysem; części bez obrysu mają UV w jej białym środku.
             SetTexture(mat, "_Albedo", FloraTextures.Outline);
             SetTexture(mat, "_Normal", null);

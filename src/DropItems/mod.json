@@ -1,0 +1,7 @@
+{
+  "id": "stellardrive-dropitems",
+  "name": "Drop Items",
+  "author": "mateu",
+  "version": "0.1.0",
+  "description": "Wyrzucanie przedmiotów: Q z wybranego slotu paska, X ze slotu pod kursorem w ekwipunku (z Shiftem połowa stosu). Wystarczy u gracza, który wyrzuca."
+}

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Mining</AssemblyName>
+    <RootNamespace>Mining</RootNamespace>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\*" LogicalName="Mining.Assets.%(Filename)%(Extension)" />
+    <None Remove="AssetSource\**" />
+  </ItemGroup>
+</Project>

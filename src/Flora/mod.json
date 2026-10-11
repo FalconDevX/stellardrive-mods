@@ -2,6 +2,6 @@
   "id": "stellardrive-flora",
   "name": "Flora",
   "author": "mateu",
-  "version": "0.3.0",
-  "description": "Nowe krzaki (też z owocami) i pola kwiatów w stylu gry. Tylko dekoracja, nie zmienia zapisów."
+  "version": "0.4.0",
+  "description": "Pola kwiatów w stylu gry. Tylko dekoracja, nie zmienia zapisów."
 }
