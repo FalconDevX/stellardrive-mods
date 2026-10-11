@@ -12,6 +12,7 @@ Nie są powiązane z twórcą gry.
 | **Shared Piloting** | Kilka foteli pilota: obraca statkiem ten, kto rusza myszą (wbudowany żyroskop bezczynnego fotela nie blokuje). Wystarczy u hosta |
 | **Ship Safety** | Naprawia błąd gry, który wyrzuca statek z prędkością wielu c miliony km od planety (paliwo w zbiornikach liczone na minusie → ujemna masa statku). Dodatkowo pilnuje masy, skoków prędkości i limitu 5000 m/s. Wystarczy u hosta |
 | **Velocity Indicator** | Wskaźnik prędkości na statku nie przeskakuje nagle w bok przy wejściu na orbitę (pokazuje prędkość względem powierzchni planety) i nie pokazuje fałszywego zera. Każdy gracz potrzebuje moda |
+| **Warp Unlock** | Pokazuje w drzewie badań dema ukryte badanie Warp Drive (i badania wymagane przed nim), żeby dało się latać do innych planet. Obaj gracze potrzebują moda |
 
 Ustawienia (mnożnik, stack, gęstość roślin...) są w `StellarDrive Demo\UserData\MelonPreferences.cfg`
 (plik pojawia się po pierwszym uruchomieniu gry z modami).

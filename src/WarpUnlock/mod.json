@@ -1,0 +1,7 @@
+{
+  "id": "stellardrive-warpunlock",
+  "name": "Warp Unlock",
+  "author": "mateu",
+  "version": "0.1.0",
+  "description": "Pokazuje w drzewie badań dema ukryte badanie Warp Drive (i badania wymagane przed nim), żeby dało się latać do innych planet. Obaj gracze potrzebują moda."
+}

@@ -5,3 +5,4 @@ Pick Block 0.1.0
 Shared Piloting 0.1.0
 Ship Safety 0.3.0
 Velocity Indicator 0.1.0
+Warp Unlock 0.1.0
