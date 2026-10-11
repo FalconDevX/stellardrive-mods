@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.1.4", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.1.5", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -23,6 +23,7 @@ namespace Mining
         internal static MelonPreferences_Entry<float> JetpackSecondsPerWood;
         internal static MelonPreferences_Entry<float> JetpackAcceleration;
         internal static MelonPreferences_Entry<float> JetpackMaxSpeed;
+        internal static MelonPreferences_Entry<float> JetpackVolume;
         internal static MelonPreferences_Entry<float> ReactorPower;
         internal static MelonPreferences_Entry<float> ReactorSecondsPerUranium;
         internal static MelonPreferences_Entry<string> DevAutoLoadWorld;
@@ -53,6 +54,7 @@ namespace Mining
             JetpackSecondsPerWood = category.CreateEntry("JetpackSecondsPerWood", 20f, description: "Ile sekund lotu jetpackiem daje 1 drewno. Wystarczy u hosta");
             JetpackAcceleration = category.CreateEntry("JetpackAcceleration", 6f, description: "Przyspieszenie jetpacka w górę ponad grawitację (m/s^2). Wszyscy gracze muszą mieć to samo");
             JetpackMaxSpeed = category.CreateEntry("JetpackMaxSpeed", 7f, description: "Maksymalna prędkość wznoszenia jetpackiem (m/s). Wszyscy gracze muszą mieć to samo");
+            JetpackVolume = category.CreateEntry("JetpackVolume", 0.8f, description: "Głośność ognia jetpacka (0-1) - gdy jest plik UserData/Mining/jetpack.wav albo dźwięk w modzie");
             RotorSpeed = category.CreateEntry("RotorSpeed", 90f, description: "Prędkość obrotu rotora (stopnie na sekundę). Wystarczy u hosta");
             HydrogenThrustMultiplier = category.CreateEntry("HydrogenThrustMultiplier", 1.8f, description: "Ile razy silnik wodorowy jest mocniejszy od chemicznego. Wystarczy u hosta");
             DevAutoLoadWorld = category.CreateEntry("DevAutoLoadWorld", "",
@@ -63,7 +65,7 @@ namespace Mining
             DevJetpack = category.CreateEntry("DevJetpack", false, description: "Dla twórcy moda: test lotu jetpackiem");
             DevPerf = category.CreateEntry("DevPerf", false, description: "Dla twórcy moda: pomiar lagów przy szybkim stawianiu i usuwaniu części");
             category.SaveToFile(false);
-            LoggerInstance.Msg("Press N: direction to the nearest ore deposit.");
+            LoggerInstance.Msg("Press N: direction to the nearest ore deposit. Press J: jetpack on/off.");
         }
 
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
@@ -84,6 +86,11 @@ namespace Mining
                 {
                     ShowMessage(Sites.MiningSiteVisuals.DescribeNearest());
                 }
+                if (kb != null && kb.jKey.wasPressedThisFrame && !Diagnostics.DevTools.IsTyping() && Content.Jetpack.IsUnlocked())
+                {
+                    Content.Jetpack.Enabled = !Content.Jetpack.Enabled;
+                    ShowMessage(Content.Jetpack.Enabled ? "Jetpack ON" : "Jetpack OFF", 1.5f);
+                }
             }
             catch (System.Exception e)
             {
@@ -92,10 +99,10 @@ namespace Mining
             }
         }
 
-        internal static void ShowMessage(string text)
+        internal static void ShowMessage(string text, float seconds = 6f)
         {
             _message = text;
-            _messageUntil = Time.unscaledTime + 6f;
+            _messageUntil = Time.unscaledTime + seconds;
             Melon<MiningMod>.Logger.Msg(text);
         }
 

@@ -22,6 +22,11 @@ namespace Mining.Content
         internal static bool TestForceUp; // tylko test (Diagnostics) - jak przytrzymany skok
         internal static bool CurrentIsLocalPrediction;
 
+        // Włącznik pod J (tylko lokalnie): wyłączony jetpack = klient nie wysyła "skoku" w powietrzu, więc host
+        // nie daje ciągu - działa w multiplayerze bez nowych wiadomości sieciowych.
+        internal static bool Enabled = true;
+        internal static bool LocalHasGravity; // z ostatniego kroku przewidywania ruchu (w zerowej grawitacji spacja służy do lotu w górę)
+
         private static readonly Dictionary<uint, float> Burned = new Dictionary<uint, float>();
 
         internal static bool IsUnlocked()

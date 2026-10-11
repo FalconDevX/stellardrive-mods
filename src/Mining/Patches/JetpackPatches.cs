@@ -49,6 +49,10 @@ namespace Mining.Patches
     {
         private static void Postfix(ref PlayerPhysicsState __0, PlayerControlInput __1, Vector3 ____currentUp, Vector3 ____currentGravity, float ____deltaTime)
         {
+            if (Jetpack.CurrentIsLocalPrediction)
+            {
+                Jetpack.LocalHasGravity = ____currentGravity != Vector3.zero;
+            }
             if ((__1.VerticalInput <= 0f && !(Jetpack.TestForceUp && Jetpack.CurrentServerPlayer != null)) || ____currentGravity == Vector3.zero || (Jetpack.CurrentServerPlayer == null && !Jetpack.CurrentIsLocalPrediction))
             {
                 return;
@@ -66,6 +70,20 @@ namespace Mining.Patches
                 __0.Velocity += ____currentUp * Mathf.Min(accel * ____deltaTime, maxUp - upSpeed + ____currentGravity.magnitude * ____deltaTime);
             }
             Jetpack.Burn(____deltaTime);
+        }
+    }
+
+    // --- Włącznik (J): wyłączony jetpack = w powietrzu z grawitacją nie wysyłamy "skoku" (na ziemi skok działa normalnie) ---
+    [HarmonyPatch(typeof(TrackedPlayerLocalClient), "SetInputs")]
+    internal static class JetpackToggleInputPatch
+    {
+        private static void Prefix(TrackedPlayerLocalClient __instance, ref PlayerControlInput __0)
+        {
+            if (Jetpack.Enabled || __0.MoveInput.y <= 0f || !Jetpack.LocalHasGravity || __instance.PhysicsState.IsOnGround)
+            {
+                return;
+            }
+            __0.MoveInput.y = 0f;
         }
     }
 
@@ -265,9 +283,15 @@ namespace Mining.Patches
             bool onPlanet = space is PlanetSurfaceSpace || space is ShipRelativeSpace;
             bool flying = unlocked && onPlanet && ____state.PressedKeys.Up && !__0.IsOnGround && ____state.ClientState.Type == PlayerStateType.Walking;
             var audio = ServiceLocator.GetService<IAudioPlayer>();
+            if (unlocked)
+            {
+                JetpackFx fx = JetpackFx.For(__instance);
+                fx.Flying = flying;
+                fx.Up = __0.Rotation * Vector3.up;
+            }
             if (flying)
             {
-                if (Flying.Add(__instance))
+                if (Flying.Add(__instance) && !JetpackFx.HasCustomSound)
                 {
                     audio?.PlayAudioEvent3D("Event:/Players/JetpackThruster", __instance.gameObject);
                 }
@@ -321,19 +345,19 @@ namespace Mining.Patches
                 {
                     return;
                 }
-                Transform anchor = points[0].parent;
-                Vector3 center = points.Aggregate(Vector3.zero, (sum, t) => sum + t.position) / points.Length;
+                // Jak plecak: przypięty do samej postaci (obiekt, który gra obraca razem z graczem), a nie do ruchomej
+                // kości z dyszami - inaczej przekrzywiał się i "wjeżdżał" pod szyję.
+                Transform root = effects.GetComponentInParent<Players.Visuals.PlayerSounds>()?.transform ?? effects.transform;
+                Vector3[] local = points.Select(t => root.InverseTransformPoint(t.position)).ToArray();
+                bool hasHips = nozzles.Length >= 4 && nozzles[2] != null && nozzles[3] != null;
+                float y = local.Average(v => v.y) - (hasHips ? 0f : 0.24f); // same dysze barkowe = środek pleców niżej
+                float z = local.Average(v => v.z);
+                // plecy = strona dysz (zwykle -Z postaci); model: plecy gracza = +Z modelu
+                float backSign = z <= 0f ? -1f : 1f;
                 var go = new GameObject("MiningJetpack") { layer = effects.gameObject.layer };
-                go.transform.SetParent(anchor, true);
-                // Plecy: dysze kostiumu siedzą na plecach, więc kierunek od środka postaci do dysz to "do tyłu".
-                // Gdy nie da się tego ustalić - przeciwieństwo kierunku patrzenia postaci.
-                Vector3 up = bodyRotation * Vector3.up;
-                Vector3 back = Vector3.ProjectOnPlane(center - anchor.position, up);
-                Vector3 facingBack = Vector3.ProjectOnPlane(bodyRotation * Vector3.back, up).normalized;
-                back = back.magnitude > 0.05f && Vector3.Dot(back.normalized, facingBack) > -0.2f ? back.normalized : facingBack;
-                // model: plecy gracza = +Z modelu, płyta dosunięta do kostiumu
-                go.transform.rotation = Quaternion.LookRotation(back, up);
-                go.transform.position = center + back * 0.06f;
+                go.transform.SetParent(root, false);
+                go.transform.localPosition = new Vector3(0f, y, z + backSign * 0.03f);
+                go.transform.localRotation = Quaternion.LookRotation(new Vector3(0f, 0f, backSign), Vector3.up);
                 go.AddComponent<MeshFilter>().sharedMesh = _mesh;
                 go.AddComponent<MeshRenderer>().sharedMaterial = _material;
             }
