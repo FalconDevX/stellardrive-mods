@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.1.5", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.1.6", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -54,7 +54,8 @@ namespace Mining
             JetpackSecondsPerWood = category.CreateEntry("JetpackSecondsPerWood", 20f, description: "Ile sekund lotu jetpackiem daje 1 drewno. Wystarczy u hosta");
             JetpackAcceleration = category.CreateEntry("JetpackAcceleration", 6f, description: "Przyspieszenie jetpacka w górę ponad grawitację (m/s^2). Wszyscy gracze muszą mieć to samo");
             JetpackMaxSpeed = category.CreateEntry("JetpackMaxSpeed", 7f, description: "Maksymalna prędkość wznoszenia jetpackiem (m/s). Wszyscy gracze muszą mieć to samo");
-            JetpackVolume = category.CreateEntry("JetpackVolume", 0.8f, description: "Głośność ognia jetpacka (0-1) - gdy jest plik UserData/Mining/jetpack.wav albo dźwięk w modzie");
+            category.DeleteEntry("JetpackVolume"); // stara, za głośna wartość domyślna
+            JetpackVolume = category.CreateEntry("JetpackFireVolume", 0.45f, description: "Głośność ognia jetpacka (0-1)");
             RotorSpeed = category.CreateEntry("RotorSpeed", 90f, description: "Prędkość obrotu rotora (stopnie na sekundę). Wystarczy u hosta");
             HydrogenThrustMultiplier = category.CreateEntry("HydrogenThrustMultiplier", 1.8f, description: "Ile razy silnik wodorowy jest mocniejszy od chemicznego. Wystarczy u hosta");
             DevAutoLoadWorld = category.CreateEntry("DevAutoLoadWorld", "",

@@ -30,9 +30,8 @@ namespace PickBlock.Patches
             _nextPlaceTime = Time.time + PickBlockMod.HoldDelay.Value;
         }
 
-        [HarmonyPostfix]
-        [HarmonyPatch(nameof(BuildToolLocalClient.PrimaryActionEnd))]
-        private static void End() => _held = false;
+        // Nie kończymy na PrimaryActionEnd: gra potrafi wysłać je od razu po kliknięciu (przycisk typu "naciśnij"),
+        // wtedy przytrzymanie nigdy nie działało. Koniec = puszczony lewy przycisk myszy (sprawdzane w Update).
 
         [HarmonyPostfix]
         [HarmonyPatch(nameof(BuildToolLocalClient.DisableTool))]

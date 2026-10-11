@@ -1,7 +1,7 @@
 ﻿using MelonLoader;
 using PickBlock;
 
-[assembly: MelonInfo(typeof(PickBlockMod), "Pick Block", "0.2.0", "mateu")]
+[assembly: MelonInfo(typeof(PickBlockMod), "Pick Block", "0.2.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace PickBlock
