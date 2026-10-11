@@ -17,6 +17,7 @@ namespace Mining
         internal static MelonPreferences_Entry<float> SiteRadius;
         internal static MelonPreferences_Entry<bool> ShowSites;
         internal static MelonPreferences_Entry<float> DrillVolume;
+        internal static MelonPreferences_Entry<float> HydrogenThrustMultiplier;
         internal static MelonPreferences_Entry<string> DevAutoLoadWorld;
         internal static MelonPreferences_Entry<bool> DevDump;
         internal static MelonPreferences_Entry<bool> DevQuitAfterDump;
@@ -36,6 +37,7 @@ namespace Mining
             SiteRadius = category.CreateEntry("SiteRadius", 5f, description: "Promień złoża (m). Wszyscy gracze muszą mieć to samo");
             ShowSites = category.CreateEntry("ShowSites", true, description: "Pokazuj złoża (pola kamieni z rudą)");
             DrillVolume = category.CreateEntry("DrillVolume", 0.8f, description: "Głośność wiertła (0-1)");
+            HydrogenThrustMultiplier = category.CreateEntry("HydrogenThrustMultiplier", 1.8f, description: "Ile razy silnik wodorowy jest mocniejszy od chemicznego. Wystarczy u hosta");
             DevAutoLoadWorld = category.CreateEntry("DevAutoLoadWorld", "",
                 description: "Dla twórcy moda: pełna ścieżka do world.json wczytywanego automatycznie z menu (puste = wyłączone)");
             DevDump = category.CreateEntry("DevDump", false, description: "Dla twórcy moda: zrzut części i materiałów do UserData/Mining/dump.txt");

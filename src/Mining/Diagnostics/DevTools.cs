@@ -124,6 +124,23 @@ namespace Mining.Diagnostics
             excavator.SetActive(true);
             excavator.GetComponent<Content.ExcavatorVisuals>().ForceWorking = true;
 
+            // Nowe części napędu wodorowego obok koparki (sam wygląd).
+            var provider = new Ships.Interface.Services.PartSettingsProvider();
+            foreach (var (id, offset) in new[] { (Content.HydrogenThruster.PartId, -2.2f), (Content.ElectrolyzerPart.PartId, 2.4f) })
+            {
+                PartSettings extra = provider.GetAllPartSettings().FirstOrDefault(p => p.id == id);
+                log.Msg($"[test] część {id}: {(extra != null ? extra.fullLabel : "BRAK")}");
+                var visualComp = extra?.part.GetComponentInChildren<Ships.Parts.Common.Model.Reactions.IShipPartVisual>(true);
+                if (visualComp != null)
+                {
+                    GameObject v = UnityEngine.Object.Instantiate(visualComp.GameObject, ground + Vector3.Cross(up, fwd) * offset, Quaternion.LookRotation(-fwd, up));
+                    v.SetActive(true);
+                }
+            }
+
+            var storageMenu = UnityEngine.Object.FindObjectsOfType<UI.Inventory.StorageMenuActivator>(true).FirstOrDefault();
+            log.Msg($"[test] okno elektrolizera: {(storageMenu != null && Traverse.Create(storageMenu).Field("electrolyzerMenu").GetValue<GameObject>() != null ? "jest" : "BRAK")}");
+
             Sites.MiningSite site = Sites.MiningSiteVisuals.FindNearest(3000f, out float distance);
             log.Msg($"[test] najbliższe złoże: {(site != null ? site.Kind.Name + $" {distance:0} m, promień {site.Radius:0.0}" : "brak")}");
             log.Msg($"[test] {Sites.MiningSiteVisuals.DescribeNearest()}");
