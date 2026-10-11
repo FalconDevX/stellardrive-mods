@@ -37,7 +37,7 @@ namespace WarpUnlock.Patches
                     Melon<WarpUnlockMod>.Logger.Msg(
                         $"  badanie {research.id} '{research.techName}': demo={research.availableInDemo} ukryte={research.hideFromTechTree} " +
                         $"tylkoDemo={research.exclusiveToDemo} części=[{string.Join(", ", (research.unlockedParts ?? new PartSettings[0]).Where(p => p != null).Select(p => p.fullLabel))}] " +
-                        $"wymaga=[{string.Join(", ", (research.requirements ?? new ResearchSettings[0]).Where(r => r != null).Select(r => r.techName))}]");
+                        $"poz={research.positionInTechTree} wymaga=[{string.Join(", ", (research.requirements ?? new ResearchSettings[0]).Where(r => r != null).Select(r => r.techName))}]");
                 }
             }
 
@@ -59,7 +59,34 @@ namespace WarpUnlock.Patches
             foreach (ResearchSettings research in toUnlock.Where(r => !r.availableInDemo))
             {
                 research.availableInDemo = true;
-                Melon<WarpUnlockMod>.Logger.Msg($"Odblokowano w drzewie: '{research.techName}'");
+                MoveToFreeSpot(research, provider.Researches);
+                Melon<WarpUnlockMod>.Logger.Msg($"Odblokowano w drzewie: '{research.techName}' (pozycja {research.positionInTechTree})");
+            }
+        }
+
+        // W demie w miejscu ukrytego badania stoi zwykle jego zastępstwo (np. "Demo Complete" zamiast "Stellar Travel"),
+        // a przyciski na tej samej pozycji się zasłaniają. Przesuwamy odblokowane badanie na wolne miejsce w tej kolumnie.
+        private static void MoveToFreeSpot(ResearchSettings research, IEnumerable<ResearchSettings> all)
+        {
+            var taken = new HashSet<UnityEngine.Vector2Int>(all
+                .Where(r => r != null && r != research && r.availableInDemo && !r.hideFromTechTree)
+                .Select(r => r.positionInTechTree));
+            UnityEngine.Vector2Int position = research.positionInTechTree;
+            if (!taken.Contains(position))
+            {
+                return;
+            }
+            for (int offset = 1; offset < 10; offset++)
+            {
+                foreach (int y in new[] { position.y - offset, position.y + offset })
+                {
+                    var candidate = new UnityEngine.Vector2Int(position.x, y);
+                    if (y >= 0 && !taken.Contains(candidate))
+                    {
+                        research.positionInTechTree = candidate;
+                        return;
+                    }
+                }
             }
         }
 

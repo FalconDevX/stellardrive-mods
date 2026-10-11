@@ -1,7 +1,7 @@
 using MelonLoader;
 using WarpUnlock;
 
-[assembly: MelonInfo(typeof(WarpUnlockMod), "Warp Unlock", "0.1.0", "mateu")]
+[assembly: MelonInfo(typeof(WarpUnlockMod), "Warp Unlock", "0.1.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace WarpUnlock
