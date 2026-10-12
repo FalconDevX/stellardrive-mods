@@ -211,6 +211,10 @@ namespace Mining.Diagnostics
             {
                 yield return RunVisualTest();
             }
+            else if (HasArg("pump"))
+            {
+                yield return RunPumpTest();
+            }
             ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, "screen.png"));
             if (HasArg("quit") || MiningMod.DevQuitAfterDump.Value)
             {
@@ -506,6 +510,131 @@ namespace Mining.Diagnostics
             if (ship != null) log.Msg($"[test] statek po 8 s: pozycja {ship.LocalPhysicsState.Position}, nachylenie {Vector3.Angle(ship.LocalPhysicsState.Rotation * Vector3.up, up2):0.0}°");
             cam.enabled = true;
             UnityEngine.Object.Destroy(testCam2.gameObject);
+        }
+
+        // Pompa: statek z pompą zawieszony 6 m nad najbliższym jeziorem, wąż opuszczony (jak po E), zdjęcia i stan serwera.
+        private static IEnumerator RunPumpTest()
+        {
+            var log = Melon<MiningMod>.Logger;
+            Camera cam = Camera.main;
+            var transpose = Core.Services.ServiceLocator.GetService<WorldTracking.Interface.Services.IWorldTransposeClient>();
+            if (cam == null || transpose == null || !(WorldTracking.Interface.Values.ClientOrigin.LocalVisualSpace is WorldTracking.Interface.Model.Spaces.PlanetSurfaceSpace surface))
+            {
+                log.Msg("[pump] brak kamery/planety");
+                yield break;
+            }
+            var planetSpace = new WorldTracking.Interface.Model.Spaces.PlanetSurfaceSpace { PlanetId = surface.PlanetId, Center = Core.Values.Vector3Double.Zero };
+            Vector3 camPlanet = (Vector3)transpose.Position(surface, planetSpace, (Core.Values.Vector3Double)cam.transform.position);
+            Vector3 up = camPlanet.normalized;
+            Vector3 t1 = Vector3.Cross(up, Mathf.Abs(up.y) < 0.9f ? Vector3.up : Vector3.right).normalized, t2 = Vector3.Cross(up, t1);
+            Vector3 best = Vector3.zero;
+            float bestDist = float.MaxValue;
+            for (float x = -4000f; x <= 4000f; x += 50f)
+            {
+                for (float y = -4000f; y <= 4000f; y += 50f)
+                {
+                    Vector3 p = (camPlanet + t1 * x + t2 * y).normalized * camPlanet.magnitude;
+                    // środek jeziora: jezioro w promieniu 12 m wokół
+                    if (x * x + y * y < bestDist && Content.WaterPump.TryProbe(surface.PlanetId, p, out _, out bool w) && w &&
+                        Content.WaterPump.TryProbe(surface.PlanetId, (p + t1 * 12f).normalized * p.magnitude, out _, out bool w2) && w2 &&
+                        Content.WaterPump.TryProbe(surface.PlanetId, (p - t2 * 12f).normalized * p.magnitude, out _, out bool w3) && w3)
+                    {
+                        bestDist = x * x + y * y;
+                        best = p.normalized;
+                    }
+                }
+            }
+            if (bestDist == float.MaxValue)
+            {
+                log.Msg("[pump] brak jeziora w promieniu 4 km");
+                yield break;
+            }
+            var tracked = Sites.MiningSites.FindTrackedPlanet(surface.PlanetId);
+            float radius = tracked.Planet.Radius;
+            Vector3 hoverPlanet = best * (radius + Content.WaterPump.SeaLevel + 6f);
+            log.Msg($"[pump] jezioro {Mathf.Sqrt(bestDist):0} m od kamery");
+
+            // statek z pompą przez prawdziwe zapytanie serwera (jak narzędzie budowania)
+            var physicsSpace = WorldTracking.Interface.Values.ClientOrigin.LocalPhysicsSpace;
+            Vector3 pos = (Vector3)transpose.Position(planetSpace, physicsSpace, (Core.Values.Vector3Double)hoverPlanet);
+            Vector3 fwdPlanet = Vector3.Cross(Vector3.Cross(best, t1), best).normalized;
+            Quaternion rot = transpose.Rotation(planetSpace, physicsSpace, Quaternion.LookRotation(fwdPlanet, best));
+            var shipsServer = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>();
+            var shipsBefore = new HashSet<uint>(shipsServer.Ships.Select(sh => sh.Id));
+            var interaction = UnityEngine.Object.FindObjectOfType<Managers.Server.Services.ShipInteractionService>();
+            var conn = FishNet.InstanceFinder.ServerManager.Clients.Values.FirstOrDefault();
+            var testPlayer = conn != null ? Core.Services.ServiceLocator.GetService<Players.Services.PlayersServerTracker>().GetTrackedPlayerFromConnectionId(conn.ClientId) : null;
+            testPlayer?.AddItemToInventory(new ItemDrop { ItemId = 101, Quantity = 30 });
+            testPlayer?.AddItemToInventory(new ItemDrop { ItemId = 112, Quantity = 10 });
+            testPlayer?.AddItemToInventory(new ItemDrop { ItemId = 102, Quantity = 10 });
+            Patches.ServerCreateShipPatch.CreateExcavatorShip(Content.WaterPump.Part,
+                new WorldTracking.Interface.Model.WorldTransform { SpaceId = WorldTracking.Interface.Values.ClientOrigin.LocalPhysicsSpaceId, Position = pos, Rotation = rot });
+            uint shipId = shipsServer.Ships.Select(sh => sh.Id).FirstOrDefault(id => !shipsBefore.Contains(id));
+            Ships.TrackedShipServer ship = shipsServer.GetShip(shipId);
+            log.Msg($"[pump] statek z pompą: {(ship != null ? shipId.ToString() : "BRAK")}");
+            if (ship == null)
+            {
+                yield break;
+            }
+            yield return null;
+            var hold = ship.PhysicsState;
+            ushort partId = ship.StatefulParts.First().Id;
+            var shipsClient = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsClientTracker>();
+            var testCam = new GameObject("PumpTestCam").AddComponent<Camera>();
+            testCam.CopyFrom(cam);
+            var data = testCam.gameObject.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            var mainData = cam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            if (mainData != null) data.renderPostProcessing = mainData.renderPostProcessing;
+
+            // 0: wąż zwinięty z bliska, 1: po opuszczeniu (z boku), 2: z daleka (wąż do wody), 3: z bliska z dymkiem E
+            for (int shot = 0; shot < 4; shot++)
+            {
+                if (shot == 1)
+                {
+                    ship.OpenDoor(partId);
+                }
+                for (int frame = 0; frame < (shot == 1 ? 420 : 90); frame++)
+                {
+                    ship.SetPhysicsState(new Ships.Interface.Model.State.ShipPhysicsState(hold.SpaceId, hold.Position, hold.Rotation, Vector3.zero));
+                    if (shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(shipId, partId), out var visual))
+                    {
+                        Transform t = visual.GameObject.transform;
+                        Vector3 offset = shot == 0 ? (-t.forward * 1.8f + t.right * 1.0f + t.up * 1.3f)
+                            : shot == 1 ? (-t.forward * 5f + t.right * 4f - t.up * 2.5f)
+                            : shot == 2 ? (-t.forward * 11f + t.right * 4f + t.up * 1f)
+                            : (-t.forward * 1.6f + t.right * 0.6f + t.up * 1.2f);
+                        Vector3 look = shot == 2 ? t.position - t.up * 3f : shot == 1 ? t.position - t.up * 3f : t.position + t.up * 0.45f;
+                        testCam.transform.position = t.position + offset;
+                        testCam.transform.rotation = Quaternion.LookRotation(look - testCam.transform.position, t.up);
+                        cam.enabled = false;
+                    }
+                    if (shot == 3 && frame == 30)
+                    {
+                        var pumpInteraction = Resources.FindObjectsOfTypeAll<Content.WaterPumpInteraction>().FirstOrDefault();
+                        if (pumpInteraction != null) pumpInteraction.HoseDown = true;
+                        var tips = UnityEngine.Object.FindObjectOfType<UI.Interaction.InteractionTooltipsActivator>();
+                        log.Msg($"[pump] interakcja: {(pumpInteraction != null ? "jest, wąż " + (pumpInteraction.HoseDown ? "opuszczony" : "zwinięty") : "BRAK")}, dymki: {(tips != null ? "są" : "BRAK")}");
+                        if (pumpInteraction != null && tips != null)
+                        {
+                            AccessTools.Method(typeof(UI.Interaction.InteractionTooltipsActivator), "OnPartHover").Invoke(tips, new object[] { pumpInteraction });
+                        }
+                    }
+                    yield return null;
+                }
+                ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, $"test_pump{shot}.png"));
+                yield return null;
+                yield return null;
+                // serwer w tej instancji nie aktualizuje statków (gracz "czeka") - logika pompy wywołana wprost
+                var update = AccessTools.Method(typeof(Server.WaterPumpServer), "UpdateParts");
+                for (int i = 0; i < 3; i++) update.Invoke(null, new object[] { ship, 2f });
+                if (shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(shipId, partId), out var v))
+                {
+                    var pv = v.GameObject.GetComponent<Content.WaterPumpVisuals>();
+                    log.Msg($"[pump] zdjęcie {shot}: wąż {(pv != null ? Traverse.Create(pv).Field<float>("_extension").Value.ToString("0.00") + " m (cel " + Traverse.Create(pv).Field<float>("_target").Value.ToString("0.00") + ", w wodzie " + Traverse.Create(pv).Field<bool>("_inWater").Value + ")" : "brak wyglądu pompy")}");
+                }
+            }
+            cam.enabled = true;
+            UnityEngine.Object.Destroy(testCam.gameObject);
         }
 
         private static string Range(List<Vector2> list)

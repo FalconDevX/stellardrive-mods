@@ -13,8 +13,9 @@ COLORS = {
     'light': (210, 214, 220), 'orange': (214, 98, 44), 'steel': (168, 174, 182), 'screen': (40, 96, 120),
     'black': (36, 38, 42), 'rubber': (50, 52, 56), 'olive': (112, 122, 72),
     'white': (226, 230, 234), 'cyan': (70, 190, 220), 'blue': (60, 110, 190),
+    'green': (70, 200, 90), 'red': (220, 64, 52),
 }
-NO_HATCH = ('screen', 'cyan', 'blue', 'black', 'rubber')
+NO_HATCH = ('screen', 'cyan', 'blue', 'black', 'rubber', 'green', 'red')
 INK = np.array((22, 22, 26), float)
 OUT = os.path.join(os.path.dirname(__file__), '..', 'Assets')
 

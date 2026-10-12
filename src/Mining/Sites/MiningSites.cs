@@ -265,7 +265,7 @@ namespace Mining.Sites
             return kinds.ToArray();
         }
 
-        private static TrackedPlanet FindTrackedPlanet(ulong planetId)
+        internal static TrackedPlanet FindTrackedPlanet(ulong planetId)
         {
             foreach (MonoBehaviour tracker in new MonoBehaviour[] { Object.FindObjectOfType<PlanetsServerTracker>(), Object.FindObjectOfType<PlanetsClientTracker>() })
             {

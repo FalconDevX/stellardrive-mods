@@ -20,6 +20,7 @@ namespace Mining.Patches
             (HydrogenThruster.PartId, HydrogenThruster.GetOrCreatePart, () => HydrogenThruster.Part, 19), // obok silnika chemicznego
             (ElectrolyzerPart.PartId, ElectrolyzerPart.GetOrCreatePart, () => ElectrolyzerPart.Part, 80), // obok destylatora
             (Reactor.PartId, Reactor.GetOrCreatePart, () => Reactor.Part, 60),                  // obok generatora na drewno
+            (WaterPump.PartId, WaterPump.GetOrCreatePart, () => WaterPump.Part, 80),            // obok destylatora (przy elektrolizerze)
             (BigDoors.Variants[0].id, p => BigDoors.GetOrCreate(BigDoors.Variants[0].id, p), () => BigDoors.Get(BigDoors.Variants[0].id), BigDoors.DoorPartId),
             (BigDoors.Variants[1].id, p => BigDoors.GetOrCreate(BigDoors.Variants[1].id, p), () => BigDoors.Get(BigDoors.Variants[1].id), BigDoors.DoorPartId),
             (BigDoors.Variants[2].id, p => BigDoors.GetOrCreate(BigDoors.Variants[2].id, p), () => BigDoors.Get(BigDoors.Variants[2].id), BigDoors.DoorPartId),
@@ -33,7 +34,7 @@ namespace Mining.Patches
 
         // Napęd wodorowy za badaniem Mining (w tym samym rzędzie drzewa).
         internal static readonly ModResearch HydrogenResearch = new ModResearch(201, "Hydrogen Propulsion", new Vector2Int(5, 4), Excavator.ResearchId,
-            () => new[] { HydrogenThruster.Part, ElectrolyzerPart.Part },
+            () => new[] { HydrogenThruster.Part, ElectrolyzerPart.Part, WaterPump.Part },
             (Items.Model.ItemsConstants.IronItemId, 30), (112, 15), (Items.Model.ItemsConstants.GlassItemId, 10));
 
         // Rotor z gry (ukryty w demie) za badaniem Doors, w tym samym rzędzie.

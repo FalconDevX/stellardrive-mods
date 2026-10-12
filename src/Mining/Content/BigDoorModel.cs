@@ -19,7 +19,7 @@ namespace Mining.Content
     {
         private static readonly string[] Names =
         {
-            "yellow", "yellow_dark", "dark", "grey", "light", "orange", "steel", "screen", "black", "rubber", "olive", "white", "cyan", "blue",
+            "yellow", "yellow_dark", "dark", "grey", "light", "orange", "steel", "screen", "black", "rubber", "olive", "white", "cyan", "blue", "green", "red",
         };
 
         internal const string ModelName = "BigDoorModel";
