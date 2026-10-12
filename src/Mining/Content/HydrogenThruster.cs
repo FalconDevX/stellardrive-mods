@@ -12,16 +12,20 @@ using Object = UnityEngine.Object;
 
 namespace Mining.Content
 {
-    // Silnik wodorowy: kopia silnika chemicznego (ten sam stan ThrusterState, płomień, dźwięk, fizyka), ale z własnym
-    // modelem i paliwem: wodór (106) jako paliwo + woda (105) do chłodzenia. Logika zużycia: Server/HydrogenThrusterServer.
+    // Silnik wodorowy (jądrowo-termiczny): kopia silnika chemicznego (ten sam stan ThrusterState, płomień, dźwięk, fizyka),
+    // z własnym modelem i zasilaniem: wodór (106) z rury + prąd (np. z reaktora) rozgrzewający wodór.
+    // Gniazda: 0 i 1 - wodór i tlen (dowolnie), 2 - prąd. Logika: Server/HydrogenThrusterServer.
     internal static class HydrogenThruster
     {
         internal const ushort PartId = 201;
         internal const uint HydrogenItemId = 106;
         internal const uint WaterItemId = 105;
+        internal const byte PowerSocket = 2;
+        internal const float PowerWatts = 3000f;
         internal static readonly Vector3 NozzleTop = new Vector3(0f, 1.86f, 0f); // NOZZLE_TOP z AssetSource/build_hydrogen.py
 
         private const ushort ChemicalThrusterId = 19;
+        private const ushort GeneratorPartId = 60;
         private static ThrusterSettings _part;
         private static bool _failed;
 
@@ -35,14 +39,16 @@ namespace Mining.Content
             {
                 return _part;
             }
-            var chemical = PartFactory.Find(gameParts, ChemicalThrusterId) as ThrusterSettings;
-            if (chemical?.part == null)
+            List<PartSettings> list = gameParts.ToList();
+            var chemical = PartFactory.Find(list, ChemicalThrusterId) as ThrusterSettings;
+            PartSettings generator = PartFactory.Find(list, GeneratorPartId);
+            if (chemical?.part == null || generator?.part == null)
             {
                 return null;
             }
             try
             {
-                _part = Build(chemical);
+                _part = Build(chemical, generator);
                 Melon<MiningMod>.Logger.Msg($"Dodano część '{_part.fullLabel}' (id {PartId})");
             }
             catch (Exception e)
@@ -53,7 +59,7 @@ namespace Mining.Content
             return _part;
         }
 
-        private static ThrusterSettings Build(ThrusterSettings chemical)
+        private static ThrusterSettings Build(ThrusterSettings chemical, PartSettings generator)
         {
             GameObject root = Object.Instantiate(chemical.part, PartFactory.Holder);
             root.name = "HydrogenThruster";
@@ -92,7 +98,7 @@ namespace Mining.Content
 
             PartFactory.SetBounds(root, mesh.bounds);
 
-            // Dwa wejścia płynów (0 i 1) na bokach bloku z tyłu: wodór i woda, w dowolnej kolejności.
+            // Dwa wejścia wodoru (0 i 1) na bokach bloku i prąd (2) z tyłu.
             SocketObject[] fluids = root.GetComponentsInChildren<SocketObject>(true).Where(s => s.Type == CableType.Fluid).OrderBy(s => s.Id).ToArray();
             for (int i = 0; i < fluids.Length; i++)
             {
@@ -100,6 +106,7 @@ namespace Mining.Content
                 fluids[i].transform.localPosition = new Vector3(side * 0.35f, 0.25f, 0f);
                 fluids[i].transform.localRotation = Quaternion.Euler(0f, side < 0 ? 90f : 270f, 0f);
             }
+            PartFactory.CloneSocket(PartFactory.FindSocket(generator, CableType.Power), root.transform, PowerSocket, new Vector3(0f, 0.25f, 0.35f), 180f);
 
             var settings = ScriptableObject.CreateInstance<ThrusterSettings>();
             settings.name = "MiningHydrogenThruster";
@@ -108,7 +115,8 @@ namespace Mining.Content
             settings.fullLabel = "Hydrogen Thruster";
             settings.internalStateClass = chemical.internalStateClass; // ThrusterState
             settings.snappingStyle = chemical.snappingStyle;
-            settings.description = $"Burns hydrogen and is cooled by water - connect one pipe with hydrogen and one with water to the sockets on the base. " +
+            settings.description = $"Hydrogen thruster: hydrogen pipe to a side socket plus power (back, {PowerWatts:0} W, e.g. from the Nuclear Reactor) " +
+                                   "or oxygen (other side socket). Hydrogen + oxygen + power: oxygen afterburner, 1.4x thrust. " +
                                    $"{MiningMod.HydrogenThrustMultiplier.Value:0.#}x stronger than the chemical thruster. Make hydrogen in the Electrolyzer.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;

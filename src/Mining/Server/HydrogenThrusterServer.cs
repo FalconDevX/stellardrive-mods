@@ -1,9 +1,13 @@
 using System;
+using System.Collections.Generic;
+using Core.Services;
 using HarmonyLib;
+using Items.Model;
 using MelonLoader;
 using Mining.Content;
 using Ships.Cables;
 using Ships.Cables.Fluids;
+using Ships.Cables.Power;
 using Ships.Interface.Model.Parts;
 using Ships.Interface.Model.Parts.Common;
 using Ships.Interface.Model.Parts.State;
@@ -16,14 +20,22 @@ using UnityEngine;
 namespace Mining.Server
 {
     // Silnik wodorowy ma stan silnika chemicznego, więc gra traktuje go jak zwykły silnik - tylko jej sprawdzenie paliwa
-    // (tlen + etanol) go odrzuca i ustawia mu ciąg 0. Po zwykłej aktualizacji silników liczymy nasz: wodór jako paliwo,
-    // woda do chłodzenia (zużywana wolniej). Ciąg jest mocniejszy niż chemiczny (MiningMod.HydrogenThrustMultiplier).
+    // (tlen + etanol) go odrzuca i ustawia mu ciąg 0. Po zwykłej aktualizacji silników liczymy nasz. Gniazda 0 i 1: wodór
+    // i (opcjonalnie) tlen w dowolnej kolejności, gniazdo 2: prąd.
+    //  - wodór + prąd: jądrowo-termiczny (prąd rozgrzewa wodór),
+    //  - wodór + tlen: spalanie (bez prądu),
+    //  - wodór + tlen + prąd: dopalanie tlenem, ciąg x OxygenBoost.
+    // Ciąg mocniejszy niż chemiczny (MiningMod.HydrogenThrustMultiplier).
     [HarmonyPatch(typeof(ShipThrustersUpdater))]
     internal static class HydrogenThrusterServer
     {
-        private const float HydrogenPerSecond = 0.05f; // jak etanol w silniku chemicznym
-        private const float WaterPerSecond = 0.02f;    // chłodzenie
+        private const float HydrogenPerSecond = 0.03f;
+        private const float OxygenPerSecond = 0.03f;
+        internal const float OxygenBoost = 1.4f;
         private static bool _loggedError;
+
+        // Silniki z dopalaniem w tym kroku (do liczenia siły ciągu).
+        internal static readonly HashSet<(uint ship, ushort part)> Boosted = new HashSet<(uint, ushort)>();
 
         [HarmonyPostfix]
         [HarmonyPatch(nameof(ShipThrustersUpdater.WriteFluidTargetConsumption))]
@@ -31,12 +43,18 @@ namespace Mining.Server
         {
             Run(() =>
             {
+                var power = ServiceLocator.GetService<PowerServerTracker>();
                 foreach (StatefulPart part in ____ship.GetAllStatefulParts<ThrusterState>())
                 {
-                    if (HydrogenThruster.Is(part.Settings) && TryGetGroups(____ship, ____connections, part.Id, out var hydrogen, out var water))
+                    if (!HydrogenThruster.Is(part.Settings) || !TryGetFluids(____ship, ____connections, part.Id, out var hydrogen, out var oxygen))
                     {
-                        hydrogen.AddConsumptionTarget(HydrogenPerSecond * deltaTime);
-                        water.AddConsumptionTarget(WaterPerSecond * deltaTime);
+                        continue;
+                    }
+                    hydrogen.AddConsumptionTarget(HydrogenPerSecond * deltaTime);
+                    oxygen?.AddConsumptionTarget(OxygenPerSecond * deltaTime);
+                    if (power.TryGetGroupFromSocket(new EntityPartSocket(____ship.Id, part.Id, HydrogenThruster.PowerSocket), out PowerGroupServerState group))
+                    {
+                        group.TotalPowerNeeded += deltaTime * HydrogenThruster.PowerWatts;
                     }
                 }
             });
@@ -48,6 +66,7 @@ namespace Mining.Server
         {
             Run(() =>
             {
+                var power = ServiceLocator.GetService<PowerServerTracker>();
                 foreach (StatefulPart part in ____ship.GetAllStatefulParts<ThrusterState>())
                 {
                     if (!HydrogenThruster.Is(part.Settings))
@@ -55,39 +74,46 @@ namespace Mining.Server
                         continue;
                     }
                     float rate = 0f;
-                    if (TryGetGroups(____ship, ____connections, part.Id, out var hydrogen, out var water))
+                    bool boosted = false;
+                    if (TryGetFluids(____ship, ____connections, part.Id, out var hydrogen, out var oxygen))
                     {
-                        rate = Mathf.Min(hydrogen.EffectiveConsumptionRate, water.EffectiveConsumptionRate);
+                        float powerRate = power.TryGetGroupFromSocket(new EntityPartSocket(____ship.Id, part.Id, HydrogenThruster.PowerSocket), out PowerGroupServerState group)
+                            ? group.NormalizedConsumerRate : 0f;
+                        float oxygenRate = oxygen?.EffectiveConsumptionRate ?? 0f;
+                        rate = Mathf.Min(hydrogen.EffectiveConsumptionRate, Mathf.Max(powerRate, oxygenRate));
                         if (rate > 0f)
                         {
                             hydrogen.RemoveFluid(rate * HydrogenPerSecond * deltaTime);
-                            water.RemoveFluid(rate * WaterPerSecond * deltaTime);
+                            float oxygenUsed = Mathf.Min(rate, oxygenRate);
+                            if (oxygenUsed > 0f)
+                            {
+                                oxygen.RemoveFluid(oxygenUsed * OxygenPerSecond * deltaTime);
+                            }
+                            boosted = powerRate > 0f && oxygenRate > 0f;
                         }
                     }
+                    if (boosted) Boosted.Add((____ship.Id, part.Id));
+                    else Boosted.Remove((____ship.Id, part.Id));
                     ____ship.UpdatePartState(part.Id, (ThrusterState)part.State with { ThrusterStrength = rate });
                 }
             });
         }
 
-        // Gniazda 0 i 1: jedno z wodorem, drugie z wodą (w dowolnej kolejności).
-        private static bool TryGetGroups(IShipStateWrite ship, ConnectionsServerTracker connections, ushort partId, out FluidGroupServerState hydrogen, out FluidGroupServerState water)
+        // Gniazda 0 i 1: wodór (wymagany) i tlen (opcjonalny), w dowolnej kolejności.
+        private static bool TryGetFluids(IShipStateWrite ship, ConnectionsServerTracker connections, ushort partId,
+            out FluidGroupServerState hydrogen, out FluidGroupServerState oxygen)
         {
-            hydrogen = water = null;
-            if (!connections.TryGetFluidGroupCacheFromSocket(new EntityPartSocket(ship.Id, partId, 0), out var a) ||
-                !connections.TryGetFluidGroupCacheFromSocket(new EntityPartSocket(ship.Id, partId, 1), out var b) || a == b)
+            hydrogen = oxygen = null;
+            for (byte socket = 0; socket < 2; socket++)
             {
-                return false;
+                if (!connections.TryGetFluidGroupCacheFromSocket(new EntityPartSocket(ship.Id, partId, socket), out var group))
+                {
+                    continue;
+                }
+                if (group.FluidItemId == HydrogenThruster.HydrogenItemId && hydrogen == null) hydrogen = group;
+                else if (group.FluidItemId == ItemsConstants.OxygenItemId && oxygen == null) oxygen = group;
             }
-            if (a.FluidItemId == HydrogenThruster.HydrogenItemId && b.FluidItemId == HydrogenThruster.WaterItemId)
-            {
-                hydrogen = a;
-                water = b;
-            }
-            else if (b.FluidItemId == HydrogenThruster.HydrogenItemId && a.FluidItemId == HydrogenThruster.WaterItemId)
-            {
-                hydrogen = b;
-                water = a;
-            }
+            if (ReferenceEquals(hydrogen, oxygen)) oxygen = null;
             return hydrogen != null;
         }
 
@@ -118,7 +144,7 @@ namespace Mining.Server
         {
             float extra = (MiningMod.HydrogenThrustMultiplier.Value - 1f) * ChemicalThrust;
             IShipStateRead stateRead = __0;
-            if (stateRead == null || Mathf.Approximately(extra, 0f))
+            if (stateRead == null)
             {
                 return;
             }
@@ -126,7 +152,12 @@ namespace Mining.Server
             {
                 if (HydrogenThruster.Is(part.Settings))
                 {
-                    __result += -part.Placement.UpOrientation.GetVector3() * (((ThrusterState)part.State).ThrusterStrength * extra);
+                    float total = extra;
+                    if (HydrogenThrusterServer.Boosted.Contains((stateRead.Id, part.Id)))
+                    {
+                        total += (HydrogenThrusterServer.OxygenBoost - 1f) * MiningMod.HydrogenThrustMultiplier.Value * ChemicalThrust;
+                    }
+                    __result += -part.Placement.UpOrientation.GetVector3() * (((ThrusterState)part.State).ThrusterStrength * total);
                 }
             }
         }
