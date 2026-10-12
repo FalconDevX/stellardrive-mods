@@ -680,6 +680,7 @@ namespace Mining.Diagnostics
             uint smallId = small != null ? Spawn(small, basePos - right * 4f) : 0;
             uint reactorId = Content.Reactor.Part != null ? Spawn(Content.Reactor.Part, basePos + right * 6f) : 0;
             Ships.TrackedShipServer reactorShip = shipsServer.GetShip(reactorId);
+            uint thrusterId = Content.HydrogenThruster.Part != null ? Spawn(Content.HydrogenThruster.Part, basePos + right * 10f) : 0;
             Ships.TrackedShipServer big = shipsServer.GetShip(bigId), smallShip = shipsServer.GetShip(smallId);
             log.Msg($"[tank] statki: duży {(big != null ? bigId.ToString() : "BRAK")}, mały {(smallShip != null ? smallId.ToString() : "BRAK")}");
             if (big == null)
@@ -754,6 +755,31 @@ namespace Mining.Diagnostics
                 ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, $"test_tank{shot}.png"));
                 yield return null;
                 yield return null;
+            }
+            // gniazda reaktora i silnika: promień z zewnątrz (jak celowanie kablem) - czy trafia w gniazdo
+            foreach (var (label, id) in new[] { ("reaktor", reactorId), ("silnik", thrusterId) })
+            {
+                var sh = shipsServer.GetShip(id);
+                if (sh == null || !shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(id, sh.StatefulParts.First().Id), out var pv))
+                {
+                    log.Msg($"[gniazda] {label}: brak wyglądu");
+                    continue;
+                }
+                Transform part = pv.GameObject.transform;
+                Vector3 center = part.position + part.up * 0.7f;
+                int mask = Tools.Common.RaycastMasks.BuildDetectionLayer | (1 << LayerMask.NameToLayer("Interactable"));
+                var sockets = UnityEngine.Object.FindObjectsOfType<Ships.Cables.VisualObjects.SocketInteractionObject>().Where(s => s.ShipId == id).ToList();
+                log.Msg($"[gniazda] {label}: {sockets.Count} gniazd");
+                foreach (var socket in sockets)
+                {
+                    Vector3 target = socket.transform.position;
+                    Vector3 outward = Vector3.ProjectOnPlane(target - center, part.up).normalized;
+                    Vector3 from = target + outward * 1.2f + part.up * 0.25f;
+                    bool ok = WorldTracking.Interface.Values.ClientScene.PhysicsScene.Raycast(from, (target - from).normalized, out RaycastHit hit, 3f, mask);
+                    bool isSocket = ok && hit.collider.TryGetComponent(out Ships.Cables.VisualObjects.SocketInteractionObject hs) && hs == socket;
+                    log.Msg($"[gniazda] {label}: {socket.Type} {socket.Socket.SocketId} @ {part.InverseTransformPoint(target)} -> " +
+                            (isSocket ? "OK" : ok ? $"ZASŁONIĘTE przez '{PathOf(hit.collider.transform)}'" : "nic nie trafia"));
+                }
             }
             log.Msg($"[tank] stan dużego: {big.StatefulParts.First().State}");
             if (reactorShip != null) log.Msg($"[tank] stan reaktora: {reactorShip.StatefulParts.First().State}");
@@ -830,6 +856,13 @@ namespace Mining.Diagnostics
                     yield return null;
                 }
             }
+        }
+
+        private static string PathOf(Transform tr)
+        {
+            string path = tr.name;
+            for (int i = 0; i < 4 && tr.parent != null; i++) { tr = tr.parent; path = tr.name + "/" + path; }
+            return path;
         }
 
         private static string Range(List<Vector2> list)

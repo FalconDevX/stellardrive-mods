@@ -94,6 +94,8 @@ namespace Mining.Content
                 PartFactory.CreateRenderer("Core" + i, visual, core, coreMaterial, lookCopy).transform.localPosition = CorePositions[i];
             }
             PartFactory.CreateRenderer("Rotor", visual, rotor, partsMaterial, lookCopy).transform.localPosition = RotorPosition;
+            // mocowania gniazd (AssetSource/build_mounts.py) - gniazda tuż poza kolizją, połączone z konstrukcją
+            PartFactory.CreateRenderer("Mounts", visual, ModAssets.LoadMesh("reactor_mounts.bin"), partsMaterial, lookCopy);
             Object.DestroyImmediate(lookCopy.gameObject);
 
             PartFactory.SetBounds(root, body.bounds);
@@ -105,16 +107,16 @@ namespace Mining.Content
 
             SocketObject power = PartFactory.FindSocket(generator, CableType.Power);
             SocketObject fluid = PartFactory.FindSocket(distiller, CableType.Fluid);
-            SocketObject p0 = PartFactory.CloneSocket(power, root.transform, 0, new Vector3(-1.05f, 0.42f, 0.55f), 90f);
-            SocketObject p1 = PartFactory.CloneSocket(power, root.transform, 1, new Vector3(1.05f, 0.42f, 0.55f), 270f);
+            SocketObject p0 = PartFactory.CloneSocket(power, root.transform, 0, new Vector3(-1.00f, 0.50f, -0.60f), 90f);
+            SocketObject p1 = PartFactory.CloneSocket(power, root.transform, 1, new Vector3(1.00f, 0.50f, 0.55f), 270f);
             HarmonyLib.Traverse.Create(p0).Field("relayedSockets").SetValue(new[] { p1 });
             HarmonyLib.Traverse.Create(p1).Field("relayedSockets").SetValue(new[] { p0 });
-            PartFactory.CloneSocket(fluid, root.transform, WaterSocket, new Vector3(0f, 0.42f, 1.05f), 180f);
+            PartFactory.CloneSocket(fluid, root.transform, WaterSocket, new Vector3(0.75f, 0.50f, 0.97f), 180f);
             SocketObject signalSource = Resources.FindObjectsOfTypeAll<SocketObject>().FirstOrDefault(s => s.Type == CableType.Signal && s.visualObject != null && s.interactive != null);
             HasSignalSocket = signalSource != null;
             if (signalSource != null)
             {
-                PartFactory.CloneSocket(signalSource, root.transform, SignalSocket, new Vector3(-0.45f, 0.42f, 1.05f), 180f);
+                PartFactory.CloneSocket(signalSource, root.transform, SignalSocket, new Vector3(-0.75f, 0.22f, 0.97f), 180f);
             }
             else
             {

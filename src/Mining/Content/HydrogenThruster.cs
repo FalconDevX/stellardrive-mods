@@ -90,6 +90,9 @@ namespace Mining.Content
             }
             Material material = PartFactory.CreateMaterial(look.sharedMaterial, albedo, "HydrogenThruster");
             PartFactory.CreateRenderer("Body", visual.transform, mesh, material, look);
+            // mocowania gniazd (AssetSource/build_mounts.py): gniazda leżą tuż poza kolizją, mocowanie sięga ścianki modelu
+            PartFactory.CreateRenderer("Mounts", visual.transform, ModAssets.LoadMesh("thruster_mounts.bin"),
+                PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("hydrogen_albedo.png"), "HydrogenThrusterMounts"), look);
 
             // Płomień i dźwięk na końcu dyszy (dysza = lokalna góra części, jak w silniku chemicznym).
             Vector3 nozzleWorld = root.transform.TransformPoint(NozzleTop);
@@ -98,15 +101,26 @@ namespace Mining.Content
 
             PartFactory.SetBounds(root, mesh.bounds);
 
-            // Dwa wejścia wodoru (0 i 1) na bokach bloku i prąd (2) z tyłu.
+            // Dwa wejścia wodoru (0 i 1) na bokach bloku i prąd (2) z tyłu - tuż poza obrysem kolizji (x 0.398, z 0.415),
+            // bo kolizja części zasłania gniazda w środku (nie dało się podpiąć rury). Te same liczby: build_mounts.py.
+            // Silnik chemiczny ma 4 gniazda rur (0-3): zostawiamy 0 i 1, reszta znika - gniazdo 2 miało ten sam numer co
+            // nasze gniazdo prądu (2) i rura się nie podpinała. Wodór i tlen to osobne sieci rur (bez połączenia gniazd).
+            foreach (SocketObject extra in root.GetComponentsInChildren<SocketObject>(true).Where(s => s.Type == CableType.Fluid && s.Id > 1).ToArray())
+            {
+                Object.DestroyImmediate(extra.gameObject);
+            }
             SocketObject[] fluids = root.GetComponentsInChildren<SocketObject>(true).Where(s => s.Type == CableType.Fluid).OrderBy(s => s.Id).ToArray();
+            foreach (SocketObject f in fluids)
+            {
+                HarmonyLib.Traverse.Create(f).Field("relayedSockets").SetValue(new SocketObject[0]);
+            }
             for (int i = 0; i < fluids.Length; i++)
             {
                 float side = i == 0 ? -1f : 1f;
-                fluids[i].transform.localPosition = new Vector3(side * 0.4f, 0.25f, 0f);
+                fluids[i].transform.localPosition = new Vector3(side * 0.42f, 0.30f, 0.05f);
                 fluids[i].transform.localRotation = Quaternion.Euler(0f, side < 0 ? 90f : 270f, 0f);
             }
-            PartFactory.CloneSocket(PartFactory.FindSocket(generator, CableType.Power), root.transform, PowerSocket, new Vector3(0f, 0.25f, 0.415f), 180f);
+            PartFactory.CloneSocket(PartFactory.FindSocket(generator, CableType.Power), root.transform, PowerSocket, new Vector3(0f, 0.30f, 0.44f), 180f);
 
             var settings = ScriptableObject.CreateInstance<ThrusterSettings>();
             settings.name = "MiningHydrogenThruster";

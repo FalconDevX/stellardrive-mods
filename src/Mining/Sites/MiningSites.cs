@@ -146,6 +146,37 @@ namespace Mining.Sites
 
         private static MiningSite Generate(ulong planetId, PlanetInfo info, int face, int i, int j, long key)
         {
+            MiningSite site = GenerateRegular(planetId, info, face, i, j, key);
+            if (site == null && planetId == Content.WaterPump.LakePlanetId)
+            {
+                site = GenerateBeachGlass(planetId, info, face, i, j, key);
+            }
+            return site;
+        }
+
+        // Otrera b: dodatkowe złoża szkła na plażach w komórkach, w których nie ma zwykłego złoża (osobne losowanie,
+        // więc istniejące złoża - i koparki na nich - zostają tam, gdzie były). Szansa BeachGlassChance na komórkę z plażą.
+        private const float BeachGlassChance = 0.7f;
+
+        private static MiningSite GenerateBeachGlass(ulong planetId, PlanetInfo info, int face, int i, int j, long key)
+        {
+            ResourceKind glass = info.Kinds.FirstOrDefault(k => k.ItemId == Items.Model.ItemsConstants.GlassItemId);
+            var rng = new System.Random(unchecked((int)Hash((ulong)key ^ 0xB5AC4651A55UL ^ (planetId * 0x9E3779B97F4A7C15UL))));
+            if (glass == null || rng.NextDouble() > BeachGlassChance)
+            {
+                return null;
+            }
+            Vector3 dir = Vector3.up;
+            if (!TryFindBeach(info, face, i, j, rng, ref dir))
+            {
+                return null;
+            }
+            float radius = MiningMod.SiteRadius.Value * (0.75f + 0.25f * (float)rng.NextDouble());
+            return Place(planetId, info, key, dir, glass, radius, rng, 0.8f);
+        }
+
+        private static MiningSite GenerateRegular(ulong planetId, PlanetInfo info, int face, int i, int j, long key)
+        {
             var rng = new System.Random(unchecked((int)Hash((ulong)key ^ (planetId * 0x9E3779B97F4A7C15UL))));
             if (rng.NextDouble() > MiningMod.SiteChance.Value)
             {
@@ -180,7 +211,12 @@ namespace Mining.Sites
                 }
             }
 
-            // Na polach: z dala od lasu i na w miarę płaskim terenie.
+            return Place(planetId, info, key, dir, kind, radius, rng, 0.45f);
+        }
+
+        // Na polach: z dala od lasu i na w miarę płaskim terenie (maxSlope: dopuszczalna różnica wysokości / promień).
+        private static MiningSite Place(ulong planetId, PlanetInfo info, long key, Vector3 dir, ResourceKind kind, float radius, System.Random rng, float maxSlope)
+        {
             if (info.Forest != null && info.Forest.EvaluateNoiseAtPosition(dir) >= info.ForestThreshold)
             {
                 return null;
@@ -198,7 +234,7 @@ namespace Mining.Sites
                 float h = info.Tracked.PointsProvider.GetElevationAtPoint(pd) - elevation;
                 maxDiff = Mathf.Max(maxDiff, Mathf.Abs(h));
             }
-            if (maxDiff > radius * 0.45f)
+            if (maxDiff > radius * maxSlope)
             {
                 return null;
             }
