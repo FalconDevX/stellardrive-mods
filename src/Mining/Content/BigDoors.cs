@@ -92,7 +92,7 @@ namespace Mining.Content
         private static void ReplaceLook(GameObject root, PartSettings chest)
         {
             MeshRenderer look = chest.part.transform.Find("Visual")?.GetComponentInChildren<MeshRenderer>(true) ?? chest.part.GetComponentInChildren<MeshRenderer>(true);
-            Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("reactor_albedo.png"), "BigDoor");
+            Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("door_albedo.png"), "BigDoor");
 
             var visuals = root.GetComponentInChildren<DefaultShipPartVisuals>(true);
             Transform host = visuals != null ? visuals.transform : root.transform;
