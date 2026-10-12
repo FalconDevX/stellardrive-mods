@@ -162,6 +162,24 @@ namespace Mining.Sites
                 kind = info.Uranium;
             }
 
+            // Otrera b: szkło tylko na plażach (piasek 64,2-70 m), żadne złoże na dnie jeziora (poniżej tafli 64 m).
+            if (planetId == Content.WaterPump.LakePlanetId)
+            {
+                if (kind != info.Uranium && kind.ItemId == Items.Model.ItemsConstants.GlassItemId && !TryFindBeach(info, face, i, j, rng, ref dir))
+                {
+                    ResourceKind[] others = info.Kinds.Where(k => k.ItemId != Items.Model.ItemsConstants.GlassItemId).ToArray();
+                    if (others.Length == 0)
+                    {
+                        return null;
+                    }
+                    kind = others[rng.Next(others.Length)]; // w komórce bez plaży - inna ruda
+                }
+                if (info.Tracked.PointsProvider.GetElevationAtPoint(dir) - info.Radius < Content.WaterPump.SeaLevel + 0.3f)
+                {
+                    return null;
+                }
+            }
+
             // Na polach: z dala od lasu i na w miarę płaskim terenie.
             if (info.Forest != null && info.Forest.EvaluateNoiseAtPosition(dir) >= info.ForestThreshold)
             {
@@ -195,6 +213,24 @@ namespace Mining.Sites
                 Kind = kind,
                 Seed = rng.Next(),
             };
+        }
+
+        // Punkt plaży w komórce (piasek nad jeziorem: 64,5-69,5 m) - kilkadziesiąt losowych prób, deterministycznie z rng komórki.
+        private static bool TryFindBeach(PlanetInfo info, int face, int i, int j, System.Random rng, ref Vector3 dir)
+        {
+            for (int attempt = 0; attempt < 60; attempt++)
+            {
+                float u = (i + 0.1f + 0.8f * (float)rng.NextDouble()) / info.CellsPerFace * 2f - 1f;
+                float v = (j + 0.1f + 0.8f * (float)rng.NextDouble()) / info.CellsPerFace * 2f - 1f;
+                Vector3 candidate = FromCell(face, u, v);
+                float height = info.Tracked.PointsProvider.GetElevationAtPoint(candidate) - info.Radius;
+                if (height > Content.WaterPump.SeaLevel + 0.5f && height < 69.5f)
+                {
+                    dir = candidate;
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static PlanetInfo GetPlanet(ulong planetId)
