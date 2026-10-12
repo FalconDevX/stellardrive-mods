@@ -79,6 +79,7 @@ namespace Water.Surface
                 _hasAnchor = true;
                 BuildMesh(_anchor, Mathf.Max(500f, WaterMod.SurfaceRadius.Value));
             }
+            UpdateExposure(transpose.Rotation(planetSpace, ClientOrigin.LocalVisualSpace, Quaternion.identity) * camPlanet.normalized);
             _object.transform.position = (Vector3)transpose.Position(planetSpace, ClientOrigin.LocalVisualSpace, (Vector3Double)_anchor);
             _object.transform.rotation = transpose.Rotation(planetSpace, ClientOrigin.LocalVisualSpace, Quaternion.identity);
         }
@@ -97,6 +98,33 @@ namespace Water.Surface
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             Material = WaterMaterial.Create();
             renderer.sharedMaterial = Material;
+        }
+
+        // Dzień i noc: jasność wody wg wysokości słońca (najjaśniejsze światło kierunkowe) nad horyzontem w tym miejscu.
+        private static Light _sun;
+        private static float _exposure = -1f;
+        private static float _nextSunSearch;
+
+        private static void UpdateExposure(Vector3 upVisual)
+        {
+            if (Material == null || !Material.HasProperty("_Exposure"))
+            {
+                return;
+            }
+            if ((_sun == null || !_sun.isActiveAndEnabled) && Time.unscaledTime > _nextSunSearch)
+            {
+                _nextSunSearch = Time.unscaledTime + 5f;
+                _sun = Object.FindObjectsOfType<Light>().Where(l => l.type == LightType.Directional && l.isActiveAndEnabled).OrderByDescending(l => l.intensity).FirstOrDefault();
+                Melon<WaterMod>.Logger.Msg($"Woda: słońce = {(_sun != null ? _sun.name + " " + _sun.intensity : "brak")}");
+            }
+            float target = 1f;
+            if (_sun != null)
+            {
+                float height = Vector3.Dot(upVisual, -_sun.transform.forward);   // >0: słońce nad horyzontem
+                target = Mathf.Lerp(0.1f, 1f, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-0.12f, 0.3f, height)));
+            }
+            _exposure = _exposure < 0f ? target : Mathf.MoveTowards(_exposure, target, Time.deltaTime * 0.5f);
+            Material.SetFloat("_Exposure", _exposure);
         }
 
         // Piana przy brzegu i obiektach potrzebuje bufora głębokości kamery (URP tworzy go na żądanie).

@@ -2,7 +2,7 @@
   <PropertyGroup>
     <AssemblyName>Water</AssemblyName>
     <RootNamespace>Water</RootNamespace>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
   </PropertyGroup>
   <ItemGroup>
     <!-- paczka z shaderem i teksturami (budowana z UnityProject przez Unity 6000.3.24f1) -->

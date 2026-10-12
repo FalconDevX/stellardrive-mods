@@ -6,9 +6,9 @@ Shader "StellarDriveMods/StylizedWater"
 {
     Properties
     {
-        _ShallowColor ("Shallow", Color) = (0.55, 0.9, 0.8, 0.2)
-        _MidColor ("Mid", Color) = (0.2, 0.75, 0.85, 0.6)
-        _DeepColor ("Deep", Color) = (0.08, 0.5, 0.78, 0.88)
+        _ShallowColor ("Shallow", Color) = (0.42, 0.74, 0.68, 0.25)
+        _MidColor ("Mid", Color) = (0.16, 0.56, 0.64, 0.65)
+        _DeepColor ("Deep", Color) = (0.07, 0.33, 0.5, 0.9)
         _MidDepth ("Mid depth (m)", Float) = 2.5
         _DeepDepth ("Deep depth (m)", Float) = 9
         _CausticsTex ("Caustics", 2D) = "black" {}
@@ -25,6 +25,7 @@ Shader "StellarDriveMods/StylizedWater"
         _Smoothness ("Smoothness", Range(0, 1)) = 0.9
         _FresnelColor ("Fresnel / sky", Color) = (0.62, 0.86, 0.95, 1)
         _UseSceneDepth ("Use scene depth", Float) = 1
+        _Exposure ("Exposure (day/night, set by mod)", Float) = 1
     }
 
     SubShader
@@ -56,7 +57,7 @@ Shader "StellarDriveMods/StylizedWater"
                 float _MidDepth, _DeepDepth;
                 float _CausticsScale, _CausticsSpeed, _CausticsStrength;
                 float _FoamScale, _FoamDistance;
-                float _NormalScale, _NormalStrength, _Smoothness, _UseSceneDepth;
+                float _NormalScale, _NormalStrength, _Smoothness, _UseSceneDepth, _Exposure;
             CBUFFER_END
 
             struct Attributes
@@ -165,6 +166,8 @@ Shader "StellarDriveMods/StylizedWater"
                 {
                     col.a *= 0.6; // od spodu (pod wodą) trochę bardziej przezroczyście
                 }
+                // gra liczy dzień i noc po swojemu - jasność ustawia mod wg wysokości słońca nad horyzontem
+                col.rgb *= _Exposure;
                 col.rgb = MixFog(col.rgb, i.fog);
                 return col;
             }
