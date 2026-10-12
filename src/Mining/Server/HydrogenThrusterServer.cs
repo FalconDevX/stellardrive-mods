@@ -28,6 +28,7 @@ namespace Mining.Server
         private static bool _loggedError;
 
         internal static readonly HashSet<(uint ship, ushort part)> Boosted = new HashSet<(uint, ushort)>();
+        private static readonly Dictionary<(uint ship, ushort part), string> Status = new Dictionary<(uint, ushort), string>();
 
         [HarmonyPostfix]
         [HarmonyPatch(nameof(ShipThrustersUpdater.WriteFluidTargetConsumption))]
@@ -84,10 +85,12 @@ namespace Mining.Server
                     }
                     float rate = 0f;
                     bool boosted = false;
+                    string status = "no hydrogen";
                     if (TryGetFluids(____ship, ____connections, part.Id, out var hydrogen, out var oxygen))
                     {
-                        float powerRate = power.TryGetGroupFromSocket(new EntityPartSocket(____ship.Id, part.Id, HydrogenThruster.PowerSocket), out PowerGroupServerState group)
-                            ? group.NormalizedConsumerRate : 0f;
+                        bool cabled = power.TryGetGroupFromSocket(new EntityPartSocket(____ship.Id, part.Id, HydrogenThruster.PowerSocket), out PowerGroupServerState group);
+                        float powerRate = cabled ? group.NormalizedConsumerRate : 0f;
+                        status = !cabled ? "no power cable" : powerRate <= 0f ? "no power" : null;
                         float oxygenRate = oxygen?.EffectiveConsumptionRate ?? 0f;
                         rate = Mathf.Min(hydrogen.EffectiveConsumptionRate, powerRate);
                         if (rate > 0f)
@@ -100,6 +103,12 @@ namespace Mining.Server
                             }
                             boosted = oxygenUsed > 0f;
                         }
+                    }
+                    if (status == null) status = rate > 0f ? (boosted ? "running with oxygen afterburner" : "running") : "hydrogen pipe empty";
+                    if (!Status.TryGetValue((____ship.Id, part.Id), out string previous) || previous != status)
+                    {
+                        Status[(____ship.Id, part.Id)] = status;
+                        Melon<MiningMod>.Logger.Msg($"Hydrogen Thruster (ship {____ship.Id}, part {part.Id}): {status}");
                     }
                     if (boosted) Boosted.Add((____ship.Id, part.Id));
                     else Boosted.Remove((____ship.Id, part.Id));

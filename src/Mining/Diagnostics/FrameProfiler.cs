@@ -31,7 +31,7 @@ namespace Mining.Diagnostics
         private static IEnumerator Run()
         {
             var log = Melon<MiningMod>.Logger;
-            MiningMod.ShowMessage($"FPS report: measuring {Seconds:0} s...", Seconds);
+            MiningMod.ShowMessage($"FPS report: measuring about {Seconds + 14:0} s (the picture changes for a moment)...", Seconds + 14);
             try
             {
                 PatchMods();
@@ -82,14 +82,16 @@ namespace Mining.Diagnostics
             foreach (var r in recorders) r.Dispose();
 
             sb.AppendLine();
-            sb.AppendLine("Mod updates (ms per frame, most expensive first):");
-            foreach (var kv in Ticks.OrderByDescending(kv => kv.Value).Take(25))
+            sb.AppendLine("Updates of mods and the game (ms per frame, most expensive first):");
+            foreach (var kv in Ticks.OrderByDescending(kv => kv.Value).Take(40))
             {
                 double ms = kv.Value * 1000.0 / System.Diagnostics.Stopwatch.Frequency / Math.Max(1, frameCount);
                 sb.AppendLine($"  {ms,7:0.000} ms  {kv.Key} ({Calls[kv.Key] / Math.Max(1, frameCount)} calls/frame)");
             }
-            double total = Ticks.Values.Sum() * 1000.0 / System.Diagnostics.Stopwatch.Frequency / Math.Max(1, frameCount);
-            sb.AppendLine($"  all mods: {total:0.00} ms per frame");
+            double perFrame = 1000.0 / System.Diagnostics.Stopwatch.Frequency / Math.Max(1, frameCount);
+            double game = Ticks.Where(kv => kv.Key.StartsWith("game ") && !kv.Key.StartsWith("game step")).Sum(kv => kv.Value) * perFrame;
+            double mods = Ticks.Where(kv => !kv.Key.StartsWith("game ")).Sum(kv => kv.Value) * perFrame;
+            sb.AppendLine($"  all mods: {mods:0.00} ms per frame, game scripts: {game:0.00} ms per frame (of {avg:0.0} ms)");
 
             sb.AppendLine();
             sb.AppendLine("Visible objects (triangles, most first):");
@@ -120,6 +122,45 @@ namespace Mining.Diagnostics
             }
             sb.AppendLine($"Lights: {UnityEngine.Object.FindObjectsOfType<Light>().Count(l => l.isActiveAndEnabled)}, playing particle systems: {UnityEngine.Object.FindObjectsOfType<ParticleSystem>().Count(p => p.isPlaying)}");
 
+            sb.AppendLine();
+            sb.AppendLine("Experiments (2 s each, settings restored afterwards):");
+            var urp = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
+            Camera mainCam = Camera.main;
+            var camData = mainCam != null ? mainCam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>() : null;
+            var result = new float[1];
+            yield return Measure(result);
+            sb.AppendLine($"  as is: {result[0]:0} FPS");
+            if (urp != null)
+            {
+                float shadowDistance = urp.shadowDistance;
+                urp.shadowDistance = 0f;
+                yield return Measure(result);
+                urp.shadowDistance = shadowDistance;
+                sb.AppendLine($"  without shadows: {result[0]:0} FPS");
+            }
+            if (camData != null)
+            {
+                bool post = camData.renderPostProcessing;
+                camData.renderPostProcessing = false;
+                yield return Measure(result);
+                camData.renderPostProcessing = post;
+                sb.AppendLine($"  without post-processing: {result[0]:0} FPS");
+            }
+            var particles = UnityEngine.Object.FindObjectsOfType<ParticleSystemRenderer>().Where(r => r.enabled).ToList();
+            foreach (var r in particles) r.enabled = false;
+            yield return Measure(result);
+            foreach (var r in particles) if (r != null) r.enabled = true;
+            sb.AppendLine($"  without particle rendering ({particles.Count}): {result[0]:0} FPS");
+            if (mainCam != null)
+            {
+                float far = mainCam.farClipPlane;
+                mainCam.farClipPlane = Mathf.Min(far, 300f);
+                yield return Measure(result);
+                mainCam.farClipPlane = far;
+                sb.AppendLine($"  view distance 300 m (was {far:0} m): {result[0]:0} FPS");
+            }
+            sb.AppendLine($"  physics step {Time.fixedDeltaTime * 1000f:0.0} ms");
+
             string report = sb.ToString();
             string path = Path.Combine(MelonEnvironment.UserDataDirectory, "Mining", "fps_report.txt");
             Directory.CreateDirectory(Path.GetDirectoryName(path));
@@ -127,6 +168,20 @@ namespace Mining.Diagnostics
             foreach (string line in report.Split('\n')) log.Msg("[fps] " + line.TrimEnd());
             MiningMod.ShowMessage($"FPS report saved: {1000f / avg:0} FPS avg - UserData/Mining/fps_report.txt", 8f);
             _running = false;
+        }
+
+        private static IEnumerator Measure(float[] result)
+        {
+            yield return null;
+            yield return null;
+            int frames = 0;
+            float start = Time.unscaledTime;
+            while (Time.unscaledTime - start < 2f)
+            {
+                yield return null;
+                frames++;
+            }
+            result[0] = frames / Mathf.Max(0.001f, Time.unscaledTime - start);
         }
 
         private static string Avg(List<double> v) => v.Count == 0 ? "no data" : $"{v.Average():0.0} ms";
@@ -153,22 +208,53 @@ namespace Mining.Diagnostics
             var postfix = new HarmonyMethod(typeof(FrameProfiler), nameof(Postfix));
             string[] methods = { "Update", "LateUpdate", "FixedUpdate", "OnUpdate", "OnLateUpdate", "OnFixedUpdate", "OnGUI" };
             int count = 0;
+            var modAssemblies = new HashSet<Assembly>();
             foreach (MelonBase melon in MelonBase.RegisteredMelons)
             {
                 Assembly asm = melon.MelonAssembly?.Assembly;
-                if (asm == null) continue;
-                Type[] types;
-                try { types = asm.GetTypes(); }
-                catch (ReflectionTypeLoadException e) { types = e.Types.Where(t => t != null).ToArray(); }
+                if (asm == null || !modAssemblies.Add(asm)) continue;
+                count += PatchAssembly(harmony, asm, melon.Info.Name, methods, prefix, postfix, true);
+            }
+            foreach (Assembly asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (modAssemblies.Contains(asm) || asm.IsDynamic) continue;
+                string name = asm.GetName().Name;
+                string location;
+                try { location = asm.Location ?? ""; }
+                catch (Exception) { continue; }
+                if (!location.Replace(System.IO.Path.DirectorySeparatorChar, '/').Contains("_Data/Managed")) continue;
+                if (name.StartsWith("Unity") || name.StartsWith("System") || name.StartsWith("Mono") || name == "mscorlib" || name == "netstandard" || name.StartsWith("Newtonsoft")) continue;
+                count += PatchAssembly(harmony, asm, "game " + name, methods, prefix, postfix, false);
+            }
+            count += PatchDeep(harmony, prefix, postfix);
+            Melon<MiningMod>.Logger.Msg($"[fps] measurement hooked into {count} mod and game methods");
+        }
+
+        private static readonly string[] DeepRoots = { "Managers.Server.WorldPhysicsServerUpdater", "Managers.Client.ClientVisualsUpdater" };
+        private static readonly string[] DeepPrefixes = { "Update", "Sync", "Simulate", "Prepare", "Process", "Post", "Pre", "Ship", "Objects", "Calculate", "Write" };
+
+        private static int PatchDeep(HarmonyLib.Harmony harmony, HarmonyMethod prefix, HarmonyMethod postfix)
+        {
+            int count = 0;
+            var done = new HashSet<MethodBase>(Names.Keys);
+            foreach (string rootName in DeepRoots)
+            {
+                Type root = AccessTools.TypeByName(rootName);
+                if (root == null) continue;
+                var types = new List<Type> { root };
+                foreach (FieldInfo f in root.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
+                {
+                    Type ft = f.FieldType;
+                    if (ft.IsClass && !ft.IsGenericType && ft.Assembly != typeof(UnityEngine.Object).Assembly && !ft.Namespace?.StartsWith("System") == true && !types.Contains(ft)) types.Add(ft);
+                }
                 foreach (Type type in types)
                 {
-                    if (type.IsAbstract && !type.IsSealed || type.ContainsGenericParameters) continue;
-                    if (!typeof(MonoBehaviour).IsAssignableFrom(type) && !typeof(MelonBase).IsAssignableFrom(type)) continue;
-                    foreach (string name in methods)
+                    foreach (MethodInfo m in type.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.DeclaredOnly))
                     {
-                        MethodInfo m = type.GetMethod(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly, null, Type.EmptyTypes, null);
-                        if (m == null || m.IsAbstract) continue;
-                        Names[m] = $"{melon.Info.Name}: {type.Name}.{name}";
+                        if (m.IsAbstract || m.ContainsGenericParameters || m.IsSpecialName || m.GetMethodBody() == null || done.Contains(m)) continue;
+                        if (type != root && !DeepPrefixes.Any(px => m.Name.StartsWith(px))) continue;
+                        Names[m] = $"game step {type.Name}.{m.Name}";
+                        done.Add(m);
                         try
                         {
                             harmony.Patch(m, prefix, postfix);
@@ -180,7 +266,70 @@ namespace Mining.Diagnostics
                     }
                 }
             }
-            Melon<MiningMod>.Logger.Msg($"[fps] measurement hooked into {count} mod methods");
+            var extra = new List<Type>();
+            Type shipServer = AccessTools.TypeByName("Ships.TrackedShipServer");
+            if (shipServer != null)
+            {
+                extra.Add(shipServer);
+                try
+                {
+                    foreach (Type type in shipServer.Assembly.GetTypes())
+                    {
+                        if (type.IsClass && !type.IsGenericType && (type.Name.EndsWith("Updater") || type.Name.EndsWith("Updaters"))) extra.Add(type);
+                    }
+                }
+                catch (ReflectionTypeLoadException)
+                {
+                }
+            }
+            foreach (Type type in extra)
+            {
+                foreach (MethodInfo m in type.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.DeclaredOnly))
+                {
+                    if (m.IsAbstract || m.ContainsGenericParameters || m.IsSpecialName || m.GetMethodBody() == null || done.Contains(m)) continue;
+                    if (!DeepPrefixes.Any(px => m.Name.StartsWith(px))) continue;
+                    Names[m] = $"game step {type.Name}.{m.Name}";
+                    done.Add(m);
+                    try
+                    {
+                        harmony.Patch(m, prefix, postfix);
+                        count++;
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+            }
+            return count;
+        }
+
+        private static int PatchAssembly(HarmonyLib.Harmony harmony, Assembly asm, string label, string[] methods, HarmonyMethod prefix, HarmonyMethod postfix, bool mod)
+        {
+            int count = 0;
+            Type[] types;
+            try { types = asm.GetTypes(); }
+            catch (ReflectionTypeLoadException e) { types = e.Types.Where(t => t != null).ToArray(); }
+            catch (Exception) { return 0; }
+            foreach (Type type in types)
+            {
+                if (type.IsAbstract && !type.IsSealed || type.ContainsGenericParameters) continue;
+                if (!typeof(MonoBehaviour).IsAssignableFrom(type) && !(mod && typeof(MelonBase).IsAssignableFrom(type))) continue;
+                foreach (string name in methods)
+                {
+                    MethodInfo m = type.GetMethod(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly, null, Type.EmptyTypes, null);
+                    if (m == null || m.IsAbstract || m.GetMethodBody() == null) continue;
+                    Names[m] = $"{label}: {type.Name}.{name}";
+                    try
+                    {
+                        harmony.Patch(m, prefix, postfix);
+                        count++;
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+            }
+            return count;
         }
 
         private static void Prefix(out long __state) => __state = Measuring ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;

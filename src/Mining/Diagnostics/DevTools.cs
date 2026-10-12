@@ -210,6 +210,11 @@ namespace Mining.Diagnostics
             {
                 yield return RunTankTest();
             }
+            else if (HasArg("fps"))
+            {
+                FrameProfiler.Start();
+                yield return new WaitForSeconds(30f);
+            }
             else if (HasArg("doors"))
             {
                 yield return RunDoorsTest();

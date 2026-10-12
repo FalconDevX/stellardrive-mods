@@ -35,12 +35,12 @@ namespace Crouch.Patches
             public float GroundCheckDistance;
         }
 
-        private static void Prefix(PlayerWalkingPhysics __instance, PlayerPhysicsStepContext context, out Saved __state)
+        private static void Prefix(PlayerWalkingPhysics __instance, ref PlayerPhysicsStepContext context, out Saved __state)
         {
             __state = default;
             try
             {
-                Apply(__instance, context, ref __state);
+                Apply(__instance, ref context, ref __state);
             }
             catch (Exception e)
             {
@@ -59,10 +59,10 @@ namespace Crouch.Patches
             Restore(__state);
         }
 
-        private static void Apply(PlayerWalkingPhysics physics, PlayerPhysicsStepContext context, ref Saved saved)
+        private static void Apply(PlayerWalkingPhysics physics, ref PlayerPhysicsStepContext context, ref Saved saved)
         {
             var state = context.State;
-            if (!state.IsOnGround || context.DeltaTime <= 0f)
+            if (context.DeltaTime <= 0f)
             {
                 return;
             }
@@ -91,10 +91,18 @@ namespace Crouch.Patches
             PhysicsScene scene = context.Scene.GetPhysicsScene();
             Vector3 up = (state.Rotation * Vector3.up).normalized;
             bool wantsCrouch = context.Input.VerticalInput < 0f;
-            bool crouched = wantsCrouch
-                || (IsLow(scene, state.Position, up, fullHeight, delta) && !CanStand(scene, state.Position + up * (delta * 0.5f), up, fullHeight, collider.radius));
+            float gap = GroundDistance(scene, state.Position, up, fullHeight);
+            bool low = gap < fullHeight * 0.5f - delta * 0.25f;
+            bool crouched = state.IsOnGround && (wantsCrouch || (low && !CanStand(scene, state.Position + up * (delta * 0.5f), up, fullHeight, collider.radius)));
             if (!crouched)
             {
+                float penetration = fullHeight * 0.5f - gap;
+                if (penetration > 0.02f && penetration <= delta * 0.6f + 0.05f && CanStand(scene, state.Position + up * penetration, up, fullHeight, collider.radius))
+                {
+                    var raised = context.State;
+                    raised.Position = raised.Position + up * penetration;
+                    context.State = raised;
+                }
                 return;
             }
 
@@ -146,7 +154,7 @@ namespace Crouch.Patches
             }
         }
 
-        private static bool IsLow(PhysicsScene scene, Vector3 center, Vector3 up, float fullHeight, float delta)
+        private static float GroundDistance(PhysicsScene scene, Vector3 center, Vector3 up, float fullHeight)
         {
             int count = scene.Raycast(center, -up, Hits, fullHeight * 0.5f + 0.1f, _layerMask, QueryTriggerInteraction.Ignore);
             float nearest = float.MaxValue;
@@ -157,7 +165,7 @@ namespace Crouch.Patches
                     nearest = Hits[i].distance;
                 }
             }
-            return nearest < fullHeight * 0.5f - delta * 0.25f;
+            return nearest;
         }
 
         private static bool CanStand(PhysicsScene scene, Vector3 standCenter, Vector3 up, float fullHeight, float radius)
