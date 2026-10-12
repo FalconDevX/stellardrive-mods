@@ -52,6 +52,20 @@ namespace Mining.Content
 
         internal static float HoseMax => Mathf.Max(1f, MiningMod.PumpHoseLength.Value) + NozzleTop;
 
+        // Z kablem sygnału długość węża = sygnał (0-1) x pełna długość; bez kabla - pełna (sterowanie F).
+        internal static float HoseLimit(Ships.Cables.ConnectionsTracker connections, uint shipId, ushort partId, out bool signalled, out float signal)
+        {
+            signal = 1f;
+            signalled = false;
+            var socket = new EntityPartSocket(shipId, partId, SignalSocket);
+            if (connections != null && connections.TryGetSignalConnectionGroupWithSocket(socket, out _))
+            {
+                signalled = true;
+                signal = Mathf.Clamp01((float)connections.GetSignalValue(socket));
+            }
+            return signalled ? signal * Mathf.Max(1f, MiningMod.PumpHoseLength.Value) + NozzleTop : HoseMax;
+        }
+
         // Punkt w układzie planety (środek planety = 0): ile metrów nad powierzchnią i czy pod spodem jest jezioro.
         internal static bool TryProbe(ulong planetId, Vector3 planetPos, out float above, out bool water)
         {
@@ -184,8 +198,9 @@ namespace Mining.Content
             settings.fullLabel = "Water Pump";
             settings.internalStateClass = "DoorState";
             settings.snappingStyle = SnappingStyle.PreciseOnFloor;
-            settings.description = "Pumps water from lakes into pipes. Press E (or send signal 1) to lower the hose - hover over a lake on Otrera b " +
-                                   $"(hose {MiningMod.PumpHoseLength.Value:0} m). Also pushes water from a pipe on the input. Needs power. " +
+            settings.description = "Pumps water from lakes into pipes. Press F to lower the hose over a lake on Otrera b " +
+                                   $"(hose {MiningMod.PumpHoseLength.Value:0} m), or connect a signal: its value sets the hose length (1 = full, 0 = up). " +
+                                   "Also pushes water from a pipe on the input. Needs power. " +
                                    "Sockets: left - water in, right - two water outputs, back - power and signal.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
@@ -250,8 +265,17 @@ namespace Mining.Content
     }
 
     // Wąż zwisa pionowo w dół (względem planety, nie statku) do tafli albo ziemi; wirnik kręci się, gdy głowica jest w wodzie.
-    internal class WaterPumpVisuals : DefaultShipPartVisuals
+    internal class WaterPumpVisuals : DefaultShipPartVisuals, Ships.Parts.Common.Model.IContextAwarePart
     {
+        private uint _shipId;
+        private ushort _partId;
+
+        public void SetContext(Ships.Parts.Common.Utils.ShipPartContext context)
+        {
+            _shipId = context.Part.ShipId;
+            _partId = context.Part.PartId;
+        }
+
         private Transform _fan, _hose, _nozzle;
         private Renderer _hoseRenderer;
         private bool _down;
@@ -336,7 +360,7 @@ namespace Mining.Content
         {
             _inWater = false;
             _downDir = -transform.up;
-            float reach = _down ? WaterPump.HoseMax : 0f;
+            float reach = _down ? WaterPump.HoseLimit(ServiceLocator.GetService<Ships.Cables.ConnectionsClientTracker>(), _shipId, _partId, out _, out _) : 0f;
             try
             {
                 var transpose = ServiceLocator.GetService<IWorldTransposeClient>();

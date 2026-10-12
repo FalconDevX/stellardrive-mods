@@ -60,10 +60,18 @@ namespace Mining.Server
             });
         }
 
-        [HarmonyPostfix]
+        private delegate bool TryGroups(ShipThrustersUpdater updater, ushort partId, out FluidGroupServerState group0, out FluidGroupServerState group1);
+
+        private static readonly TryGroups GameGroups =
+            AccessTools.MethodDelegate<TryGroups>(AccessTools.Method(typeof(ShipThrustersUpdater), "TryGetValidFluidGroups"));
+
+        // Zamiast aktualizacji gry (która najpierw dawała naszym silnikom ciąg 0, a my potem właściwy - dwie zmiany stanu
+        // w każdym kroku restartowały dźwięk silnika): zwykłe silniki dokładnie jak w grze, wodorowe po naszemu, jeden zapis.
+        [HarmonyPrefix]
         [HarmonyPatch(nameof(ShipThrustersUpdater.Update))]
-        private static void Update(IShipStateWrite ____ship, ConnectionsServerTracker ____connections, float deltaTime)
+        private static bool Update(ShipThrustersUpdater __instance, IShipStateWrite ____ship, ConnectionsServerTracker ____connections, float deltaTime)
         {
+            bool done = false;
             Run(() =>
             {
                 var power = ServiceLocator.GetService<PowerServerTracker>();
@@ -71,6 +79,17 @@ namespace Mining.Server
                 {
                     if (!HydrogenThruster.Is(part.Settings))
                     {
+                        float strength = 0f;
+                        if (GameGroups(__instance, part.Id, out var group0, out var group1))
+                        {
+                            strength = Mathf.Min(group0.EffectiveConsumptionRate, group1.EffectiveConsumptionRate);
+                            if (strength > 0f)
+                            {
+                                group0.RemoveFluid(strength * ThrusterState.MaxFluidConsumptionRate * deltaTime);
+                                group1.RemoveFluid(strength * ThrusterState.MaxFluidConsumptionRate * deltaTime);
+                            }
+                        }
+                        ____ship.UpdatePartState(part.Id, (ThrusterState)part.State with { ThrusterStrength = strength });
                         continue;
                     }
                     float rate = 0f;
@@ -96,7 +115,9 @@ namespace Mining.Server
                     else Boosted.Remove((____ship.Id, part.Id));
                     ____ship.UpdatePartState(part.Id, (ThrusterState)part.State with { ThrusterStrength = rate });
                 }
+                done = true;
             });
+            return !done; // błąd w naszym kodzie - niech zadziała aktualizacja gry
         }
 
         // Gniazda 0 i 1: wodór (wymagany) i tlen (opcjonalny), w dowolnej kolejności.

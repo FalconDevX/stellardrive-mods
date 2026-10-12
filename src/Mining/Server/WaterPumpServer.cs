@@ -79,12 +79,11 @@ namespace Mining.Server
                     }
                     var state = (DoorState)part.State;
 
-                    // sygnał steruje wężem, gdy kabel jest podłączony
-                    var signalSocket = new EntityPartSocket(__instance.Id, part.Id, WaterPump.SignalSocket);
-                    bool signalled = connections.TryGetSignalConnectionGroupWithSocket(signalSocket, out _);
+                    // sygnał steruje wężem, gdy kabel jest podłączony: 0 = zwinięty, 0-1 = część pełnej długości
+                    float limit = WaterPump.HoseLimit(connections, __instance.Id, part.Id, out bool signalled, out float signal);
                     if (signalled)
                     {
-                        bool wanted = connections.GetSignalValue(signalSocket) >= 0.5;
+                        bool wanted = signal > 0.01f;
                         if (wanted != state.IsOpen)
                         {
                             state = state with { IsOpen = wanted };
@@ -95,7 +94,7 @@ namespace Mining.Server
 
                     string status;
                     bool reach = Probe(__instance, part, out float needed, out bool water);
-                    if (state.IsOpen && !signalled && (!reach || needed > WaterPump.HoseMax + 2f))
+                    if (state.IsOpen && !signalled && (!reach || needed > limit + 2f))
                     {
                         rt.OutOfReach += deltaTime;
                         if (rt.OutOfReach >= AutoRaiseSeconds)
@@ -115,7 +114,8 @@ namespace Mining.Server
                     if (!planned)
                     {
                         status = outA == null && outB == null ? "no room in the output pipes" :
-                                 state.IsOpen && water && reach && needed <= WaterPump.HoseMax ? "lowering the hose" :
+                                 state.IsOpen && water && reach && needed <= limit ? "lowering the hose" :
+                                 state.IsOpen && water && reach ? "hose too short to reach the water" :
                                  state.IsOpen ? "no water under the hose" : "hose up, no water on the input";
                     }
                     else if (!power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, part.Id, WaterPump.PowerSocket), out group))
@@ -166,7 +166,8 @@ namespace Mining.Server
                 return false;
             }
             var state = (DoorState)part.State;
-            if (state.IsOpen && Probe(ship, part, out float needed, out bool water) && water && needed <= WaterPump.HoseMax)
+            float limit = WaterPump.HoseLimit(connections, ship.Id, part.Id, out _, out _);
+            if (state.IsOpen && Probe(ship, part, out float needed, out bool water) && water && needed <= limit)
             {
                 // na pierwszym kroku (PrepareConsumers) deployed = 0 - liczymy, że wąż już jest na dole, jeśli był
                 fromLake = deployed <= 0f ? RuntimeDeployed(ship, part) >= needed / WaterPump.HoseSpeed : deployed >= needed / WaterPump.HoseSpeed;
