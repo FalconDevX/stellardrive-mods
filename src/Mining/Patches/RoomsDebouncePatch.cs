@@ -5,11 +5,6 @@ using UnityEngine;
 
 namespace Mining.Patches
 {
-    // Lagi przy szybkim budowaniu/usuwaniu: po każdej zmianie kadłuba gra przelicza pomieszczenia (tlen) algorytmem
-    // zalewania, który przechodzi całą pustą przestrzeń wokół statku - na dużym statku ~50-60 ms na KAŻDY blok
-    // (zmierzone dziennikiem [perf]). Zmiany i tak się kumulują, więc przeliczamy dopiero, gdy budowanie ucichnie
-    // na chwilę (QuietSeconds), a przy ciągłym budowaniu najrzadziej co MaxDelaySeconds. Wynik jest ten sam,
-    // tylko pomieszczenie "zamyka się" ułamek sekundy później.
     [HarmonyPatch(typeof(ShipRoomsVoxelUpdater))]
     internal static class RoomsDebouncePatch
     {
@@ -23,7 +18,7 @@ namespace Mining.Patches
         }
 
         private static readonly ConditionalWeakTable<ShipRoomsVoxelUpdater, Pending> State = new ConditionalWeakTable<ShipRoomsVoxelUpdater, Pending>();
-        internal static bool Force; // wczytywanie stanu pomieszczeń wymaga natychmiastowego przeliczenia
+        internal static bool Force;
 
         private static void Changed(ShipRoomsVoxelUpdater updater)
         {
@@ -60,7 +55,7 @@ namespace Mining.Patches
             float now = Time.unscaledTime;
             if (now - p.Last < QuietSeconds && now - p.First < MaxDelaySeconds)
             {
-                return false; // jeszcze budujesz - poczekaj
+                return false;
             }
             p.First = -1f;
             return true;

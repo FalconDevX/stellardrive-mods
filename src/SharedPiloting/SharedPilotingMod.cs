@@ -10,7 +10,7 @@ namespace SharedPiloting
     {
         public override void OnInitializeMelon()
         {
-            LoggerInstance.Msg("Kilka foteli pilota: obraca statkiem ten, kto rusza myszą (bezczynne fotele nie blokują).");
+            LoggerInstance.Msg("Several pilot seats: whoever moves the mouse turns the ship (idle seats do not block).");
         }
     }
 }

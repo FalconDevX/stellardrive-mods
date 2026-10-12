@@ -12,10 +12,6 @@ using UnityEngine;
 
 namespace Mining.Patches
 {
-    // Szybsze budowanie/usuwanie: po każdej zmianie kadłuba gra przebudowuje siatkę całego fragmentu 16x16x16 i dla
-    // KAŻDEGO kafelka i krawędzi pobiera z silnika jego wierzchołki, normalne i trójkąty (Mesh.GetVertices itd.) -
-    // przy dużym statku to tysiące kopii z silnika na jedno postawienie bloku. Kafelki to stałe modele z gry,
-    // więc ich dane zapamiętujemy raz i potem tylko kopiujemy z pamięci. Wynikowa siatka jest identyczna.
     [HarmonyPatch]
     internal static class HullMeshCachePatch
     {
@@ -55,7 +51,7 @@ namespace Mining.Patches
             }
             if (replaced == 0)
             {
-                Melon<MiningMod>.Logger.Warning("HullMeshCachePatch: nie znaleziono wywołań Mesh.Get* - gra się zmieniła?");
+                Melon<MiningMod>.Logger.Warning("HullMeshCachePatch: no Mesh.Get* calls found - did the game change?");
             }
         }
 
@@ -94,7 +90,6 @@ namespace Mining.Patches
             list.AddRange(Get(mesh).Normals);
         }
 
-        // Gra pobiera styczne, ale ich nie używa (liczy własne) - pomijamy.
         private static void GetTangents(Mesh mesh, List<Vector4> list) => list.Clear();
 
         private static void GetTriangles(Mesh mesh, List<int> list, int submesh)
@@ -104,9 +99,6 @@ namespace Mining.Patches
         }
     }
 
-    // Dziennik przycięć: jeśli przebudowa kadłuba, kolizji albo pomieszczeń po zmianie statku (albo wybór części
-    // do budowania) trwa długo,
-    // zapisujemy to w logu MelonLoadera (max raz na sekundę na rodzaj) - wiadomo, co jeszcze przyspieszać.
     [HarmonyPatch]
     internal static class BuildSpikeLog
     {
@@ -118,7 +110,6 @@ namespace Mining.Patches
             yield return AccessTools.Method(typeof(ShipHullVisuals), nameof(ShipHullVisuals.UpdateHull));
             yield return AccessTools.Method(typeof(ShipHullColliders), nameof(ShipHullColliders.UpdateColliders));
             yield return AccessTools.Method(typeof(ShipRoomsVoxelUpdater), nameof(ShipRoomsVoxelUpdater.UpdateRooms));
-            // wybór części w menu budowania (przycięcia przy dużych drzwiach)
             yield return AccessTools.Method(typeof(Tools.Build.PartPreview), "OnPartSelected");
             yield return AccessTools.Method(typeof(ShipPartInstancer), nameof(ShipPartInstancer.InstantiatePartPreview));
             yield return AccessTools.Method(typeof(ShipPartsThumbnailRuntimeCache), nameof(ShipPartsThumbnailRuntimeCache.GetLargeThumbnail));

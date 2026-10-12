@@ -14,8 +14,6 @@ using Object = UnityEngine.Object;
 
 namespace Mining.Sites
 {
-    // Pokazuje złoża w pobliżu kamery. Każde złoże to jedna siatka złożona z kilkudziesięciu pomniejszonych,
-    // spłaszczonych kopii kamienia rudy z gry (ten sam materiał i kontury co prawdziwe skały), wtopionych w teren.
     internal static class MiningSiteVisuals
     {
         private const float ShowDistance = 300f;
@@ -33,14 +31,13 @@ namespace Mining.Sites
             internal Mesh Mesh;
             internal Material[] Materials;
             internal int Layer;
-            internal Matrix4x4 Base; // położenie siatki względem korzenia prefabu (modele z FBX bywają obrócone/przeskalowane)
-            internal Bounds Bounds;  // granice siatki w układzie korzenia prefabu
+            internal Matrix4x4 Base;
+            internal Bounds Bounds;
         }
 
         private static readonly Dictionary<GameObject, Rock> RockCache = new Dictionary<GameObject, Rock>();
         private static float _nextScan;
         private static ulong _planetId;
-        // Złoża do zbudowania - najwyżej jedno na klatkę, żeby w locie nie było przycięć.
         private static readonly Queue<MiningSite> Pending = new Queue<MiningSite>();
 
         internal static void Clear()
@@ -53,7 +50,6 @@ namespace Mining.Sites
             Pending.Clear();
         }
 
-        // Złączona siatka kamieni należy tylko do tego złoża - usuwamy ją razem z obiektem.
         private static void DestroySite(GameObject site)
         {
             if (site == null)
@@ -106,7 +102,6 @@ namespace Mining.Sites
                 }
             }
 
-            // Pozycje co klatkę (pływające origin gry przesuwa świat wokół gracza).
             foreach (Spawned s in Active.Values)
             {
                 if (s.Object == null) continue;
@@ -162,7 +157,6 @@ namespace Mining.Sites
             var matrices = new List<Matrix4x4>(count);
             for (int n = 0; n < count; n++)
             {
-                // Gęściej w środku, rzadziej na brzegu (jak plamy rudy w Factorio).
                 float r = site.Radius * Mathf.Pow((float)rng.NextDouble(), 0.65f);
                 float a = (float)(rng.NextDouble() * Mathf.PI * 2.0);
                 float edge = 1f - r / site.Radius;
@@ -176,14 +170,12 @@ namespace Mining.Sites
                     planetPoint = dir * tracked.PointsProvider.GetElevationAtPoint(dir);
                 }
                 Vector3 p = inv * (planetPoint - site.Center);
-                // Kamienie nie mają kolizji, więc chodzi się po złożu jak po płaskim terenie.
                 var scale = new Vector3(size, size * Mathf.Lerp(0.45f, 0.8f, (float)rng.NextDouble()), size);
-                p.y -= (rockInfo.Bounds.min.y + rockSize.y * 0.2f) * scale.y; // częściowo w ziemi
+                p.y -= (rockInfo.Bounds.min.y + rockSize.y * 0.2f) * scale.y;
                 var rot = Quaternion.Euler((float)rng.NextDouble() * 16f - 8f, (float)rng.NextDouble() * 360f, (float)rng.NextDouble() * 16f - 8f);
                 matrices.Add(Matrix4x4.TRS(p, rot, scale) * rockInfo.Base);
             }
 
-            // Wszystkie kamienie złoża w jednej siatce = jedno rysowanie zamiast setek osobnych obiektów.
             if (rockInfo.Mesh.isReadable)
             {
                 var model = new GameObject("Rocks") { layer = rockInfo.Layer };
@@ -254,11 +246,11 @@ namespace Mining.Sites
                     Base = baseMatrix,
                     Bounds = bounds,
                 };
-                MelonLoader.Melon<MiningMod>.Logger.Msg($"Kamień złoża {prefab.name}: siatka {filter.sharedMesh.name} ({filter.sharedMesh.vertexCount} wierzch., odczyt: {filter.sharedMesh.isReadable}), rozmiar {bounds.size}");
+                MelonLoader.Melon<MiningMod>.Logger.Msg($"Deposit rock {prefab.name}: mesh {filter.sharedMesh.name} ({filter.sharedMesh.vertexCount} verts, readable: {filter.sharedMesh.isReadable}), size {bounds.size}");
             }
             else
             {
-                MelonLoader.Melon<MiningMod>.Logger.Warning($"Kamień {prefab.name} nie ma siatki - złoża tego typu będą niewidoczne");
+                MelonLoader.Melon<MiningMod>.Logger.Warning($"Rock {prefab.name} has no mesh - deposits of this type will be invisible");
             }
             RockCache[prefab] = rock;
             return rock;
@@ -299,13 +291,10 @@ namespace Mining.Sites
             return nearest;
         }
 
-        // Najbliższe złoże do kamery - do komunikatu na ekranie.
-        // uraniumOnly: tylko złoża uranu (klawisz U), szukane dalej - jest ich mniej.
         internal static string DescribeNearest(bool uraniumOnly = false) =>
             uraniumOnly ? DescribeNearest(Content.Uranium.ItemId, 5000f, "No uranium deposits within 5 km (uranium is only on Otrera b).")
                         : DescribeNearest(null, 2000f, "No ore deposits within 2 km.");
 
-        // Najbliższe złoże danego surowca (itemId) albo dowolne (null) w promieniu range.
         internal static string DescribeNearest(uint? itemId, float range, string notFound)
         {
             if (!(ClientOrigin.LocalVisualSpace is PlanetSurfaceSpace space) || Camera.main == null)

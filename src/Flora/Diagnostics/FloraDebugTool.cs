@@ -13,9 +13,6 @@ using UnityEngine.InputSystem;
 
 namespace Flora.Diagnostics
 {
-    // Narzędzie do szukania, czemu nowe rośliny się nie pokazują:
-    //  F9  - stawia zwykłe (nie-GPU) kopie krzaka i kwiatów przed kamerą: sprawdza model i materiał
-    //  F10 - wypisuje do logu stan każdej warstwy roślinności (czy liczona na GPU i ile obiektów ma)
     internal static class FloraDebugTool
     {
         internal static void Update()
@@ -38,7 +35,7 @@ namespace Flora.Diagnostics
             }
             catch (Exception e)
             {
-                Melon<FloraMod>.Logger.Error("Błąd narzędzia Flora: " + e);
+                Melon<FloraMod>.Logger.Error("Flora tool error: " + e);
             }
         }
 
@@ -47,7 +44,7 @@ namespace Flora.Diagnostics
             Camera cam = Camera.main;
             if (cam == null || !FloraPrefabs.IsReady)
             {
-                Melon<FloraMod>.Logger.Warning($"F9: brak kamery ({cam != null}) albo prefabów ({FloraPrefabs.IsReady})");
+                Melon<FloraMod>.Logger.Warning($"F9: no camera ({cam != null}) or prefabs ({FloraPrefabs.IsReady})");
                 return;
             }
             Transform t = cam.transform;
@@ -62,7 +59,7 @@ namespace Flora.Diagnostics
                 go.SetActive(true);
                 MelonCoroutines.Start(DestroyLater(go, 60f));
             }
-            Melon<FloraMod>.Logger.Msg($"F9: postawiono {all.Length} testowych roślin 3 m przed kamerą (znikną po 60 s)");
+            Melon<FloraMod>.Logger.Msg($"F9: placed {all.Length} test plants 3 m in front of the camera (they disappear after 60 s)");
         }
 
         private static IEnumerator DestroyLater(GameObject go, float seconds)
@@ -79,10 +76,10 @@ namespace Flora.Diagnostics
             var tracker = ServiceLocator.GetService<PlanetsClientTracker>();
             if (tracker == null)
             {
-                Melon<FloraMod>.Logger.Warning("F10: brak PlanetsClientTracker");
+                Melon<FloraMod>.Logger.Warning("F10: no PlanetsClientTracker");
                 return;
             }
-            var sb = new StringBuilder("F10: stan roślinności\n");
+            var sb = new StringBuilder("F10: vegetation state\n");
             foreach (TrackedPlanetClient planet in tracker.TrackedPlanets)
             {
                 object visuals = Traverse.Create(planet).Field("_denseEnvironmentVisuals").GetValue();
@@ -91,7 +88,7 @@ namespace Flora.Diagnostics
                     continue;
                 }
                 var levels = (Array)Traverse.Create(visuals).Field("_visuals").GetValue();
-                sb.AppendLine($"  planeta {planet.Planet?.name}: {levels.Length} warstw");
+                sb.AppendLine($"  planet {planet.Planet?.name}: {levels.Length} layers");
                 for (int i = 0; i < levels.Length; i++)
                 {
                     Traverse lv = Traverse.Create(levels.GetValue(i));
@@ -105,7 +102,7 @@ namespace Flora.Diagnostics
                         Traverse gpu = Traverse.Create(lv.Field("_placement").GetValue()).Property("Gpu");
                         var sizes = gpu.Property("FinalBufferSizes").GetValue<int[]>();
                         var matrices = gpu.Property("MatricesBuffersRef").GetValue<ComputeBuffer[]>();
-                        sb.Append(" typy:");
+                        sb.Append(" types:");
                         for (int k = 0; k < sizes.Length; k++)
                         {
                             sb.Append($" {sizes[k]}/{CountPlaced(matrices?[k])}");
@@ -117,7 +114,6 @@ namespace Flora.Diagnostics
             Melon<FloraMod>.Logger.Msg(sb.ToString());
         }
 
-        // Liczy niezerowe macierze w buforze GPUI (= obiekty faktycznie postawione do rysowania).
         private static string CountPlaced(ComputeBuffer buffer)
         {
             if (buffer == null || !buffer.IsValid())

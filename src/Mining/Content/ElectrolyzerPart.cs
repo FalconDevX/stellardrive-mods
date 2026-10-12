@@ -13,10 +13,6 @@ using Object = UnityEngine.Object;
 
 namespace Mining.Content
 {
-    // Elektrolizer: w demie jest jego stan (ElectrolyzerState, slot na lód) i okno, ale nie ma części do zbudowania.
-    // Budujemy ją na bazie skrzyni, z własnym modelem i gniazdami:
-    //   0 = tlen (wyjście), 1 = prąd, 2 = wodór (wyjście), 3 = woda (wyjście przy lodzie, wejście bez lodu).
-    // Logika: Server/ElectrolyzerServer.
     internal static class ElectrolyzerPart
     {
         internal const ushort PartId = 202;
@@ -45,12 +41,12 @@ namespace Mining.Content
             try
             {
                 _part = Build(chest, generator, distiller);
-                Melon<MiningMod>.Logger.Msg($"Dodano część '{_part.fullLabel}' (id {PartId})");
+                Melon<MiningMod>.Logger.Msg($"Added part '{_part.fullLabel}' (id {PartId})");
             }
             catch (Exception e)
             {
                 _failed = true;
-                Melon<MiningMod>.Logger.Error($"Nie udało się zbudować elektrolizera: {e}");
+                Melon<MiningMod>.Logger.Error($"Could not build the electrolyzer: {e}");
             }
             return _part;
         }
@@ -78,16 +74,15 @@ namespace Mining.Content
 
             PartFactory.SetBounds(root, mesh.bounds);
 
-            // Okno (slot na lód) otwiera się na żółtym bloku z ekranem z przodu.
             var box = root.transform.Find("Interactions").GetComponentInChildren<BoxCollider>(true);
             box.center = new Vector3(0f, 0.42f, -0.3f);
             box.size = new Vector3(0.8f, 0.55f, 0.36f);
 
             SocketObject fluid = PartFactory.FindSocket(distiller, CableType.Fluid);
             SocketObject power = PartFactory.FindSocket(generator, CableType.Power);
-            PartFactory.CloneSocket(fluid, root.transform, OxygenSocket, new Vector3(0.5f, 0.25f, 0.16f), 270f);   // przy zbiorniku tlenu
+            PartFactory.CloneSocket(fluid, root.transform, OxygenSocket, new Vector3(0.5f, 0.25f, 0.16f), 270f);
             PartFactory.CloneSocket(power, root.transform, PowerSocket, new Vector3(0.5f, 0.25f, -0.2f), 270f);
-            PartFactory.CloneSocket(fluid, root.transform, HydrogenSocket, new Vector3(-0.5f, 0.25f, 0.16f), 90f); // przy zbiorniku wodoru
+            PartFactory.CloneSocket(fluid, root.transform, HydrogenSocket, new Vector3(-0.5f, 0.25f, 0.16f), 90f);
             PartFactory.CloneSocket(fluid, root.transform, WaterSocket, new Vector3(-0.5f, 0.25f, -0.2f), 90f);
 
             var settings = ScriptableObject.CreateInstance<PartSettings>();

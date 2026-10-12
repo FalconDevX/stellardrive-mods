@@ -9,12 +9,6 @@ using UnityEngine;
 
 namespace Mining.Content
 {
-    // Własny model dużych drzwi, budowany w kodzie dla każdego rozmiaru (rama zawsze tej samej grubości, nie rozciągnięta).
-    // Tekstura door_albedo.png w stylu gry (kontur, wytarte krawędzie, kreskowanie), kolory jak płytki kadłuba. Trzy style:
-    //  - Slide (3x2, 3x3, 4x4): dwa skrzydła rozsuwane na boki,
-    //  - Jaw (6x3): "szczęki" - górna połowa w górę, dolna w dół, zęby na styku,
-    //  - Blast (10x5, 16x8): pancerne drzwi hangarowe - dwie ciężkie połowy na boki, żebra, wielkie pasy ostrzegawcze.
-    // Skrzydła są pocięte na wąskie paski: pasek, który wjeżdża w ramę, jest przycinany i znika (nic nie wystaje).
     internal static class BigDoorModel
     {
         private static readonly string[] Names =
@@ -22,8 +16,6 @@ namespace Mining.Content
             "yellow", "yellow_dark", "dark", "grey", "light", "orange", "steel", "screen", "black", "rubber", "olive", "white", "cyan", "blue", "green", "red",
         };
 
-        // Wygląd jak płytki kadłuba gry: jasnoszare panele i szare elementy zamiast żółto-pomarańczowych; czarne szwy,
-        // lampki, ekrany i guma zostają.
         private static readonly Dictionary<string, string> HullColors = new Dictionary<string, string>
         {
             { "yellow", "light" }, { "yellow_dark", "grey" }, { "orange", "steel" }, { "dark", "grey" }, { "olive", "grey" },
@@ -51,7 +43,7 @@ namespace Mining.Content
             model.SetParent(parent, false);
             Vector3 min = b.min, max = b.max;
             float w = b.size.x, h = b.size.y, z = b.center.z;
-            float depth = Mathf.Clamp(b.size.z, 0.25f, 0.35f); // grubość ściany (obrys drzwi z gry bywa na całe pole)
+            float depth = Mathf.Clamp(b.size.z, 0.25f, 0.35f);
             Style style = w >= 8f ? Style.Blast : w > h && h >= 3f ? Style.Jaw : Style.Slide;
 
             float ix0 = min.x + Frame, ix1 = max.x - Frame, iy0 = min.y + Sill, iy1 = max.y - Frame;
@@ -77,7 +69,6 @@ namespace Mining.Content
             return model;
         }
 
-        // --- rama: słupy z żebrami i nitami, nadproże z lampami, próg w pasy, panele sterowania, siłowniki ---
         private static void BuildFrame(Transform model, Material material, MeshRenderer look, Vector3 min, Vector3 max, float z, float depth, Style style,
             float ix0, float ix1)
         {
@@ -86,21 +77,21 @@ namespace Mining.Content
             foreach (float sx in new[] { min.x + Frame / 2, max.x - Frame / 2 })
             {
                 m.Box(new Vector3(sx, cy, z), new Vector3(Frame, h, depth), "dark");
-                m.Box(new Vector3(sx, cy, z), new Vector3(Frame * 0.5f, h - 0.3f, depth + 0.02f), "black");        // rowek w słupie
+                m.Box(new Vector3(sx, cy, z), new Vector3(Frame * 0.5f, h - 0.3f, depth + 0.02f), "black");
                 m.Box(new Vector3(sx, max.y - 0.18f, z), new Vector3(Frame + 0.06f, 0.36f, depth + 0.06f), "orange");
                 m.Box(new Vector3(sx, max.y - 0.18f, z), new Vector3(Frame + 0.07f, 0.06f, depth + 0.07f), "black");
                 m.Box(new Vector3(sx, min.y + 0.16f, z), new Vector3(Frame + 0.06f, 0.32f, depth + 0.06f), "orange");
                 for (float y = min.y + 0.55f; y < max.y - 0.5f; y += 0.5f)
                 {
-                    m.Box(new Vector3(sx, y, z), new Vector3(Frame + 0.02f, 0.05f, depth + 0.02f), "grey");          // żebra
+                    m.Box(new Vector3(sx, y, z), new Vector3(Frame + 0.02f, 0.05f, depth + 0.02f), "grey");
                     foreach (float side in new[] { -1f, 1f })
                     {
-                        m.Box(new Vector3(sx, y + 0.25f, z + side * (depth / 2 + 0.012f)), new Vector3(0.04f, 0.04f, 0.02f), "steel"); // nity
+                        m.Box(new Vector3(sx, y + 0.25f, z + side * (depth / 2 + 0.012f)), new Vector3(0.04f, 0.04f, 0.02f), "steel");
                     }
                 }
             }
             m.Box(new Vector3(cx, max.y - Frame / 2, z), new Vector3(w, Frame, depth), "dark");
-            m.Box(new Vector3(cx, max.y - Frame - 0.03f, z), new Vector3(w - 2 * Frame, 0.06f, depth * 0.8f), "grey"); // prowadnica
+            m.Box(new Vector3(cx, max.y - Frame - 0.03f, z), new Vector3(w - 2 * Frame, 0.06f, depth * 0.8f), "grey");
             for (float x = min.x + 0.5f; x < max.x - 0.4f; x += 0.5f)
             {
                 foreach (float side in new[] { -1f, 1f })
@@ -108,7 +99,6 @@ namespace Mining.Content
                     m.Box(new Vector3(x, max.y - Frame / 2, z + side * (depth / 2 + 0.012f)), new Vector3(0.04f, 0.04f, 0.02f), "steel");
                 }
             }
-            // lampy ostrzegawcze na nadprożu (po obu stronach ściany)
             foreach (float lx in style == Style.Slide ? new[] { cx } : new[] { min.x + w * 0.25f, max.x - w * 0.25f })
             {
                 foreach (float side in new[] { -1f, 1f })
@@ -119,7 +109,6 @@ namespace Mining.Content
                     m.Box(new Vector3(lx, max.y - Frame / 2, lz + side * 0.06f), new Vector3(0.1f, 0.06f, 0.02f), "yellow");
                 }
             }
-            // próg: czarny z żółtymi pasami (po obu stronach)
             m.Box(new Vector3(cx, min.y + Sill / 2, z), new Vector3(w - 2 * Frame, Sill, depth * 0.9f), "black");
             for (float x = ix0; x < ix1 - 0.01f; x += 0.3f)
             {
@@ -129,7 +118,6 @@ namespace Mining.Content
                     m.Box(new Vector3((x + x1) / 2, min.y + Sill / 2, z + side * depth * 0.45f), new Vector3(x1 - x, Sill * 0.9f, 0.012f), "yellow");
                 }
             }
-            // panele sterowania na prawym słupie (przód i tył): obudowa, ekran, przyciski
             foreach (float side in new[] { -1f, 1f })
             {
                 float pz = z + side * (depth / 2 + 0.04f);
@@ -140,7 +128,6 @@ namespace Mining.Content
                 m.Box(new Vector3(px + 0.04f, py - 0.08f, pz + side * 0.04f), new Vector3(0.05f, 0.05f, 0.02f), "yellow");
                 m.Box(new Vector3(px, py - 0.16f, pz + side * 0.038f), new Vector3(Frame * 0.6f, 0.03f, 0.012f), "dark");
             }
-            // siłowniki przy większych drzwiach (pionowe tłoki przy słupach, po obu stronach ściany)
             if (style != Style.Slide)
             {
                 foreach (float sx in new[] { min.x + Frame + 0.08f, max.x - Frame - 0.08f })
@@ -157,18 +144,16 @@ namespace Mining.Content
             PartFactory.CreateRenderer("Frame", model, m.ToMesh("BigDoorFrame"), material, look);
         }
 
-        // --- skrzydło rozsuwane (3x3, 4x4) ---
         private static List<Box> SlideLeaf(float x0, float x1, float y0, float y1, float z, float d, float mid)
         {
             var list = new List<Box>();
             float cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, wl = x1 - x0 - 0.01f, hl = y1 - y0;
             bool left = x1 <= mid + 0.001f;
-            float edge = left ? x1 : x0, outer = left ? x0 : x1, inward = left ? -1f : 1f; // inward: od krawędzi środkowej w głąb skrzydła
+            float edge = left ? x1 : x0, outer = left ? x0 : x1, inward = left ? -1f : 1f;
             list.Add(new Box(new Vector3(cx, cy, z), new Vector3(wl, hl, d), "light"));
             foreach (float side in new[] { -1f, 1f })
             {
                 float fz = z + side * (d / 2 + 0.006f);
-                // obramowanie skrzydła i szwy
                 list.Add(new Box(new Vector3(cx, y1 - 0.05f, fz), new Vector3(wl, 0.1f, 0.012f), "grey"));
                 list.Add(new Box(new Vector3(cx, y0 + 0.28f, fz), new Vector3(wl, 0.04f, 0.012f), "grey"));
                 list.Add(new Box(new Vector3(outer - inward * 0.05f, cy, fz), new Vector3(0.1f, hl, 0.012f), "grey"));
@@ -176,14 +161,12 @@ namespace Mining.Content
                 {
                     list.Add(new Box(new Vector3(cx, y, fz), new Vector3(wl - 0.2f, 0.025f, 0.012f), "grey"));
                 }
-                // okno w ciemnej ramce
                 if (hl > 2.2f)
                 {
                     float wy = y1 - 0.65f, ww = wl * 0.42f, wx = cx - inward * 0.05f;
                     list.Add(new Box(new Vector3(wx, wy, fz), new Vector3(ww + 0.08f, 0.5f, 0.016f), "dark"));
                     list.Add(new Box(new Vector3(wx, wy, fz + side * 0.004f), new Vector3(ww, 0.42f, 0.012f), "screen"));
                 }
-                // pasy ukośne przy krawędzi środkowej (schodkowo: żółte kostki na czarnym)
                 list.Add(new Box(new Vector3(edge + inward * 0.2f, cy, fz), new Vector3(0.3f, hl, 0.014f), "black"));
                 for (float y = y0; y < y1 - 0.05f; y += 0.1f)
                 {
@@ -194,7 +177,6 @@ namespace Mining.Content
                         list.Add(new Box(new Vector3(kx, y + 0.05f, fz + side * 0.003f), new Vector3(0.1f, 0.1f, 0.014f), "yellow"));
                     }
                 }
-                // uchwyt we wnęce, tabliczka, nity
                 float hx = edge + inward * 0.5f, hy = y0 + Mathf.Min(1.1f, hl * 0.4f);
                 list.Add(new Box(new Vector3(hx, hy, fz), new Vector3(0.14f, 0.5f, 0.012f), "dark"));
                 list.Add(new Box(new Vector3(hx, hy, fz + side * 0.03f), new Vector3(0.04f, 0.4f, 0.05f), "steel"));
@@ -204,12 +186,11 @@ namespace Mining.Content
                     list.Add(new Box(new Vector3(x, y0 + 0.15f, fz + side * 0.006f), new Vector3(0.035f, 0.035f, 0.016f), "steel"));
                 }
             }
-            list.Add(new Box(new Vector3(cx, y0 + 0.12f, z), new Vector3(wl, 0.24f, d + 0.02f), "orange"));            // listwa dolna
-            list.Add(new Box(new Vector3(edge + inward * 0.015f, cy, z), new Vector3(0.03f, hl, d + 0.03f), "rubber"));  // uszczelka
+            list.Add(new Box(new Vector3(cx, y0 + 0.12f, z), new Vector3(wl, 0.24f, d + 0.02f), "orange"));
+            list.Add(new Box(new Vector3(edge + inward * 0.015f, cy, z), new Vector3(0.03f, hl, d + 0.03f), "rubber"));
             return list;
         }
 
-        // --- pancerna połowa drzwi hangarowych (10x5) ---
         private static List<Box> BlastLeaf(float x0, float x1, float y0, float y1, float z, float d, float mid)
         {
             var list = new List<Box>();
@@ -220,7 +201,6 @@ namespace Mining.Content
             foreach (float side in new[] { -1f, 1f })
             {
                 float fz = z + side * (d / 2 + 0.01f);
-                // pionowe żebra co 0.8 m z nitami
                 for (float x = Mathf.Min(x0, x1) + 0.4f; x < Mathf.Max(x0, x1) - 0.6f; x += 0.8f)
                 {
                     list.Add(new Box(new Vector3(x, cy, fz), new Vector3(0.14f, hl - 0.2f, 0.06f), "dark"));
@@ -229,12 +209,10 @@ namespace Mining.Content
                         list.Add(new Box(new Vector3(x, y, fz + side * 0.035f), new Vector3(0.05f, 0.05f, 0.02f), "steel"));
                     }
                 }
-                // poziome pasy wzmocnień
                 foreach (float y in new[] { y0 + 0.5f, cy, y1 - 0.5f })
                 {
                     list.Add(new Box(new Vector3(cx, y, fz + side * 0.02f), new Vector3(wl, 0.18f, 0.04f), "dark"));
                 }
-                // wielkie pasy ostrzegawcze przy krawędzi środkowej (schodkowo, żółte na czarnym)
                 const float band = 0.9f;
                 list.Add(new Box(new Vector3(edge + inward * band / 2, cy, fz + side * 0.03f), new Vector3(band, hl, 0.02f), "black"));
                 for (float y = y0; y < y1 - 0.1f; y += 0.15f)
@@ -249,25 +227,22 @@ namespace Mining.Content
                         }
                     }
                 }
-                // tabliczka z numerem hangaru i okienko inspekcyjne
                 list.Add(new Box(new Vector3(edge + inward * 1.8f, y1 - 0.9f, fz + side * 0.02f), new Vector3(0.9f, 0.5f, 0.03f), "orange"));
                 list.Add(new Box(new Vector3(edge + inward * 1.8f, y1 - 0.9f, fz + side * 0.03f), new Vector3(0.5f, 0.25f, 0.02f), "white"));
                 list.Add(new Box(new Vector3(edge + inward * 1.8f, cy - 0.2f, fz + side * 0.02f), new Vector3(0.7f, 0.3f, 0.03f), "black"));
                 list.Add(new Box(new Vector3(edge + inward * 1.8f, cy - 0.2f, fz + side * 0.03f), new Vector3(0.6f, 0.2f, 0.02f), "screen"));
             }
-            list.Add(new Box(new Vector3(cx, y0 + 0.06f, z), new Vector3(wl, 0.12f, d + 0.04f), "rubber"));             // uszczelka dolna
-            list.Add(new Box(new Vector3(edge + inward * 0.02f, cy, z), new Vector3(0.04f, hl, d + 0.06f), "black"));    // krawędź styku
+            list.Add(new Box(new Vector3(cx, y0 + 0.06f, z), new Vector3(wl, 0.12f, d + 0.04f), "rubber"));
+            list.Add(new Box(new Vector3(edge + inward * 0.02f, cy, z), new Vector3(0.04f, hl, d + 0.06f), "black"));
             return list;
         }
 
-        // --- połowa drzwi "szczęk" (6x3): zęby na styku zazębiają się ---
         private static List<Box> JawHalf(float x0, float x1, float y0, float y1, float z, float d, bool top)
         {
             var list = new List<Box>();
             float cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, wl = x1 - x0, hl = y1 - y0;
             float edge = top ? y0 : y1, inward = top ? 1f : -1f;
             list.Add(new Box(new Vector3(cx, cy, z), new Vector3(wl, hl - 0.01f, d), "light"));
-            // zęby: na górnej połowie co drugi, na dolnej - pozostałe (zachodzą na siebie 0.12 m)
             int teeth = Mathf.Max(4, Mathf.RoundToInt(wl / 0.5f));
             float tw = wl / teeth;
             for (int i = 0; i < teeth; i++)
@@ -282,19 +257,19 @@ namespace Mining.Content
             foreach (float side in new[] { -1f, 1f })
             {
                 float fz = z + side * (d / 2 + 0.008f);
-                list.Add(new Box(new Vector3(cx, edge + inward * 0.2f, fz), new Vector3(wl, 0.16f, 0.014f), "black"));      // pas przy styku
+                list.Add(new Box(new Vector3(cx, edge + inward * 0.2f, fz), new Vector3(wl, 0.16f, 0.014f), "black"));
                 for (float x = x0; x < x1 - 0.05f; x += 0.2f)
                 {
                     list.Add(new Box(new Vector3(x + 0.05f, edge + inward * 0.2f, fz + side * 0.003f), new Vector3(0.1f, 0.16f, 0.014f), "yellow"));
                 }
-                for (float x = x0 + 0.5f; x < x1 - 0.3f; x += 1f)                                                         // pionowe żebra
+                for (float x = x0 + 0.5f; x < x1 - 0.3f; x += 1f)
                 {
                     list.Add(new Box(new Vector3(x, cy + inward * 0.1f, fz), new Vector3(0.1f, hl - 0.4f, 0.03f), "grey"));
                 }
                 list.Add(new Box(new Vector3(cx, top ? y1 - 0.12f : y0 + 0.12f, fz), new Vector3(wl, 0.08f, 0.02f), "dark"));
                 if (top)
                 {
-                    for (float x = x0 + 1f; x < x1 - 0.8f; x += 2f)                                                       // okienka w górnej połowie
+                    for (float x = x0 + 1f; x < x1 - 0.8f; x += 2f)
                     {
                         list.Add(new Box(new Vector3(x + 0.5f, cy + 0.15f, fz), new Vector3(0.6f, 0.3f, 0.016f), "dark"));
                         list.Add(new Box(new Vector3(x + 0.5f, cy + 0.15f, fz + side * 0.004f), new Vector3(0.52f, 0.22f, 0.012f), "screen"));
@@ -302,13 +277,12 @@ namespace Mining.Content
                 }
                 else
                 {
-                    list.Add(new Box(new Vector3(cx, cy - 0.1f, fz), new Vector3(0.6f, 0.2f, 0.016f), "orange"));            // tabliczka
+                    list.Add(new Box(new Vector3(cx, cy - 0.1f, fz), new Vector3(0.6f, 0.2f, 0.016f), "orange"));
                 }
             }
             return list;
         }
 
-        // Skrzydło pocięte na paski wzdłuż osi ruchu; każdy pasek to osobny obiekt (nazwa niesie dane do przycinania).
         private static void AddLeaf(Transform model, Material material, MeshRenderer look, List<Box> boxes, char axis, int dir, float distance,
             float clipLo, float clipHi, float lo, float hi)
         {
@@ -335,18 +309,12 @@ namespace Mining.Content
             }
         }
 
-        // Tekstura door_albedo.png (AssetSource/build_door_texture.py): pola GRID x GRID w kolejności Names, każde z czarnym
-        // konturem, wytartą krawędzią i kreskowaniem jak w teksturach gry. Ścianki mapujemy "9-slice": brzeg pola (Margin)
-        // trafia na pas szerokości Border metrów przy krawędzi bryły, więc kontur ma wszędzie tę samą grubość. Środek
-        // dużej ścianki dzielimy na prawie kwadratowe kafle (0,6-1,5 m), żeby kreskowanie i plamki nie były rozciągnięte;
-        // co drugi kafel w poziomie jest odbity, żeby wzór mniej się powtarzał.
         private const int Grid = 4;
         private const float Margin = 26f / 256f;
         private const float Border = 0.045f;
         private const float Inset = 1.5f / 256f;
         private const float MinTile = 0.6f, MaxTile = 1.5f;
 
-        // Oś ścianki: obrys bryły przed przycięciem [F0, F1] i podział jej środka na kafle.
         private struct Axis
         {
             public float F0, F1, TileLen;
@@ -356,11 +324,10 @@ namespace Mining.Content
 
             public int TileAt(float p) => Mathf.Clamp(Mathf.FloorToInt((p - F0 - Border) / TileLen), 0, Tiles - 1);
 
-            // położenie p -> współrzędna w polu (0..1), w kaflu `tile`
             public float Map(float p, int tile, bool mirror)
             {
                 float l = F1 - F0, t = Mathf.Clamp(p - F0, 0f, l);
-                if (!Sliced) return t / l;                                 // cienka ścianka: całe pole (sam kontur = obrys)
+                if (!Sliced) return t / l;
                 if (t <= Border) return Margin * t / Border;
                 if (t >= l - Border) return 1f - Margin * (l - t) / Border;
                 float local = Mathf.Clamp01((t - Border - tile * TileLen) / TileLen);
@@ -379,15 +346,12 @@ namespace Mining.Content
 
             public void Box(Vector3 center, Vector3 size, string color) => Box(center, size, color, center - size * 0.5f, center + size * 0.5f);
 
-            // fullMin/fullMax: obrys całej bryły przed przycięciem do paska skrzydła - tekstura liczona z niego, żeby na
-            // styku pasków nie rysował się kontur.
             public void Box(Vector3 center, Vector3 size, string color, Vector3 fullMin, Vector3 fullMax)
             {
                 int cell = System.Array.IndexOf(Names, HullStyle(color));
                 Vector3 min = center - size * 0.5f, max = center + size * 0.5f;
                 for (int k = 0; k < 3; k++)
                 {
-                    // osie w płaszczyźnie ścianki: na bokach v = Y (kreskowanie na dole), na górze i dole v = Z
                     int a = k == 0 ? 2 : 0, b = k == 1 ? 2 : 1;
                     var ax = new Axis { F0 = fullMin[a], F1 = fullMax[a] };
                     var bx = new Axis { F0 = fullMin[b], F1 = fullMax[b] };
@@ -450,7 +414,6 @@ namespace Mining.Content
                     float fv = Inset + bx.Map(pb, tb, false) * (1f - 2f * Inset);
                     _uv.Add(new Vector2((cx + fu) / Grid, 1f - (cy + 1f - fv) / Grid));
                 }
-                // kolejność zgodna z ruchem wskazówek patrząc z zewnątrz (przód ścianki w Unity)
                 bool flip = Vector3.Dot(Vector3.Cross(_v[start + 1] - _v[start], _v[start + 2] - _v[start]), n) < 0f;
                 if (flip)
                 {
@@ -480,12 +443,8 @@ namespace Mining.Content
         }
     }
 
-    // Animacja: paski skrzydeł przesuwają się (na boki albo w górę/dół), a część, która wjechała w ramę, jest
-    // przycinana (pasek zwęża się do widocznego kawałka, a całkiem schowany - znika). Stan jak w drzwiach gry.
     internal class BigDoorVisuals : DefaultShipPartVisuals
     {
-        // Ciężkie drzwi: czas ruchu rośnie z drogą skrzydła (3x2 ok. 2 s, 16x8 ok. 5 s), powolny rozruch i hamowanie,
-        // własne dźwięki (AssetSource/build_door_sounds.py) - im większe drzwi, tym niższe.
         private float _seconds = 1.6f;
         private float _pitch = 1f, _hear = 40f;
         private bool _moving;
@@ -569,7 +528,7 @@ namespace Mining.Content
             }
             _moving = true;
             _t = Mathf.MoveTowards(_t, _target, Time.deltaTime / _seconds);
-            float edge = Mathf.Min(Mathf.Abs(_t - _target), 1f - Mathf.Abs(_t - _target)); // ciszej przy ruszaniu i hamowaniu
+            float edge = Mathf.Min(Mathf.Abs(_t - _target), 1f - Mathf.Abs(_t - _target));
             _sound.Update(transform.position, Mathf.Clamp01(0.35f + edge * 4f), _pitch);
             Apply();
         }
@@ -578,7 +537,6 @@ namespace Mining.Content
 
         private void Apply()
         {
-            // smootherstep: dłuższe ruszanie i hamowanie niż SmoothStep (bezwładność ciężkich skrzydeł)
             float x = Mathf.Clamp01(_t);
             float k = x * x * x * (x * (x * 6f - 15f) + 10f);
             foreach (Piece p in _pieces)
@@ -591,7 +549,6 @@ namespace Mining.Content
                 if (!visible) continue;
                 Vector3 pos = p.T.localPosition, scale = p.T.localScale;
                 float mid = (a + b) / 2, s = (b - a) / p.Width;
-                // pasek ma środek w swoim punkcie; przycięty: przesuwamy środek do widocznej części i zwężamy
                 if (p.AxisX) { pos.x = mid; scale.x = s; }
                 else { pos.y = mid; scale.y = s; }
                 p.T.localPosition = pos;

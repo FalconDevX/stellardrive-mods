@@ -3,5 +3,5 @@
   "name": "Warp Unlock",
   "author": "mateu",
   "version": "0.1.2",
-  "description": "Pokazuje w drzewie badań dema ukryte badanie Warp Drive (i badania wymagane przed nim), żeby dało się latać do innych planet. Obaj gracze potrzebują moda."
+  "description": "Shows the hidden Warp Drive research (and the research required before it) in the demo research tree so you can fly to other planets. Both players need the mod."
 }

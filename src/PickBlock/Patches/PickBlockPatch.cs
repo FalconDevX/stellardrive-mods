@@ -22,9 +22,6 @@ using WorldTracking.Interface.Values;
 
 namespace PickBlock.Patches
 {
-    // "Pick block" jak w Minecrafcie: trzymając narzędzie budowania, środkowy przycisk myszy na części statku
-    // wybiera tę samą część do budowania. Działa dla ścian/podłóg (hull) i pozostałych części (floating parts).
-    // UpdateChecks woła gra co klatkę tylko dla aktywnego narzędzia - mamy tu też dane kamery do raycastu.
     [HarmonyPatch(typeof(BuildToolLocalClient), nameof(BuildToolLocalClient.UpdateChecks))]
     internal static class PickBlockPatch
     {
@@ -47,7 +44,7 @@ namespace PickBlock.Patches
             }
             catch (Exception e)
             {
-                Melon<PickBlockMod>.Logger.Error("Błąd pobierania części: " + e);
+                Melon<PickBlockMod>.Logger.Error("Pick block error: " + e);
             }
         }
 
@@ -75,7 +72,7 @@ namespace PickBlock.Patches
                 var research = ServiceLocator.GetService<ResearchClientProxy>();
                 if (research != null && !research.IsPartUnlocked(settings))
                 {
-                    Melon<PickBlockMod>.Logger.Msg($"'{settings.fullLabel}' nie jest jeszcze odblokowane w badaniach");
+                    Melon<PickBlockMod>.Logger.Msg($"'{settings.fullLabel}' is not unlocked in research yet");
                     return;
                 }
             }
@@ -86,7 +83,7 @@ namespace PickBlock.Patches
                 return;
             }
             selection.SelectPart(settings.id);
-            Melon<PickBlockMod>.Logger.Msg($"Wybrano: {settings.fullLabel} (id {settings.id})");
+            Melon<PickBlockMod>.Logger.Msg($"Selected: {settings.fullLabel} (id {settings.id})");
         }
 
         private static PartSettings FindSettings(RaycastHit hit, Vector3 direction)
@@ -101,7 +98,6 @@ namespace PickBlock.Patches
 
             if (ShipPartsTagDetection.ColliderIsHull(collider))
             {
-                // HullHover liczy pozycję trafionej ściany/podłogi dokładnie tak jak recykler i pędzel.
                 var hover = new HullHover(hit, direction);
                 var position = Traverse.Create(hover).Field("_hullPartPosition").GetValue<HullPartPosition>();
                 return ship.State.TryGetHullPartState(position, out var hull) ? GetPart(hull.PartId) : null;
@@ -118,8 +114,6 @@ namespace PickBlock.Patches
             return null;
         }
 
-        // Ściany mają warianty "obrócone" (pivotedSettings), których nie ma w menu - wybieramy wersję bazową,
-        // narzędzie budowania samo przełącza się na obróconą przy dopasowaniu.
         private static PartSettings ToBuildableVariant(PartSettings settings)
         {
             EnsureParts();

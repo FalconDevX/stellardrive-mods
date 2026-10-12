@@ -1,8 +1,3 @@
-# Generuje model koparki low-poly (styl części StellarDrive: proste bryły, płaskie kolory, ostre krawędzie pod kontury).
-# Wzorowany na modelu z Meshy (4 nogi, rama, zasobnik, korpus z ekranem, oliwkowa skrzynia, wieżyczka, wiertło ze spiralą).
-# Wynik: Assets/excavator_body.bin, Assets/excavator_drill.bin (format MSH1, układ Unity: Y w górę, przód = -Z)
-# i Assets/excavator_albedo.png (paleta kolorów z lowpoly.py).
-# Użycie: python -I build_excavator.py <folder Assets> [plik .obj do podglądu]
 import math, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lowpoly import Mesh, write_palette, write_preview_obj
@@ -11,10 +6,8 @@ OUT = sys.argv[1]
 PREVIEW = sys.argv[2] if len(sys.argv) > 2 else None
 
 body = Mesh()
-# Wymiary w metrach, układ Unity: X w prawo, Y w górę, przód koparki = -Z. Wzór: podgląd modelu z Meshy.
-LX, LZ = 0.72, 0.62  # środki nóg (jak GroundPlacement.Feet w Patches/GroundPlacementPatch.cs)
+LX, LZ = 0.72, 0.62
 
-# --- Nogi: schodkowa stopa, żółta osłona z ciemnymi pasami, szara czapa ---
 for sx in (-1, 1):
     for sz in (-1, 1):
         x, z = sx * LX, sz * LZ
@@ -28,7 +21,6 @@ for sx in (-1, 1):
         body.box((x, 0.78, z), (0.30, 0.08, 0.30), 'grey')
         body.box((x, 0.84, z), (0.18, 0.05, 0.18), 'yellow')
 
-# --- Rama z kwadratowych belek ---
 for sz in (-1, 1):
     body.box((0, 0.62, sz * LZ), (2 * LX, 0.12, 0.12), 'grey', {'bottom': 'dark'})
 for sx in (-1, 1):
@@ -36,7 +28,6 @@ for sx in (-1, 1):
 body.box((0.47, 0.72, 0.1), (0.12, 0.1, 2 * LZ - 0.1), 'dark')
 body.box((-0.1, 0.72, 0.1), (0.12, 0.1, 2 * LZ - 0.1), 'dark')
 
-# --- Duży zasobnik z przodu po lewej (żółte rogi, oliwkowe panele, ciemna pokrywa) ---
 HX, HY, HZ = -0.3, 1.04, -0.36
 body.box((HX, HY, HZ), (1.04, 0.42, 0.62), 'yellow', {'top': 'dark', 'bottom': 'dark'})
 body.box((HX, HY + 0.01, HZ - 0.312), (0.66, 0.24, 0.01), 'olive')
@@ -50,7 +41,6 @@ body.box((HX, HY - 0.225, HZ), (1.08, 0.04, 0.66), 'grey')
 for k in range(4):
     body.box((HX + (-0.46 if k % 2 == 0 else 0.46), HY + (0.15 if k < 2 else -0.15), HZ - 0.316), (0.04, 0.04, 0.01), 'dark')
 
-# --- Korpus z ekranem w szarej ramie, pasy ostrzegawcze ---
 CX, CY, CZ = 0.25, 1.15, 0.1
 body.box((CX, CY, CZ), (0.74, 0.64, 0.66), 'yellow', {'bottom': 'dark'})
 FZ = CZ - 0.335
@@ -63,18 +53,15 @@ for k in range(6):
     body.box((CX - 0.27 + k * 0.11, CY - 0.27, FZ + 0.005), (0.05, 0.06, 0.02), 'black')
 body.box((CX, CY + 0.335, CZ), (0.78, 0.04, 0.7), 'grey')
 
-# --- Oliwkowa skrzynia z tyłu po lewej, rury do korpusu ---
 body.box((-0.3, 1.43, 0.22), (0.52, 0.36, 0.46), 'olive', {'top': 'grey'})
 body.box((-0.3, 1.62, 0.22), (0.56, 0.04, 0.5), 'dark')
 body.box((-0.3, 1.43, -0.015), (0.3, 0.12, 0.01), 'dark')
 body.cylinder((-0.08, 1.52, 0.33), 0.035, 0.3, 'dark', 8)
 body.cylinder((-0.08, 1.35, 0.33), 0.035, 0.3, 'dark', 8)
-# rura wydechowa na skrzyni silnika (z niej leci dym - EXHAUST_TOP)
 body.cylinder((-0.44, 1.8, 0.34), 0.05, 0.32, 'dark', 10)
 body.cylinder((-0.44, 1.97, 0.34), 0.065, 0.04, 'black', 10)
 EXHAUST_TOP = (-0.44, 1.99, 0.34)
 
-# --- Wieżyczka: szara rama portalowa, żółty środek, czarne sprężyny, nakrętka z pomarańczowym pierścieniem ---
 TX, TZ = CX, CZ
 for sx in (-1, 1):
     for sz in (-1, 1):
@@ -91,28 +78,22 @@ body.cylinder((TX, 2.12, TZ), 0.15, 0.1, 'dark', 12)
 body.cylinder((TX, 2.2, TZ), 0.155, 0.07, 'orange', 12)
 body.cylinder((TX, 2.27, TZ), 0.14, 0.07, 'dark', 12, cap_color='black')
 
-# --- Obudowa wału wiertła pod korpusem, w osi wieżyczki (wał chowa się w korpusie i wieżyczce) ---
 DX, DZ = CX, CZ
 body.cylinder((DX, 0.79, DZ), 0.12, 0.08, 'dark', 12)
 body.cylinder((DX, 0.735, DZ), 0.095, 0.03, 'grey', 12)
 
-# --- Skrzynki przyłączeniowe prądu na zewnętrznych bokach nóg (gniazda wystają poza obrys koparki) ---
-# prąd: prawa przednia i lewa tylna noga (szary daszek), sygnał: lewa przednia noga (żółty daszek)
 for sx, sz, cap in ((1, -1, 'grey'), (-1, 1, 'grey'), (-1, -1, 'yellow')):
     body.box((sx * (LX + 0.17), 0.42, sz * LZ), (0.08, 0.18, 0.16), 'dark', {'top': cap})
     body.box((sx * (LX + 0.15), 0.42, sz * LZ), (0.04, 0.22, 0.04), 'grey')
 
-# --- Wiertło (osobna siatka, oś obrotu w (0,0,0), w modelu w DRILL_PIVOT) ---
 DRILL_PIVOT = (DX, 0.72, DZ)
 drill = Mesh()
-# Długie wiertło: gładki wał (w spoczynku schowany w korpusie i wieżyczce) + spirala + czubek.
-# Przy pracy wysuwa się w dół (ExcavatorVisuals), a nad ziemią cały czas widać wał wchodzący w korpus.
 DRILL_LENGTH = 1.9
 drill.cylinder((0, -0.04, 0), 0.075, 0.08, 'dark', 10)
-drill.cylinder((0, -0.45, 0), 0.055, 0.74, 'grey', 8)                              # wał
-drill.cylinder((0, -0.83, 0), 0.075, 0.04, 'dark', 10)                             # kołnierz
+drill.cylinder((0, -0.45, 0), 0.055, 0.74, 'grey', 8)
+drill.cylinder((0, -0.83, 0), 0.075, 0.04, 'dark', 10)
 drill.cylinder((0, -1.3, 0), 0.05, 0.92, 'steel', 8)
-drill.cylinder((0, -1.83, 0), 0.0, 0.14, 'steel', 8, radius_top=0.055)            # czubek
+drill.cylinder((0, -1.83, 0), 0.0, 0.14, 'steel', 8, radius_top=0.055)
 turns, steps = 5.0, 70
 top, bottom = -0.86, -1.72
 for k in range(steps):

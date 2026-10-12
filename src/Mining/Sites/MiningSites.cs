@@ -16,29 +16,25 @@ namespace Mining.Sites
 {
     internal sealed class ResourceKind
     {
-        internal string Key;       // fragment nazwy prefabu złoża w grze (RockSmallIron, MediumIce...)
+        internal string Key;
         internal string Name;
         internal uint ItemId;
         internal GameObject RockPrefab;
-        internal bool Glowing; // uran: kamienie w świecącym zielonym materiale
+        internal bool Glowing;
     }
 
     internal sealed class MiningSite
     {
         internal ulong PlanetId;
         internal long Key;
-        internal Vector3 Direction;   // kierunek od środka planety (znormalizowany)
-        internal Vector3 Center;      // punkt na terenie w układzie planety
-        internal Quaternion Rotation; // Y = "w górę" na planecie
+        internal Vector3 Direction;
+        internal Vector3 Center;
+        internal Quaternion Rotation;
         internal float Radius;
         internal ResourceKind Kind;
         internal int Seed;
     }
 
-    // Złoża do kopania ("mining site"): płaskie, małe pola kamieni z rudą na otwartym terenie (z dala od lasu).
-    // Położenie liczymy deterministycznie z id planety i siatki na sferze (kostka rzutowana na kulę), więc host
-    // i gracze widzą je w tych samych miejscach bez przesyłania czegokolwiek i bez zmian w zapisie.
-    // Rodzaje rudy bierzemy z tego, co gra i tak rozmieszcza na danej planecie (miedź tylko tam, gdzie są skały miedzi itd.).
     internal static class MiningSites
     {
         private static readonly (string key, string name, uint item)[] KnownKinds =
@@ -54,7 +50,7 @@ namespace Mining.Sites
             internal ResourceKind[] Kinds;
             internal PlanetDensePlacementConfig Forest;
             internal float ForestThreshold;
-            internal ResourceKind Uranium; // tylko na Otrera b (na razie)
+            internal ResourceKind Uranium;
         }
 
         private static readonly Dictionary<ulong, PlanetInfo> Planets = new Dictionary<ulong, PlanetInfo>();
@@ -68,7 +64,6 @@ namespace Mining.Sites
             Empty.Clear();
         }
 
-        // Złoże, na którym stoi punkt (układ planety), albo null.
         internal static MiningSite FindAt(ulong planetId, Vector3 planetPos, float extraRadius, float maxHeight)
         {
             MiningSite best = null;
@@ -87,7 +82,6 @@ namespace Mining.Sites
             return best;
         }
 
-        // Złoża w komórkach wokół punktu (range = ile komórek w każdą stronę).
         internal static IEnumerable<MiningSite> Near(ulong planetId, Vector3 planetPos, int range)
         {
             PlanetInfo info = GetPlanet(planetId);
@@ -154,8 +148,6 @@ namespace Mining.Sites
             return site;
         }
 
-        // Otrera b: dodatkowe złoża szkła na plażach w komórkach, w których nie ma zwykłego złoża (osobne losowanie,
-        // więc istniejące złoża - i koparki na nich - zostają tam, gdzie były). Szansa BeachGlassChance na komórkę z plażą.
         private const float BeachGlassChance = 0.7f;
 
         private static MiningSite GenerateBeachGlass(ulong planetId, PlanetInfo info, int face, int i, int j, long key)
@@ -187,13 +179,11 @@ namespace Mining.Sites
             Vector3 dir = FromCell(face, u, v);
             ResourceKind kind = info.Kinds[rng.Next(info.Kinds.Length)];
             float radius = MiningMod.SiteRadius.Value * (0.85f + 0.3f * (float)rng.NextDouble());
-            // Uran losowany osobno (nie zmienia położenia ani rodzaju pozostałych złóż).
             if (info.Uranium != null && Hash((ulong)key ^ 0x55AA55AA55UL) % 1000 < (ulong)(MiningMod.UraniumChance.Value * 1000f))
             {
                 kind = info.Uranium;
             }
 
-            // Otrera b: szkło tylko na plażach (piasek 64,2-70 m), żadne złoże na dnie jeziora (poniżej tafli 64 m).
             if (planetId == Content.WaterPump.LakePlanetId)
             {
                 if (kind != info.Uranium && kind.ItemId == Items.Model.ItemsConstants.GlassItemId && !TryFindBeach(info, face, i, j, rng, ref dir))
@@ -203,7 +193,7 @@ namespace Mining.Sites
                     {
                         return null;
                     }
-                    kind = others[rng.Next(others.Length)]; // w komórce bez plaży - inna ruda
+                    kind = others[rng.Next(others.Length)];
                 }
                 if (info.Tracked.PointsProvider.GetElevationAtPoint(dir) - info.Radius < Content.WaterPump.SeaLevel + 0.3f)
                 {
@@ -214,7 +204,6 @@ namespace Mining.Sites
             return Place(planetId, info, key, dir, kind, radius, rng, 0.45f);
         }
 
-        // Na polach: z dala od lasu i na w miarę płaskim terenie (maxSlope: dopuszczalna różnica wysokości / promień).
         private static MiningSite Place(ulong planetId, PlanetInfo info, long key, Vector3 dir, ResourceKind kind, float radius, System.Random rng, float maxSlope)
         {
             if (info.Forest != null && info.Forest.EvaluateNoiseAtPosition(dir) >= info.ForestThreshold)
@@ -251,7 +240,6 @@ namespace Mining.Sites
             };
         }
 
-        // Punkt plaży w komórce (piasek nad jeziorem: 64,5-69,5 m) - kilkadziesiąt losowych prób, deterministycznie z rng komórki.
         private static bool TryFindBeach(PlanetInfo info, int face, int i, int j, System.Random rng, ref Vector3 dir)
         {
             for (int attempt = 0; attempt < 60; attempt++)
@@ -307,8 +295,8 @@ namespace Mining.Sites
                 info.ForestThreshold = avoid.denseEnvThreshold;
             }
             Planets[planetId] = info;
-            Melon<MiningMod>.Logger.Msg($"Złoża na {planet.name}: {string.Join(", ", info.Kinds.Select(k => k.Name))}{(info.Uranium != null ? ", uranium" : "")} " +
-                                        $"(co ok. {spacing:0} m, szansa {MiningMod.SiteChance.Value:0.##}, las: {(info.Forest != null ? "omijany" : "brak")})");
+            Melon<MiningMod>.Logger.Msg($"Deposits on {planet.name}: {string.Join(", ", info.Kinds.Select(k => k.Name))}{(info.Uranium != null ? ", uranium" : "")} " +
+                                        $"(about every {spacing:0} m, chance {MiningMod.SiteChance.Value:0.##}, forest: {(info.Forest != null ? "avoided" : "none")})");
             return info;
         }
 
@@ -325,7 +313,6 @@ namespace Mining.Sites
             var kinds = new List<ResourceKind>();
             foreach (var (key, name, item) in KnownKinds)
             {
-                // Najmniejszy kamień danego rodzaju wygląda najlepiej jako drobny żwir złoża.
                 GameObject rock = prefabs.Where(p => p.name.IndexOf(key, StringComparison.OrdinalIgnoreCase) >= 0 && p.GetComponentInChildren<MeshFilter>(true) != null)
                     .OrderBy(p => p.name.IndexOf("Small", StringComparison.OrdinalIgnoreCase) >= 0 ? 0 : p.name.IndexOf("Medium", StringComparison.OrdinalIgnoreCase) >= 0 ? 1 : 2)
                     .FirstOrDefault();
@@ -355,7 +342,6 @@ namespace Mining.Sites
             return null;
         }
 
-        // Kostka rzutowana na kulę: ściana (0-5) i komórka (i, j).
         private static void ToCell(Vector3 dir, int cells, out int face, out int i, out int j)
         {
             Vector3 a = new Vector3(Mathf.Abs(dir.x), Mathf.Abs(dir.y), Mathf.Abs(dir.z));

@@ -7,9 +7,6 @@ using UnityEngine;
 
 namespace Mining.Audio
 {
-    // Dźwięk wiertła. Gra używa FMOD (dźwięk Unity jest wyłączony), więc gramy przez rdzeń FMOD-a.
-    // Kolejność źródeł: plik UserData/Mining/drill.(wav|ogg|mp3) -> plik osadzony w modzie (Assets/drill_loop.*) ->
-    // dźwięk generowany w kodzie (silnik + zgrzyt wiertła w pętli 2 s).
     internal static class DrillSound
     {
         private static FMOD.Sound _sound;
@@ -36,7 +33,7 @@ namespace Mining.Audio
                 if (data == null)
                 {
                     data = Synthesize();
-                    source = "generowany";
+                    source = "generated";
                 }
                 var info = new FMOD.CREATESOUNDEXINFO { cbsize = Marshal.SizeOf(typeof(FMOD.CREATESOUNDEXINFO)), length = (uint)data.Length };
                 FMOD.RESULT result = core.createSound(data, mode | FMOD.MODE.OPENMEMORY, ref info, out _sound);
@@ -46,12 +43,12 @@ namespace Mining.Audio
                 }
                 _created = true;
                 sound = _sound;
-                Melon<MiningMod>.Logger.Msg($"Dźwięk wiertła: {source}");
+                Melon<MiningMod>.Logger.Msg($"Drill sound: {source}");
             }
             catch (Exception e)
             {
                 _failed = true;
-                Melon<MiningMod>.Logger.Warning($"Nie udało się przygotować dźwięku wiertła: {e.Message}");
+                Melon<MiningMod>.Logger.Warning($"Could not prepare the drill sound: {e.Message}");
             }
             return _created;
         }
@@ -97,8 +94,6 @@ namespace Mining.Audio
             return null;
         }
 
-        // Pętla 2 s (częstotliwości są wielokrotnościami 0,5 Hz, więc łączenie końca z początkiem jest niesłyszalne):
-        // buczenie silnika z harmonicznymi + szum "zgrzytu" modulowany obrotami wiertła.
         private static byte[] Synthesize()
         {
             const int rate = 44100;
@@ -107,7 +102,6 @@ namespace Mining.Audio
             var samples = new float[n];
             var rng = new System.Random(1234);
 
-            // Szum pętlowy: ten sam szum na końcu i na początku (przenikanie przez ostatnie 0,1 s).
             var noise = new float[n];
             float lp = 0f, bp = 0f;
             for (int i = 0; i < n; i++)
@@ -135,7 +129,7 @@ namespace Mining.Audio
                     motor += Math.Sin(2 * Math.PI * baseHz * h * t * (1 + wobble)) / (h * 1.2);
                 }
                 double whine = 0.18 * Math.Sin(2 * Math.PI * 740 * t) + 0.08 * Math.Sin(2 * Math.PI * 1480.5 * t);
-                double spin = 0.55 + 0.45 * Math.Pow(0.5 + 0.5 * Math.Sin(2 * Math.PI * 14 * t), 3); // uderzenia ostrza
+                double spin = 0.55 + 0.45 * Math.Pow(0.5 + 0.5 * Math.Sin(2 * Math.PI * 14 * t), 3);
                 double grind = noise[i] * spin * 0.9;
                 samples[i] = (float)(motor * 0.35 + whine * 0.25 + grind * 0.55);
             }

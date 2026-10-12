@@ -1,7 +1,3 @@
-# Modele w stylu rysunku z gry (jak duże drzwi): tekstura Assets/door_albedo.png (build_door_texture.py) - pola
-# kolorów z czarnym konturem, wytartą krawędzią i kreskowaniem. Ścianki prostopadłościanów mapujemy "9-slice"
-# (kontur stałej grubości w metrach - jak Content/BigDoorModel.cs), walce: kontur na górnej i dolnej krawędzi,
-# denka z obwódką. Format wyjściowy MSH1 (Content/ModAssets.LoadMesh). Układ Unity: Y w górę, przód = -Z.
 import math, os, struct
 
 NAMES = ['yellow', 'yellow_dark', 'dark', 'grey', 'light', 'orange', 'steel', 'screen', 'black', 'rubber', 'olive',
@@ -11,11 +7,9 @@ MARGIN = 26 / 256
 BORDER = 0.045
 INSET = 1.5 / 256
 
-
 def _cell(color):
     i = NAMES.index(color)
     return i % GRID, i // GRID
-
 
 def _uv(color, fu, fv):
     cx, cy = _cell(color)
@@ -23,9 +17,7 @@ def _uv(color, fu, fv):
     fv = INSET + fv * (1 - 2 * INSET)
     return ((cx + fu) / GRID, 1 - (cy + 1 - fv) / GRID)
 
-
 def _slice(t, length):
-    # położenie t na krawędzi długości `length` -> współrzędna w polu (0..1)
     if length < BORDER * 2.5:
         return t / length
     if t <= BORDER:
@@ -34,16 +26,13 @@ def _slice(t, length):
         return 1 - MARGIN * (length - t) / BORDER
     return MARGIN + (1 - 2 * MARGIN) * (t - BORDER) / (length - 2 * BORDER)
 
-
 def _cuts(length):
     c = [0.0]
     if length >= BORDER * 2.5:
         c += [BORDER, length - BORDER]
     return c + [length]
 
-
 def _rot(euler):
-    # obrót jak w Unity (Quaternion.Euler: najpierw Z, potem X, potem Y), kąty w stopniach
     x, y, z = (math.radians(a) for a in euler)
     cx, sx, cy, sy, cz, sz = math.cos(x), math.sin(x), math.cos(y), math.sin(y), math.cos(z), math.sin(z)
     rz = ((cz, -sz, 0), (sz, cz, 0), (0, 0, 1))
@@ -54,10 +43,8 @@ def _rot(euler):
         return tuple(tuple(sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)) for i in range(3))
     return mul(ry, mul(rx, rz))
 
-
 def _apply(m, v):
     return tuple(sum(m[i][k] * v[k] for k in range(3)) for i in range(3))
-
 
 def _cross(a, b): return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
 def _sub(a, b): return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
@@ -66,13 +53,11 @@ def _norm(a):
     l = math.sqrt(_dot(a, a)) or 1
     return (a[0] / l, a[1] / l, a[2] / l)
 
-
 class Mesh:
     def __init__(self):
         self.v, self.i = [], []
 
     def _tri(self, pts, normals, uvs, outward):
-        # kolejność zgodna z ruchem wskazówek patrząc z zewnątrz (przód w Unity)
         a, b, c = pts
         if _dot(_cross(_sub(b, a), _sub(c, a)), outward) < 0:
             pts, normals, uvs = (a, c, b), (normals[0], normals[2], normals[1]), (uvs[0], uvs[2], uvs[1])
@@ -86,13 +71,12 @@ class Mesh:
         self._tri((pts[0], pts[2], pts[3]), (normals[0], normals[2], normals[3]), (uvs[0], uvs[2], uvs[3]), outward)
 
     def box(self, center, size, color, rot=(0, 0, 0), colors=None):
-        # colors: inny kolor ścianek {'top','bottom','front','back','left','right'}
         m = _rot(rot)
         half = [s / 2 for s in size]
         faces = {'right': (0, 1), 'left': (0, -1), 'top': (1, 1), 'bottom': (1, -1), 'back': (2, 1), 'front': (2, -1)}
         for name, (k, sign) in faces.items():
             col = (colors or {}).get(name, color)
-            a, b = (2, 1) if k == 0 else (0, 2) if k == 1 else (0, 1)   # na bokach v = Y (kreskowanie na dole)
+            a, b = (2, 1) if k == 0 else (0, 2) if k == 1 else (0, 1)
             la, lb = size[a], size[b]
             n_local = [0, 0, 0]
             n_local[k] = sign
@@ -112,9 +96,8 @@ class Mesh:
                     self._quad(pts, [n] * 4, uvs, n)
 
     def cylinder(self, center, radius, height, color, sides=16, axis='y', cap_color=None, radius_top=None, caps=True):
-        # walec wzdłuż osi `axis` ('x', 'y', 'z'); kontur na krawędziach podstaw, denka z obwódką
         rt = radius if radius_top is None else radius_top
-        perm = {'y': (0, 1, 2), 'x': (1, 0, 2), 'z': (0, 2, 1)}[axis]   # oś walca (lokalne Y) -> oś świata
+        perm = {'y': (0, 1, 2), 'x': (1, 0, 2), 'z': (0, 2, 1)}[axis]
 
         def turn(p):
             return (p[perm[0]], p[perm[1]], p[perm[2]])
@@ -162,10 +145,9 @@ class Mesh:
             for v in verts:
                 f.write(struct.pack('<8f', *v))
             f.write(struct.pack('<%di' % len(index), *index))
-        print(os.path.basename(path), len(verts), 'wierzchołków', len(index) // 3, 'trójkątów')
+        print(os.path.basename(path), len(verts), 'vertices', len(index) // 3, 'triangles')
 
     def write_obj(self, path, mtl_texture, offset=(0, 0, 0), name='m', start=1):
-        # podgląd w Blenderze (X odbity: układ lewoskrętny -> prawoskrętny)
         lines = ['o ' + name]
         for p, n, uv in self.v:
             lines.append('v %f %f %f' % (-(p[0] + offset[0]), p[1] + offset[1], p[2] + offset[2]))

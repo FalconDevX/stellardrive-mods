@@ -3,5 +3,5 @@
   "name": "Pick Block",
   "author": "mateu",
   "version": "0.2.1",
-  "description": "Z narzędziem budowania: środkowy przycisk myszy na części wybiera ją do budowania (jak w Minecrafcie). Przytrzymany lewy przycisk buduje dalej."
+  "description": "With the build tool: the middle mouse button on a part selects it for building (like Minecraft). Holding the left button keeps building."
 }

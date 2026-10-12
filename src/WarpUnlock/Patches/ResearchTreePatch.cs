@@ -10,9 +10,6 @@ using UI.Research;
 
 namespace WarpUnlock.Patches
 {
-    // Demo nie blokuje warpa w logice gry - ekran badań tylko pomija badania bez flagi availableInDemo.
-    // Przed zbudowaniem przycisków drzewa włączamy tę flagę dla badań z warpem i dla badań wymaganych przed nimi.
-    // Sama flaga siedzi w pamięci (ScriptableObject), nic nie jest zapisywane do plików gry.
     [HarmonyPatch(typeof(ResearchCanvas), "GenerateButtons")]
     internal static class ResearchTreePatch
     {
@@ -35,9 +32,9 @@ namespace WarpUnlock.Patches
                 foreach (ResearchSettings research in provider.Researches.Where(r => r != null))
                 {
                     Melon<WarpUnlockMod>.Logger.Msg(
-                        $"  badanie {research.id} '{research.techName}': demo={research.availableInDemo} ukryte={research.hideFromTechTree} " +
-                        $"tylkoDemo={research.exclusiveToDemo} części=[{string.Join(", ", (research.unlockedParts ?? new PartSettings[0]).Where(p => p != null).Select(p => p.fullLabel))}] " +
-                        $"poz={research.positionInTechTree} wymaga=[{string.Join(", ", (research.requirements ?? new ResearchSettings[0]).Where(r => r != null).Select(r => r.techName))}]");
+                        $"  research {research.id} '{research.techName}': demo={research.availableInDemo} hidden={research.hideFromTechTree} " +
+                        $"demoOnly={research.exclusiveToDemo} parts=[{string.Join(", ", (research.unlockedParts ?? new PartSettings[0]).Where(p => p != null).Select(p => p.fullLabel))}] " +
+                        $"pos={research.positionInTechTree} requires=[{string.Join(", ", (research.requirements ?? new ResearchSettings[0]).Where(r => r != null).Select(r => r.techName))}]");
                 }
             }
 
@@ -56,8 +53,6 @@ namespace WarpUnlock.Patches
                 }
             }
 
-            // Schowane zastępstwo (np. "Demo Complete") dawało jakieś części - odblokowujemy też prawdziwe badania z tymi częściami
-            // (dla "Demo Complete" to "Sensors"), żeby po schowaniu nic nie zniknęło z gry.
             foreach (ResearchSettings placeholder in toUnlock.Where(r => !r.availableInDemo).SelectMany(r => FindPlaceholders(r, provider.Researches)).ToList())
             {
                 foreach (ResearchSettings research in provider.Researches.Where(r => r != null && r != placeholder && !r.availableInDemo &&
@@ -71,7 +66,7 @@ namespace WarpUnlock.Patches
             {
                 research.availableInDemo = true;
                 MoveToFreeSpot(research, provider.Researches);
-                Melon<WarpUnlockMod>.Logger.Msg($"Odblokowano w drzewie: '{research.techName}' (pozycja {research.positionInTechTree})");
+                Melon<WarpUnlockMod>.Logger.Msg($"Unlocked in the tree: '{research.techName}' (position {research.positionInTechTree})");
             }
         }
 
@@ -86,17 +81,13 @@ namespace WarpUnlock.Patches
             return a.unlockedParts != null && b.unlockedParts != null && a.unlockedParts.Any(p => p != null && b.unlockedParts.Contains(p));
         }
 
-        // W demie w miejscu ukrytego badania stoi zwykle jego zastępstwo (np. "Demo Complete" zamiast "Stellar Travel"),
-        // a przyciski na tej samej pozycji się zasłaniają. Zastępstwo dostępne tylko w demie chowamy, żeby odblokowane
-        // badanie zostało na swoim miejscu (linia do wymaganego badania jest wtedy prosta). Gdy pozycję zajmuje
-        // zwykłe badanie, przesuwamy odblokowane na wolne miejsce w tej kolumnie.
         private static void MoveToFreeSpot(ResearchSettings research, IEnumerable<ResearchSettings> all)
         {
             UnityEngine.Vector2Int position = research.positionInTechTree;
             foreach (ResearchSettings placeholder in FindPlaceholders(research, all).ToList())
             {
                 placeholder.hideFromTechTree = true;
-                Melon<WarpUnlockMod>.Logger.Msg($"Schowano zastępstwo z dema: '{placeholder.techName}'");
+                Melon<WarpUnlockMod>.Logger.Msg($"Hid the demo placeholder: '{placeholder.techName}'");
             }
             var taken = new HashSet<UnityEngine.Vector2Int>(all
                 .Where(r => r != null && r != research && r.availableInDemo && !r.hideFromTechTree)

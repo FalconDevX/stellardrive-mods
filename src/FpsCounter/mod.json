@@ -3,5 +3,5 @@
   "name": "FPS Counter",
   "author": "mateu",
   "version": "0.1.0",
-  "description": "Licznik FPS (i najdłuższej klatki) w prawym górnym rogu ekranu. F3 włącza/wyłącza, ustawienie ShowFps."
+  "description": "FPS counter (and longest frame) in the top right corner of the screen. F3 toggles it, setting ShowFps."
 }

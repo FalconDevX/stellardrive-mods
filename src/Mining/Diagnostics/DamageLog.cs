@@ -12,9 +12,6 @@ using UnityEngine;
 
 namespace Mining.Diagnostics
 {
-    // Dziennik obrażeń gracza (gra nie zapisuje, od czego się zginęło). Gracz traci życie tylko od uderzeń (szybkie
-    // zderzenie z czymś bez fizyki - np. kadłubem statku) i od braku tlenu. Zapisujemy ostatnie zdarzenia, a przy śmierci
-    // całość trafia do UserData/Mining/death_log.txt i do logu MelonLoadera.
     internal static class DamageLog
     {
         private static readonly LinkedList<string> Recent = new LinkedList<string>();
@@ -25,12 +22,12 @@ namespace Mining.Diagnostics
             string entry = $"{DateTime.Now:HH:mm:ss.f} {line}";
             Recent.AddLast(entry);
             while (Recent.Count > 15) Recent.RemoveFirst();
-            Melon<MiningMod>.Logger.Msg("[obrażenia] " + line);
+            Melon<MiningMod>.Logger.Msg("[damage] " + line);
         }
 
         internal static void OnDeath()
         {
-            Add("ŚMIERĆ");
+            Add("DEATH");
             try
             {
                 string path = Path.Combine(MelonEnvironment.UserDataDirectory, "Mining", "death_log.txt");
@@ -39,7 +36,6 @@ namespace Mining.Diagnostics
             }
             catch (Exception)
             {
-                // zapis dziennika nie może psuć gry
             }
         }
 
@@ -72,7 +68,7 @@ namespace Mining.Diagnostics
                 if (____properties == null || collision.Collider == null || collision.Collider.GetComponentInParent<Rigidbody>() != null) return;
                 float damage = ____properties.CalculateCollisionDamage(collision.Impact);
                 if (damage <= 0f) return;
-                DamageLog.Add($"uderzenie {collision.Impact.magnitude:0.0} m/s w '{DamageLog.PathOf(collision.Collider.transform)}' (warstwa {LayerMask.LayerToName(collision.Collider.gameObject.layer)}): -{damage:0.0} życia");
+                DamageLog.Add($"impact {collision.Impact.magnitude:0.0} m/s into '{DamageLog.PathOf(collision.Collider.transform)}' (layer {LayerMask.LayerToName(collision.Collider.gameObject.layer)}): -{damage:0.0} health");
             }
             catch (Exception)
             {
@@ -88,7 +84,7 @@ namespace Mining.Diagnostics
             __state = ____state != null ? ____state.Health : -1f;
             if (____state != null && !____state.HasOxygen && ____state.OxygenLevel <= 0f && DamageLog.OxygenLogDue())
             {
-                DamageLog.Add($"brak tlenu (butla pusta, nie ma czym oddychać w tym miejscu): życie {____state.Health:0}");
+                DamageLog.Add($"no oxygen (tank empty, nothing to breathe here): health {____state.Health:0}");
             }
         }
 

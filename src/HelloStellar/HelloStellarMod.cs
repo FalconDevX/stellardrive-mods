@@ -14,25 +14,23 @@ namespace HelloStellar
         public override void OnInitializeMelon()
         {
             var category = MelonPreferences.CreateCategory("HelloStellar");
-            _debugKey = category.CreateEntry("DebugKey", Key.F8, description: "Klawisz wypisujący informacje do konsoli");
+            _debugKey = category.CreateEntry("DebugKey", Key.F8, description: "Key that prints information to the console");
 
-            // Patche z atrybutem [HarmonyPatch] w tym assembly MelonLoader nakłada automatycznie.
-            LoggerInstance.Msg("Załadowano. Naciśnij " + _debugKey.Value + " w grze.");
+            LoggerInstance.Msg("Loaded. Press " + _debugKey.Value + " in game.");
         }
 
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
-            LoggerInstance.Msg($"Scena: {sceneName} ({buildIndex})");
+            LoggerInstance.Msg($"Scene: {sceneName} ({buildIndex})");
         }
 
         public override void OnUpdate()
         {
-            // Gra używa nowego Input Systemu, więc UnityEngine.Input nie zadziała.
             var keyboard = Keyboard.current;
             if (keyboard != null && keyboard[_debugKey.Value].wasPressedThisFrame)
             {
                 var cam = UnityEngine.Camera.main;
-                LoggerInstance.Msg(cam != null ? $"Kamera: {cam.transform.position}" : "Brak kamery");
+                LoggerInstance.Msg(cam != null ? $"Camera: {cam.transform.position}" : "No camera");
             }
         }
     }

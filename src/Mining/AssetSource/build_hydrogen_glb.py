@@ -1,16 +1,10 @@
-# Silnik wodorowy z modelu Meshy "Frostbite Cannon" (GLB od użytkownika): uproszczenie siatki w Blenderze
-# i zapis w formacie MSH1 (Content/ModAssets.LoadMesh) + tekstura koloru 1024 px wypalona z GLB.
-# Układ części jak w grze: środek podstawy w (0, 0, 0), część 1 x 2 x 1 m, dysza na lokalnej górze (+Y),
-# bo gra pcha statek w kierunku -Y części (ShipThrust).
-# Wynik: Assets/hydrogen_thruster.bin, Assets/hydrogen_thruster_albedo.jpg (+ w konsoli NOZZLE_TOP).
-# Użycie: blender -b --factory-startup -P build_hydrogen_glb.py -- <plik .glb> <folder Assets> [liczba trójkątów]
 import bpy, math, os, struct, sys
 from mathutils import Vector
 
 argv = sys.argv[sys.argv.index('--') + 1:]
 SRC, OUT = argv[0], argv[1]
 TARGET_TRIS = int(argv[2]) if len(argv) > 2 else 16000
-HEIGHT = 1.96       # długość silnika w części 2 m (trochę luzu na końcach)
+HEIGHT = 1.96
 TEX_SIZE = 1024
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -25,9 +19,6 @@ if len(meshes) > 1:
 obj = bpy.context.view_layer.objects.active
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
-# Uproszczona kopia oryginału. GLB ma osobne wierzchołki na szwach UV - bez scalenia uproszczenie rozsuwa brzegi
-# wysp i robią się szczeliny. UV oryginału po uproszczeniu rozmazują kolor na szwach, więc kopia dostaje nowy
-# rozkład UV, a kolor wypalamy z oryginału (Cycles, sam kolor bez światła).
 high = obj
 bpy.ops.object.duplicate()
 obj = bpy.context.view_layer.objects.active
@@ -73,33 +64,25 @@ bpy.context.view_layer.objects.active = obj
 bpy.ops.object.bake(type='DIFFUSE', pass_filter={'COLOR'})
 me.calc_loop_triangles()
 
-# Oś długa modelu = Blender X. Dysza to koniec o większym promieniu przekroju.
 xs = [v.co.x for v in me.vertices]
 ys = [v.co.y for v in me.vertices]
 zs = [v.co.z for v in me.vertices]
 x0, x1 = min(xs), max(xs)
 cy, cz = (min(ys) + max(ys)) / 2, (min(zs) + max(zs)) / 2
 
-
 def end_radius(near):
     return max((math.hypot(v.co.y - cy, v.co.z - cz) for v in me.vertices if abs(v.co.x - near) < 0.04 * (x1 - x0)), default=0)
-
 
 nozzle_at_max = end_radius(x1) > end_radius(x0)
 sx = 1 if nozzle_at_max else -1
 s = HEIGHT / (x1 - x0)
 pad = (2.0 - HEIGHT) / 2
 
-
 def to_unity(p):
-    # Blender X (wzdłuż silnika) -> Unity Y (dysza w górę), Blender Y -> Unity X, Blender Z -> Unity Z.
-    # Przekształcenie o wyznaczniku -1 (Blender prawoskrętny -> Unity lewoskrętny).
     return ((p.y - cy) * s * sx, ((p.x - x0) if nozzle_at_max else (x1 - p.x)) * s + pad, (p.z - cz) * s)
-
 
 def normal_to_unity(n):
     return tuple(Vector((n.y * sx, n.x * sx, n.z)).normalized())
-
 
 uv_layer = me.uv_layers.active.data
 verts, index, lookup = [], [], {}
@@ -110,7 +93,7 @@ for tri in me.loop_triangles:
         pts.append((to_unity(me.vertices[me.loops[li].vertex_index].co), normal_to_unity(Vector(me.loops[li].normal)), (uv.x, uv.y)))
     a, b, c = (Vector(q[0]) for q in pts)
     if (b - a).cross(c - a).dot(Vector(normal_to_unity(tri.normal))) < 0:
-        pts = [pts[0], pts[2], pts[1]]          # w Unity przód trójkąta: zgodnie z ruchem wskazówek patrząc z zewnątrz
+        pts = [pts[0], pts[2], pts[1]]
     for p, n, uv in pts:
         key = tuple(round(x, 5) for x in p + n + uv)
         if key not in lookup:
@@ -124,7 +107,7 @@ with open(os.path.join(OUT, 'hydrogen_thruster.bin'), 'wb') as f:
     for v in verts:
         f.write(struct.pack('<8f', *v))
     f.write(struct.pack('<%di' % len(index), *index))
-print('hydrogen_thruster.bin', len(verts), 'wierzcholkow', len(index) // 3, 'trojkatow')
+print('hydrogen_thruster.bin', len(verts), 'vertices', len(index) // 3, 'triangles')
 
 img = baked
 scn.render.image_settings.file_format = 'JPEG'

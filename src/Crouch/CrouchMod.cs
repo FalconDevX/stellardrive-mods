@@ -15,12 +15,12 @@ namespace Crouch
         {
             var category = MelonPreferences.CreateCategory("Crouch");
             HeightFactor = category.CreateEntry("HeightFactor", 0.6f,
-                description: "Wysokość postaci w kucaniu względem normalnej (0.3 - 0.95)");
+                description: "Crouched character height relative to normal (0.3 - 0.95)");
             SpeedFactor = category.CreateEntry("SpeedFactor", 0.5f,
-                description: "Prędkość chodu w kucaniu względem normalnej (sprint w kucaniu jest wyłączony)");
+                description: "Crouched walking speed relative to normal (sprinting while crouched is disabled)");
             category.SaveToFile(false);
 
-            LoggerInstance.Msg("Kucanie: przytrzymaj klawisz 'crouch' z ustawień sterowania (ten sam co opadanie w kosmosie).");
+            LoggerInstance.Msg("Crouch: hold the 'crouch' key from the control settings (the same as descending in space).");
         }
     }
 }

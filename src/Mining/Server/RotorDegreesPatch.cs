@@ -9,14 +9,11 @@ using UnityEngine;
 
 namespace Mining.Server
 {
-    // Rotor gry obraca się do kąta z sygnału podanego w radianach i robi pełny obrót na sekundę.
-    // Tu: sygnał w stopniach (np. wpisany w Constant: 90, -45, 180) i płynny obrót (MiningMod.RotorSpeed stopni/s);
-    // na przeszkodzie (teren, element, gracz) rotor staje - Server/RotorObstacles.
     [HarmonyPatch(typeof(RotorsUpdater), nameof(RotorsUpdater.Update))]
     internal static class RotorDegreesPatch
     {
         internal static float? TestTargetDegrees;
-        private static bool _loggedError; // tylko test (Diagnostics) - kąt zamiast sygnału z kabla
+        private static bool _loggedError;
 
         private static bool Prefix(IShipStateWrite ____ship, ConnectionsServerTracker ____connections, float deltaTime)
         {
@@ -29,7 +26,7 @@ namespace Mining.Server
                 float delta = Mathf.Repeat(target - state.Angle, Mathf.PI * 2f);
                 if (delta > Mathf.PI)
                 {
-                    delta -= Mathf.PI * 2f; // krótszą drogą
+                    delta -= Mathf.PI * 2f;
                 }
                 if (Mathf.Abs(delta) <= 0.0001f)
                 {
@@ -38,11 +35,10 @@ namespace Mining.Server
                 float angle = Mathf.Repeat(state.Angle + Mathf.Clamp(delta, -maxStep, maxStep), Mathf.PI * 2f);
                 try
                 {
-                    // gdy już teraz w czymś tkwi (np. postawiony w ziemi), pozwalamy się obracać, żeby mógł się wydostać
                     var shipServer = ____ship as Ships.TrackedShipServer;
                     if (RotorObstacles.IsBlocked(shipServer, part, state, angle) && !RotorObstacles.IsBlocked(shipServer, part, state, state.Angle))
                     {
-                        continue; // coś stoi na drodze - czekamy, aż zniknie
+                        continue;
                     }
                 }
                 catch (System.Exception e)
@@ -50,7 +46,7 @@ namespace Mining.Server
                     if (!_loggedError)
                     {
                         _loggedError = true;
-                        MelonLoader.Melon<MiningMod>.Logger.Warning($"Rotor - sprawdzanie przeszkód: {e}");
+                        MelonLoader.Melon<MiningMod>.Logger.Warning($"Rotor - obstacle check: {e}");
                     }
                 }
                 ____ship.UpdatePartState(part.Id, state with { Angle = angle });

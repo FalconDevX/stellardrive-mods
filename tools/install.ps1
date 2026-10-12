@@ -1,6 +1,4 @@
-﻿# Instalacja / aktualizacja modów u gracza: instaluje MelonLoader (jeśli go nie ma)
-# i kopiuje gotowe mody z dist\Mods do folderu gry. Uruchamiane przez install.bat.
-param(
+﻿param(
     [string]$GameDir = $(if ($env:STELLARDRIVE_DIR) { $env:STELLARDRIVE_DIR } else { "" })
 )
 $ErrorActionPreference = "Stop"
@@ -27,16 +25,16 @@ function Find-GameDir {
 
 if (-not $GameDir) { $GameDir = Find-GameDir }
 if (-not $GameDir -or -not (Test-Path (Join-Path $GameDir "StellarDrive.exe"))) {
-    throw "Nie znaleziono gry StellarDrive Demo. Uruchom: install.bat `"D:\sciezka\do\StellarDrive Demo`""
+    throw "StellarDrive Demo not found. Run: install.bat `"D:\path\to\StellarDrive Demo`""
 }
-Write-Host "Gra: $GameDir"
+Write-Host "Game: $GameDir"
 
 if (Get-Process StellarDrive -ErrorAction SilentlyContinue) {
-    throw "Gra jest uruchomiona - zamknij ją i spróbuj ponownie."
+    throw "The game is running - close it and try again."
 }
 
 if (-not (Test-Path (Join-Path $GameDir "MelonLoader\net35\MelonLoader.dll"))) {
-    Write-Host "Brak MelonLoadera - instaluję..."
+    Write-Host "MelonLoader missing - installing..."
     & (Join-Path $PSScriptRoot "install-melonloader.ps1") -GameDir $GameDir
 }
 
@@ -45,9 +43,9 @@ New-Item -ItemType Directory -Force $modsDir | Out-Null
 $dlls = Get-ChildItem (Join-Path $root "dist\Mods") -Filter *.dll
 foreach ($dll in $dlls) {
     Copy-Item $dll.FullName $modsDir -Force
-    Write-Host "  zainstalowano $($dll.Name)"
+    Write-Host "  installed $($dll.Name)"
 }
 
 Write-Host ""
-Write-Host "Gotowe! Uruchom grę normalnie przez Steam."
+Write-Host "Done! Start the game normally through Steam."
 if (Test-Path (Join-Path $root "dist\VERSIONS.txt")) { Get-Content (Join-Path $root "dist\VERSIONS.txt") }

@@ -20,12 +20,6 @@ using WorldTracking.Interface.Services;
 
 namespace Mining.Server
 {
-    // Pompa wody po stronie hosta (jak koparka: PrepareConsumers - prąd, UpdateParts - praca):
-    //  - sygnał na wejściu sygnału (jeśli podłączony) opuszcza (1) / zwija (0) wąż,
-    //  - wąż opuszczony nad jeziorem na Otrera b i w zasięgu: po czasie wysuwania woda z jeziora,
-    //  - bez jeziora: woda z rury na wejściu (pompa przetłacza),
-    //  - woda idzie do obu wyjść po równo (ile się zmieści); bez miejsca, prądu i źródła pompa stoi,
-    //  - wąż opuszczony poza zasięgiem (statek odleciał) przez 3 s - zwija się sam.
     [HarmonyPatch(typeof(TrackedShipServer))]
     internal static class WaterPumpServer
     {
@@ -79,7 +73,6 @@ namespace Mining.Server
                     }
                     var state = (DoorState)part.State;
 
-                    // sygnał steruje wężem, gdy kabel jest podłączony: 0 = zwinięty, 0-1 = część pełnej długości
                     float limit = WaterPump.HoseLimit(connections, __instance.Id, part.Id, out bool signalled, out float signal);
                     if (signalled)
                     {
@@ -149,7 +142,6 @@ namespace Mining.Server
             });
         }
 
-        // Czy pompa ma skąd i dokąd pompować (bez sprawdzania prądu).
         private static bool Plan(TrackedShipServer ship, ConnectionsServerTracker connections, StatefulPart part, float deployed,
             out bool fromLake, out FluidGroupServerState input, out FluidGroupServerState outA, out FluidGroupServerState outB)
         {
@@ -169,7 +161,6 @@ namespace Mining.Server
             float limit = WaterPump.HoseLimit(connections, ship.Id, part.Id, out _, out _);
             if (state.IsOpen && Probe(ship, part, out float needed, out bool water) && water && needed <= limit)
             {
-                // na pierwszym kroku (PrepareConsumers) deployed = 0 - liczymy, że wąż już jest na dole, jeśli był
                 fromLake = deployed <= 0f ? RuntimeDeployed(ship, part) >= needed / WaterPump.HoseSpeed : deployed >= needed / WaterPump.HoseSpeed;
             }
             if (fromLake)
@@ -196,7 +187,6 @@ namespace Mining.Server
                 : null;
         }
 
-        // Po równo do obu wyjść; czego nie przyjmie jedno, idzie do drugiego. Zwraca ile weszło.
         private static float Deliver(FluidGroupServerState a, FluidGroupServerState b, float amount)
         {
             if (amount <= 0f)
@@ -225,7 +215,6 @@ namespace Mining.Server
             return q;
         }
 
-        // Spód pompy w układzie planety: ile węża trzeba do powierzchni i czy to jezioro.
         private static bool Probe(TrackedShipServer ship, StatefulPart part, out float needed, out bool water)
         {
             needed = float.MaxValue;
@@ -270,7 +259,7 @@ namespace Mining.Server
                 if (!_loggedError)
                 {
                     _loggedError = true;
-                    Melon<MiningMod>.Logger.Error($"Błąd pompy (serwer): {e}");
+                    Melon<MiningMod>.Logger.Error($"Pump error (server): {e}");
                 }
             }
         }

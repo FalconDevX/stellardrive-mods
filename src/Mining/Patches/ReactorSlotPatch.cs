@@ -7,8 +7,6 @@ using Ships.Interface.Services;
 
 namespace Mining.Patches
 {
-    // Reaktor ma stan generatora na drewno, a serwer wpuszcza do jego slotu tylko drewno - dla reaktora tylko uran.
-    // (Przeciąganie i Shift idą przez ten sam sprawdzian na serwerze.)
     [HarmonyPatch]
     internal static class ReactorSlotPatch
     {

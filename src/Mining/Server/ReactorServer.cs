@@ -16,15 +16,11 @@ using UnityEngine;
 
 namespace Mining.Server
 {
-    // Reaktor ma stan generatora na drewno, więc obsługujemy tu oba (generator 1:1 jak w grze):
-    //  - generator: drewno ze slotu, 4000 W,
-    //  - reaktor: uran ze slotu (1 sztuka na MiningMod.ReactorSecondsPerUranium s przy pełnej mocy) + woda z rury do chłodzenia
-    //    + sygnał włączenia (gniazdo 3, wartość > 0.5), MiningMod.ReactorPower W. Bez wody, uranu albo sygnału nie produkuje.
     [HarmonyPatch(typeof(PowerGeneratorUpdaters))]
     internal static class ReactorServer
     {
-        private const float WoodPerSecond = 0.1f, WoodPower = 4000f;      // jak w grze (WoodPowerGeneratorState)
-        private const float WaterPerSecond = 0.05f;                       // chłodzenie reaktora przy pełnej mocy
+        private const float WoodPerSecond = 0.1f, WoodPower = 4000f;
+        private const float WaterPerSecond = 0.05f;
         private static bool _loggedError;
 
         [HarmonyPrefix]
@@ -59,7 +55,7 @@ namespace Mining.Server
                     var state = (WoodPowerGeneratorState)part.State;
                     bool reactor = Reactor.Is(part.Settings);
                     float maxPower = deltaTime * (reactor ? MiningMod.ReactorPower.Value : WoodPower);
-                    float level = Capacity(____ship, part, deltaTime) / maxPower * group.NormalizedGeneratorRate; // 0..1
+                    float level = Capacity(____ship, part, deltaTime) / maxPower * group.NormalizedGeneratorRate;
                     float fuelPerSecond = reactor ? 1f / Mathf.Max(1f, MiningMod.ReactorSecondsPerUranium.Value) : WoodPerSecond;
                     uint fuelItem = reactor ? Uranium.ItemId : ItemsConstants.WoodItemId;
                     float left = Mathf.Max(Fuel(state, reactor) - level * deltaTime * fuelPerSecond, 0f);
@@ -75,7 +71,6 @@ namespace Mining.Server
             return false;
         }
 
-        // Ile energii część może dać w tym kroku (jak CalculateProductionCapacity w grze + woda dla reaktora).
         private static float Capacity(IShipStateWrite ship, StatefulPart part, float deltaTime)
         {
             var state = (WoodPowerGeneratorState)part.State;
@@ -95,7 +90,6 @@ namespace Mining.Server
             return factor * deltaTime * (reactor ? MiningMod.ReactorPower.Value : WoodPower);
         }
 
-        // Paliwo w slocie: generator liczy każdy przedmiot jak drewno (jak w grze), reaktor tylko uran.
         private static float Fuel(WoodPowerGeneratorState state, bool reactor)
         {
             if (reactor && state.ItemSlot.HasItem && state.ItemSlot.ItemId != Uranium.ItemId)
@@ -134,7 +128,7 @@ namespace Mining.Server
                 if (!_loggedError)
                 {
                     _loggedError = true;
-                    Melon<MiningMod>.Logger.Error($"Błąd generatora/reaktora: {e}");
+                    Melon<MiningMod>.Logger.Error($"Generator/reactor error: {e}");
                 }
             }
         }

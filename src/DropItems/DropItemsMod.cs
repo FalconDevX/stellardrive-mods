@@ -15,11 +15,6 @@ using UnityEngine.InputSystem;
 
 namespace DropItems
 {
-    // Wyrzucanie przedmiotów klawiszem:
-    //   Q - cały stos z wybranego slotu paska (Shift+Q - połowa),
-    //   X - cały stos ze slotu pod kursorem w otwartym ekwipunku (Shift+X - połowa).
-    // Korzysta z tego samego polecenia co przeciągnięcie przedmiotu poza okno ekwipunku, więc działa też w multiplayerze
-    // i przedmiot ląduje przed graczem tak samo jak w grze. Przedmiotów bez modelu w świecie (np. aluminium) gra nie wyrzuca.
     public class DropItemsMod : MelonMod
     {
         internal static MelonPreferences_Entry<Key> ToolbarKey;
@@ -29,8 +24,8 @@ namespace DropItems
         public override void OnInitializeMelon()
         {
             var category = MelonPreferences.CreateCategory("DropItems");
-            ToolbarKey = category.CreateEntry("ToolbarKey", Key.Q, description: "Wyrzuca przedmiot z wybranego slotu paska (z Shiftem: połowę stosu)");
-            InventoryKey = category.CreateEntry("InventoryKey", Key.X, description: "Wyrzuca przedmiot ze slotu pod kursorem w ekwipunku (z Shiftem: połowę stosu)");
+            ToolbarKey = category.CreateEntry("ToolbarKey", Key.Q, description: "Drops the item from the selected toolbar slot (with Shift: half of the stack)");
+            InventoryKey = category.CreateEntry("InventoryKey", Key.X, description: "Drops the item from the inventory slot under the cursor (with Shift: half of the stack)");
             category.SaveToFile(false);
         }
 
@@ -55,7 +50,7 @@ namespace DropItems
             }
             catch (Exception e)
             {
-                LoggerInstance.Warning($"Nie udało się wyrzucić przedmiotu: {e.Message}");
+                LoggerInstance.Warning($"Could not drop the item: {e.Message}");
             }
         }
 
@@ -76,7 +71,6 @@ namespace DropItems
             }
         }
 
-        // Pasek narzędzi pamięta wybrany slot jako numer od 1 (0/-1 = nic nie wybrane).
         private static bool TryGetSelectedToolbarSlot(out byte slot)
         {
             slot = 0;

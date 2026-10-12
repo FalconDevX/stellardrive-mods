@@ -10,10 +10,6 @@ using WorldTracking.Interface.Services;
 
 namespace VelocityIndicator.Patches
 {
-    // W grze tryb wskaźnika (względem powierzchni / kosmosu) wybiera przestrzeń, w której jest kamera gracza,
-    // a prędkość liczona jest w przestrzeni statku. Przy wejściu na orbitę wskaźnik przeskakuje na prędkość
-    // względem kosmosu - dochodzi do niej obrót planety (setki m/s w bok), więc strzałka nagle ucieka w bok,
-    // a gdy przestrzenie się nie zgadzają, gra pokazuje 0. Tu tryb wybieramy według przestrzeni statku.
     [HarmonyPatch(typeof(ShipVelocityProvider), "CalculateShipRelativeVelocity")]
     internal static class VelocityModePatch
     {
@@ -56,7 +52,7 @@ namespace VelocityIndicator.Patches
             if (VelocityIndicatorMod.LogModeChanges.Value && mode != _lastMode)
             {
                 Melon<VelocityIndicatorMod>.Logger.Msg(
-                    $"Wskaźnik: statek w {space.GetType().Name}, tryb {mode} (gra chciała {relativeSpaceType})");
+                    $"Indicator: ship in {space.GetType().Name}, mode {mode} (the game wanted {relativeSpaceType})");
                 _lastMode = mode;
             }
             relativeSpaceType = mode.Value;

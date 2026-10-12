@@ -8,11 +8,6 @@ using UnityEngine;
 
 namespace ShipSafety.Patches
 {
-    // Prawdziwa przyczyna wyrzucania statku: przy rozdzielaniu paliwa w grupie rur gra liczy
-    // ilość_w_pojemniku / całe_paliwo_w_grupie * zmiana. Gdy w grupie jest prawie zero paliwa (a jakiś pojemnik
-    // ma już trochę na minusie), dzielenie przez ~0 daje gigantyczne ujemne ilości paliwa. Paliwo ma masę,
-    // więc statek dostaje ujemną masę (w logu: części -7000 kg), a fizyka przy masie ~0 rozpędza go do wielu c.
-    // Tu przed zapisaniem stanu każdego pojemnika (zbiornik, silnik, rura) przycinamy ilość do [0, pojemność].
     [HarmonyPatch]
     internal static class FluidClampPatch
     {
@@ -42,8 +37,8 @@ namespace ShipSafety.Patches
             {
                 _nextLogTime = Time.realtimeSinceStartup + 1f;
                 Melon<ShipSafetyMod>.Logger.Warning(
-                    $"Błąd paliwa w {(__instance.GetType() == PartContainer ? "części" : "rurze")} {__instance}: ilość {quantity:0.###} " +
-                    $"(pojemność {max:0.###})" + (ShipSafetyMod.Enabled.Value ? $" -> {fixedQuantity:0.###}" : ""));
+                    $"Fuel error in {(__instance.GetType() == PartContainer ? "part" : "pipe")} {__instance}: quantity {quantity:0.###} " +
+                    $"(capacity {max:0.###})" + (ShipSafetyMod.Enabled.Value ? $" -> {fixedQuantity:0.###}" : ""));
             }
             if (!ShipSafetyMod.Enabled.Value)
             {

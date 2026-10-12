@@ -11,8 +11,6 @@ using UnityEngine;
 
 namespace Flora.Diagnostics
 {
-    // Spis roślinności: dla każdej planety wypisuje warstwy "dense" (krzaki, drzewa, trawa...),
-    // ich prefaby, siatki, materiały i shadery. Na tej podstawie dobieramy modele zgodne ze stylem gry.
     [HarmonyPatch(typeof(PlanetDenseEnvironment), "Awake")]
     internal static class EnvironmentDumpPatch
     {
@@ -28,14 +26,14 @@ namespace Flora.Diagnostics
             }
             catch (Exception e)
             {
-                Melon<FloraMod>.Logger.Error("Błąd spisu roślinności: " + e);
+                Melon<FloraMod>.Logger.Error("Vegetation dump error: " + e);
             }
         }
 
         private static void Dump(PlanetDenseEnvironment env)
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"# Planeta: {env.gameObject.name} (configs: {env.configs?.Length ?? 0})");
+            sb.AppendLine($"# Planet: {env.gameObject.name} (configs: {env.configs?.Length ?? 0})");
             for (int i = 0; i < (env.configs?.Length ?? 0); i++)
             {
                 PlanetDensePlacementConfig c = env.configs[i];
@@ -56,7 +54,7 @@ namespace Flora.Diagnostics
             Directory.CreateDirectory(dir);
             string file = Path.Combine(dir, $"env_{Sanitize(env.gameObject.name)}.txt");
             File.WriteAllText(file, sb.ToString());
-            Melon<FloraMod>.Logger.Msg($"Spis roślinności: {file}");
+            Melon<FloraMod>.Logger.Msg($"Vegetation dump: {file}");
         }
 
         private static void DumpObject(StringBuilder sb, Transform t, string indent)

@@ -3,5 +3,5 @@
   "name": "Mining",
   "author": "mateu",
   "version": "0.6.1",
-  "description": "Złoża na planetach (płaskie pola kamieni z rudą) i koparka do zbudowania po badaniu Mining: stoi na złożu, bierze prąd i sama wydobywa rudę (4 stosy po 100). Klawisz N: kierunek do najbliższego złoża. Obaj gracze potrzebują moda."
+  "description": "Deposits on planets (flat fields of ore rocks) and an excavator unlocked by the Mining research: it stands on a deposit, takes power and mines ore by itself (4 stacks of 100). Key N: direction to the nearest deposit. Both players need the mod."
 }

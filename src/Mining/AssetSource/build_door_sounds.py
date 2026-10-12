@@ -1,28 +1,17 @@
-# Dźwięki dużych drzwi (ciężkie, wolne): w grze wysokość spada z rozmiarem drzwi (Content/BigDoorModel - BigDoorVisuals).
-#   bigdoor_start.wav - odryglowanie: głuche uderzenie, trzask zamka, syk hydrauliki,
-#   bigdoor_loop.wav  - jazda skrzydeł (pętla): niskie buczenie silnika, dudnienie po prowadnicy, zgrzyt zębatek,
-#   bigdoor_stop.wav  - dojazd: ciężkie uderzenie z metalicznym pogłosem.
-# Wynik w Assets/. Podmiana: UserData/Mining/bigdoor_start.wav, bigdoor.wav (pętla), bigdoor_stop.wav.
 import os, sys
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from build_pump_sounds import RATE, band_noise, tone, soft_clip, write, rng
 
-
 def env(t, attack, decay):
     return np.minimum(t / attack, 1.0) * np.exp(-t / decay)
 
-
 def thud(t, hz, decay):
-    # głuche uderzenie: opadający ton + krótki szum
     f = hz * (1 + 0.6 * np.exp(-t / 0.03))
     return np.sin(2 * np.pi * np.cumsum(f) / RATE) * env(t, 0.003, decay)
 
-
 def ring(t, partials, decay):
-    # metaliczny pogłos: nieharmoniczne alikwoty
     return sum(np.sin(2 * np.pi * f * t + i) * a * np.exp(-t / (decay * (1 - 0.12 * i))) for i, (f, a) in enumerate(partials))
-
 
 def start():
     n = int(RATE * 1.4)
@@ -34,7 +23,6 @@ def start():
     hiss = band_noise(n, 2500, 8000) * np.where(t > 0.12, env(hiss_t, 0.05, 0.4), 0) * 0.35
     x = soft_clip((bang + clank + latch) * 1.2) * 0.8 + hiss
     write('bigdoor_start.wav', x, 0.8)
-
 
 def loop():
     seconds = 3.0
@@ -52,7 +40,6 @@ def loop():
     x = soft_clip(motor * 1.5) * 0.5 + rumble + grind + clacks * 0.25
     write('bigdoor_loop.wav', x, 0.75)
 
-
 def stop():
     n = int(RATE * 2.2)
     t = np.arange(n) / RATE
@@ -61,7 +48,6 @@ def stop():
     rattle = band_noise(n, 800, 4000) * env(t, 0.005, 0.12) * 0.25
     x = soft_clip((slam + metal + rattle) * 1.3) * 0.85
     write('bigdoor_stop.wav', x, 0.85)
-
 
 if __name__ == '__main__':
     start()

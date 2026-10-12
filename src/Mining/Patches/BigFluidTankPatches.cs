@@ -11,8 +11,6 @@ using UnityEngine;
 
 namespace Mining.Patches
 {
-    // Pojemność dużego zbiornika: FluidTankState ma stałe 100, więc podmieniamy ją tam, gdzie serwer liczy przepływ
-    // (pojemnik części w grupie rur). Część rozpoznajemy po ustawieniach, bo stan jest ten sam co w małym zbiorniku.
     [HarmonyPatch]
     internal static class BigFluidTankCapacityPatch
     {
@@ -34,7 +32,6 @@ namespace Mining.Patches
         }
     }
 
-    // Wskaźnik i poziom płynu w oknie liczone do pojemności dużego zbiornika (gra liczy do 100).
     [HarmonyPatch(typeof(FluidTankVisuals), "UpdateState")]
     internal static class BigFluidTankVisualsPatch
     {

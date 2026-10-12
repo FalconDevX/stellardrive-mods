@@ -13,9 +13,6 @@ using UnityEngine;
 
 namespace Mining.Diagnostics
 {
-    // F9: raport wydajności z 5 s gry (dla gracza, nie tylko twórcy): czasy klatek (CPU/GPU, jeśli gra je podaje),
-    // statystyki renderowania, ile czasu zajmują Update każdego moda (osobno każda klasa) i co widoczne ma najwięcej
-    // trójkątów. Wynik: UserData/Mining/fps_report.txt i log MelonLoadera.
     internal static class FrameProfiler
     {
         private const float Seconds = 5f;
@@ -41,7 +38,7 @@ namespace Mining.Diagnostics
             }
             catch (Exception e)
             {
-                log.Warning($"[fps] nie udało się podpiąć pomiaru modów: {e.Message}");
+                log.Warning($"[fps] could not hook mod measurement: {e.Message}");
             }
             Ticks.Clear();
             Calls.Clear();
@@ -77,25 +74,25 @@ namespace Mining.Diagnostics
             var sb = new StringBuilder();
             float avg = frames.Average();
             var sorted = frames.OrderBy(f => f).ToList();
-            sb.AppendLine($"Raport FPS {DateTime.Now:yyyy-MM-dd HH:mm:ss}, {frameCount} klatek w {Seconds:0} s");
-            sb.AppendLine($"Klatka: średnio {avg:0.0} ms ({1000f / avg:0} FPS), mediana {sorted[sorted.Count / 2]:0.0} ms, 1% najgorszych {sorted[(int)(sorted.Count * 0.99f)]:0.0} ms, max {sorted.Last():0.0} ms");
-            sb.AppendLine($"CPU wątek główny: {Avg(cpuMain)}, CPU wątek renderowania: {Avg(cpuRender)}, GPU: {Avg(gpu)}");
-            sb.AppendLine($"Ekran {Screen.width}x{Screen.height}, vSync {QualitySettings.vSyncCount}, limit FPS {Application.targetFrameRate}, jakość '{QualitySettings.names[QualitySettings.GetQualityLevel()]}', GC gen0: {GC.CollectionCount(0) - gc0} w {Seconds:0} s");
-            sb.AppendLine("Renderowanie (średnio na klatkę): " + string.Join(", ", counters.Select((c, i) => recorders[i].Valid ? $"{c} {counterSums[i] / Math.Max(1, frameCount)}" : $"{c} -")));
+            sb.AppendLine($"FPS report {DateTime.Now:yyyy-MM-dd HH:mm:ss}, {frameCount} frames in {Seconds:0} s");
+            sb.AppendLine($"Frame: average {avg:0.0} ms ({1000f / avg:0} FPS), median {sorted[sorted.Count / 2]:0.0} ms, worst 1% {sorted[(int)(sorted.Count * 0.99f)]:0.0} ms, max {sorted.Last():0.0} ms");
+            sb.AppendLine($"CPU main thread: {Avg(cpuMain)}, CPU render thread: {Avg(cpuRender)}, GPU: {Avg(gpu)}");
+            sb.AppendLine($"Screen {Screen.width}x{Screen.height}, vSync {QualitySettings.vSyncCount}, FPS limit {Application.targetFrameRate}, quality '{QualitySettings.names[QualitySettings.GetQualityLevel()]}', GC gen0: {GC.CollectionCount(0) - gc0} in {Seconds:0} s");
+            sb.AppendLine("Rendering (average per frame): " + string.Join(", ", counters.Select((c, i) => recorders[i].Valid ? $"{c} {counterSums[i] / Math.Max(1, frameCount)}" : $"{c} -")));
             foreach (var r in recorders) r.Dispose();
 
             sb.AppendLine();
-            sb.AppendLine("Update modów (ms na klatkę, najwięcej na górze):");
+            sb.AppendLine("Mod updates (ms per frame, most expensive first):");
             foreach (var kv in Ticks.OrderByDescending(kv => kv.Value).Take(25))
             {
                 double ms = kv.Value * 1000.0 / System.Diagnostics.Stopwatch.Frequency / Math.Max(1, frameCount);
-                sb.AppendLine($"  {ms,7:0.000} ms  {kv.Key} ({Calls[kv.Key] / Math.Max(1, frameCount)} wywołań/klatkę)");
+                sb.AppendLine($"  {ms,7:0.000} ms  {kv.Key} ({Calls[kv.Key] / Math.Max(1, frameCount)} calls/frame)");
             }
             double total = Ticks.Values.Sum() * 1000.0 / System.Diagnostics.Stopwatch.Frequency / Math.Max(1, frameCount);
-            sb.AppendLine($"  razem mody: {total:0.00} ms na klatkę");
+            sb.AppendLine($"  all mods: {total:0.00} ms per frame");
 
             sb.AppendLine();
-            sb.AppendLine("Widoczne obiekty (trójkąty, najwięcej na górze):");
+            sb.AppendLine("Visible objects (triangles, most first):");
             var groups = new Dictionary<string, (long tris, int count, int shadows)>();
             int visible = 0;
             foreach (Renderer r in UnityEngine.Object.FindObjectsOfType<Renderer>())
@@ -116,12 +113,12 @@ namespace Mining.Diagnostics
                 groups.TryGetValue(key, out var g);
                 groups[key] = (g.tris + tris, g.count + 1, g.shadows + (r.shadowCastingMode != UnityEngine.Rendering.ShadowCastingMode.Off ? 1 : 0));
             }
-            sb.AppendLine($"  widocznych rendererów: {visible}, trójkątów razem: {groups.Values.Sum(g => g.tris):N0}");
+            sb.AppendLine($"  visible renderers: {visible}, triangles in total: {groups.Values.Sum(g => g.tris):N0}");
             foreach (var kv in groups.OrderByDescending(kv => kv.Value.tris).Take(20))
             {
-                sb.AppendLine($"  {kv.Value.tris,10:N0} tr.  x{kv.Value.count,-4} (cień: {kv.Value.shadows})  {kv.Key}");
+                sb.AppendLine($"  {kv.Value.tris,10:N0} tris  x{kv.Value.count,-4} (shadow: {kv.Value.shadows})  {kv.Key}");
             }
-            sb.AppendLine($"Światła: {UnityEngine.Object.FindObjectsOfType<Light>().Count(l => l.isActiveAndEnabled)}, systemy cząsteczek grające: {UnityEngine.Object.FindObjectsOfType<ParticleSystem>().Count(p => p.isPlaying)}");
+            sb.AppendLine($"Lights: {UnityEngine.Object.FindObjectsOfType<Light>().Count(l => l.isActiveAndEnabled)}, playing particle systems: {UnityEngine.Object.FindObjectsOfType<ParticleSystem>().Count(p => p.isPlaying)}");
 
             string report = sb.ToString();
             string path = Path.Combine(MelonEnvironment.UserDataDirectory, "Mining", "fps_report.txt");
@@ -132,9 +129,8 @@ namespace Mining.Diagnostics
             _running = false;
         }
 
-        private static string Avg(List<double> v) => v.Count == 0 ? "brak danych" : $"{v.Average():0.0} ms";
+        private static string Avg(List<double> v) => v.Count == 0 ? "no data" : $"{v.Average():0.0} ms";
 
-        // Grupa obiektu: korzeń i nazwa obiektu (bez numerów kopii), np. "Ship 12 / Body".
         private static string Describe(Renderer r)
         {
             string root = r.transform.root.name;
@@ -148,7 +144,6 @@ namespace Mining.Diagnostics
 
         internal static bool Measuring;
 
-        // Pomiar Update/LateUpdate/FixedUpdate wszystkich klas MonoBehaviour z modów i OnUpdate samych modów.
         private static void PatchMods()
         {
             if (_patched) return;
@@ -181,12 +176,11 @@ namespace Mining.Diagnostics
                         }
                         catch (Exception)
                         {
-                            // metoda nie do podpięcia - pomijamy
                         }
                     }
                 }
             }
-            Melon<MiningMod>.Logger.Msg($"[fps] pomiar podpięty do {count} metod modów");
+            Melon<MiningMod>.Logger.Msg($"[fps] measurement hooked into {count} mod methods");
         }
 
         private static void Prefix(out long __state) => __state = Measuring ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;

@@ -11,8 +11,6 @@ using UnityEngine;
 
 namespace Mining.Patches
 {
-    // Gra stawia część "ścienną" od pola, w które celujesz, w prawo i w górę (dla drzwi 2x2 to nie przeszkadza).
-    // Duże drzwi (3-10 pól szerokości) przesuwamy tak, żeby celowane pole było na środku ich szerokości.
     [HarmonyPatch]
     internal static class BigDoorPlacementPatch
     {
@@ -39,8 +37,6 @@ namespace Mining.Patches
         }
     }
 
-    // Podgląd bez przyczepienia do statku (celowanie w ziemię albo w powietrze) i przyczepienie "z pozycji" liczą
-    // od punktu, w który celujesz, jako lewego dolnego rogu drzwi - przesuwamy go o pół szerokości w lewo.
     [HarmonyPatch(typeof(PartPreviewDetection), "CalculateSurfacePlacement")]
     internal static class BigDoorSurfacePlacementPatch
     {

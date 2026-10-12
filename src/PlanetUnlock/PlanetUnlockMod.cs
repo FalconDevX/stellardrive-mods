@@ -15,14 +15,14 @@ namespace PlanetUnlock
         {
             var category = MelonPreferences.CreateCategory("PlanetUnlock");
             Enabled = category.CreateEntry("Enabled", true,
-                description: "Wczytuje wszystkie planety układu (demo wczytuje tylko Otrera b). OBAJ gracze muszą mieć to samo ustawienie");
+                description: "Loads all planets of the system (the demo loads only Otrera b). BOTH players must use the same setting");
             ActivateInactivePlanets = category.CreateEntry("ActivateInactivePlanets", true,
-                description: "Włącza obiekty planet wyłączone w scenie dema");
+                description: "Enables planet objects disabled in the demo scene");
             category.SaveToFile(false);
 
             LoggerInstance.Msg(Enabled.Value
-                ? "Wczytuję wszystkie planety układu (eksperymentalne)."
-                : "Wyłączone - tylko planeta z dema.");
+                ? "Loading all planets of the system (experimental)."
+                : "Disabled - only the demo planet.");
         }
     }
 }

@@ -10,8 +10,6 @@ using UnityEngine.Localization.Components;
 
 namespace Mining.Patches
 {
-    // Podpowiedź przy pompie ("E - Lower hose / Raise hose"): gra bierze tekst z tabel tłumaczeń, a pompa ich nie ma -
-    // dymek tworzymy tak jak gra, ale z własnym tekstem.
     [HarmonyPatch(typeof(InteractionTooltipsActivator), "InstantiateTooltip")]
     internal static class WaterPumpLabelPatch
     {

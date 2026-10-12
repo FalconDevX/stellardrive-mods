@@ -1,5 +1,4 @@
 <Project>
-  <!-- Skopiuj jako GamePath.props i popraw ścieżkę, jeśli gra jest gdzie indziej. -->
   <PropertyGroup>
     <GameDir>D:\SteamLibrary\steamapps\common\StellarDrive Demo</GameDir>
   </PropertyGroup>

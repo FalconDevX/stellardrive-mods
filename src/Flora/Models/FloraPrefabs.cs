@@ -4,10 +4,6 @@ using UnityEngine;
 
 namespace Flora.Models
 {
-    // Prefaby nowych roślin, zbudowane tak jak roślinność gry:
-    //   Root -> Visuals [PlanetObjectVisuals] -> Model [MeshFilter, MeshRenderer]
-    // Materiały to kopie materiału z jodły (shader Custom/PlanetFoliage: to samo światło, wiatr i kontury),
-    // tylko z jednolitym kolorem zamiast tekstury.
     internal static class FloraPrefabs
     {
         private static GameObject _holder;
@@ -15,21 +11,19 @@ namespace Flora.Models
         private static Material _grassTemplate;
         private static readonly Dictionary<string, Material> Materials = new Dictionary<string, Material>();
 
-        // Kolory dobrane do palety gry (stonowane, lekko przygaszone jak liście jodeł).
         private static readonly Color StemGreen = new Color(0.36f, 0.50f, 0.27f);
         private static readonly Color FlowerCenter = new Color(0.93f, 0.76f, 0.30f);
         private static readonly Color[] PetalColors =
         {
-            new Color(0.86f, 0.33f, 0.33f), // czerwone
-            new Color(0.95f, 0.82f, 0.38f), // żółte
-            new Color(0.60f, 0.45f, 0.80f), // fioletowe
-            new Color(0.95f, 0.93f, 0.88f), // białe
-            new Color(0.93f, 0.58f, 0.70f), // różowe
+            new Color(0.86f, 0.33f, 0.33f),
+            new Color(0.95f, 0.82f, 0.38f),
+            new Color(0.60f, 0.45f, 0.80f),
+            new Color(0.95f, 0.93f, 0.88f),
+            new Color(0.93f, 0.58f, 0.70f),
         };
 
         internal static bool IsReady => _template != null;
 
-        // Szablon materiału bierzemy z kory jodły (nieprzezroczysty, bez wycinania alfą).
         internal static void SetTemplate(Material bark)
         {
             if (_template != null || bark == null)
@@ -43,8 +37,6 @@ namespace Flora.Models
             Object.DontDestroyOnLoad(_holder);
         }
 
-        // Kwiaty używają kopii materiału trawy (tryb _Is_Grass): zlewają się z terenem i nie dostają
-        // czarnych konturów jak drzewa - tak jak trawa w grze.
         internal static void SetGrassTemplate(Material grass)
         {
             if (_grassTemplate == null && grass != null)
@@ -55,7 +47,6 @@ namespace Flora.Models
 
         private static GameObject[] _flowers;
 
-        // Prefaby tworzymy raz i używamy na wszystkich planetach.
         internal static GameObject[] CreateFlowers() => _flowers ?? (_flowers = BuildFlowers());
 
         private static GameObject[] BuildFlowers()
@@ -100,12 +91,11 @@ namespace Flora.Models
                 return existing;
             }
             var mat = new Material(useGrass ? _grassTemplate : _template) { name = "Flora_" + key };
-            // Tekstura z narysowanym obrysem; części bez obrysu mają UV w jej białym środku.
             SetTexture(mat, "_Albedo", FloraTextures.Outline);
             SetTexture(mat, "_Normal", null);
             SetColor(mat, "_AlbedoColor", color);
             SetFloat(mat, "_AlphaCutoff", 0f);
-            SetFloat(mat, "_CullMode", 0f); // dwustronnie, jak liście w grze
+            SetFloat(mat, "_CullMode", 0f);
             SetFloat(mat, "_Translucency", wind ? 1f : 0f);
             SetFloat(mat, "_EnableLeafWind", wind ? 1f : 0f);
             SetFloat(mat, "_Is_Tree", 0f);

@@ -8,8 +8,6 @@ using WorldTracking.Spaces;
 
 namespace ShipSafety.Patches
 {
-    // Gdy statek opuszcza okolice planety, gra przenosi go na orbitę albo na lot "po prostej" (trajectory)
-    // z wyliczoną prędkością. Tu łapiemy absurdalne prędkości w chwili tworzenia takiej przestrzeni.
     internal static class SpaceGuard
     {
         internal static Vector3Double Clamp(Vector3Double velocity, string what)
@@ -22,8 +20,8 @@ namespace ShipSafety.Patches
                 return velocity;
             }
 
-            Melon<ShipSafetyMod>.Logger.Warning($"{what}: prędkość {speed:0.#} m/s ({speed / 299792458.0:0.##}c)" +
-                                                (ShipSafetyMod.Enabled.Value ? $" -> obcięta do {max:0} m/s" : ""));
+            Melon<ShipSafetyMod>.Logger.Warning($"{what}: speed {speed:0.#} m/s ({speed / 299792458.0:0.##}c)" +
+                                                (ShipSafetyMod.Enabled.Value ? $" -> clamped to {max:0} m/s" : ""));
             if (!ShipSafetyMod.Enabled.Value)
             {
                 return velocity;
@@ -39,7 +37,7 @@ namespace ShipSafety.Patches
         {
             if (space is TrajectorySpace trajectory)
             {
-                Vector3Double velocity = SpaceGuard.Clamp(trajectory.Velocity, "Nowy lot poza planetą (trajectory)");
+                Vector3Double velocity = SpaceGuard.Clamp(trajectory.Velocity, "New flight outside a planet (trajectory)");
                 if (!velocity.Equals(trajectory.Velocity))
                 {
                     space = trajectory with { Velocity = velocity };
@@ -53,7 +51,7 @@ namespace ShipSafety.Patches
     {
         private static void Prefix(IPlanetProperties planet, ref Vector3Double velocity)
         {
-            velocity = SpaceGuard.Clamp(velocity, $"Nowa orbita wokół {planet?.Name}");
+            velocity = SpaceGuard.Clamp(velocity, $"New orbit around {planet?.Name}");
         }
     }
 }

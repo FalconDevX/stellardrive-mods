@@ -11,8 +11,6 @@ using Object = UnityEngine.Object;
 
 namespace Mining.Content
 {
-    // Ogień i kurz na ziemi pod lecącym jetpackiem (kopie mgiełki gry DustPoof, jak pył koparki) oraz własny
-    // dźwięk ognia, jeśli jest plik. Jeden zestaw na postać - podpięty pod jej efekty, więc znika razem z nią.
     internal sealed class JetpackFx : MonoBehaviour
     {
         private const float MaxGroundDistance = 6f;
@@ -98,7 +96,6 @@ namespace Mining.Content
             if (Flying && ClientScene.PhysicsScene.Raycast(transform.position + Up * 0.5f, -Up, out RaycastHit hit, MaxGroundDistance + 0.5f, RaycastMasks.BuildDetectionLayer))
             {
                 onGround = true;
-                // ogień "rozlewa się" po ziemi: stożek z punktu trafienia, skierowany wzdłuż normalnej podłoża
                 Quaternion rotation = Quaternion.LookRotation(hit.normal, Vector3.ProjectOnPlane(transform.forward, hit.normal) + hit.normal * 0.001f);
                 float closeness = 1f - Mathf.Clamp01((hit.distance - 0.5f) / MaxGroundDistance);
                 if (_fire != null)
@@ -132,7 +129,6 @@ namespace Mining.Content
             playing = shouldPlay;
         }
 
-        // Własny dźwięk ognia gra tylko wtedy, gdy jest plik (inaczej zostaje dźwięk dysz z gry).
         internal static bool HasCustomSound => JetpackSound.TryGet(out _);
 
         private void UpdateSound()
@@ -174,7 +170,6 @@ namespace Mining.Content
         private void OnDestroy() => StopSound();
     }
 
-    // Dźwięk ognia jetpacka (pętla): UserData/Mining/jetpack.(wav|ogg|mp3) albo plik w modzie Assets/jetpack_loop.*
     internal static class JetpackSound
     {
         private static FMOD.Sound _sound;
@@ -217,12 +212,12 @@ namespace Mining.Content
                 }
                 _created = true;
                 sound = _sound;
-                Melon<MiningMod>.Logger.Msg($"Dźwięk jetpacka: {source}");
+                Melon<MiningMod>.Logger.Msg($"Jetpack sound: {source}");
             }
             catch (Exception e)
             {
                 _missing = true;
-                Melon<MiningMod>.Logger.Warning($"Nie udało się przygotować dźwięku jetpacka: {e.Message}");
+                Melon<MiningMod>.Logger.Warning($"Could not prepare the jetpack sound: {e.Message}");
             }
             return _created;
         }

@@ -14,15 +14,8 @@ using WorldProvision.Interface.Services;
 
 namespace Mining.Patches
 {
-    // Szybsze przeliczanie pomieszczeń (tlen) po zmianie kadłuba - to była główna przyczyna lagów przy budowaniu
-    // (~60 ms na blok, zmierzone). Gra po każdej zmianie zalewała CAŁĄ pustą przestrzeń wokół statku (drzewo voxeli
-    // 4 na metr) - dwa razy: przy czyszczeniu i przy szukaniu pomieszczeń. Ta wersja daje ten sam wynik, ale:
-    //  - czyści tylko prawdziwe pomieszczenia (przestrzeń "na zewnątrz" i tak zostaje na zewnątrz),
-    //  - szukając pomieszczenia, kończy, gdy tylko dotrze do granicy drzewa (czyli wyszło na zewnątrz),
-    //    idąc najpierw przez największe węzły drzewa - z przestrzeni wokół statku wychodzi po kilku krokach.
-    // Zamknięte pomieszczenie jest i tak przechodzone w całości (jak w grze), więc tlen liczy się tak samo.
     [HarmonyPatch(typeof(ShipRoomsVoxelUpdater), nameof(ShipRoomsVoxelUpdater.UpdateRooms))]
-    [HarmonyPriority(Priority.Low)] // po RoomsDebouncePatch (ten może pominąć przeliczenie w trakcie budowania)
+    [HarmonyPriority(Priority.Low)]
     internal static class RoomsFastUpdatePatch
     {
         private static readonly AccessTools.FieldRef<ShipRoomsVoxelUpdater, HashSet<Vector3Int>> ClearRef = AccessTools.FieldRefAccess<ShipRoomsVoxelUpdater, HashSet<Vector3Int>>("_clearRoomsVoxelsToScan");
@@ -41,8 +34,6 @@ namespace Mining.Patches
         private static readonly HashSet<ShipRoomsVoxelsTreeNode> ClearedSet = new HashSet<ShipRoomsVoxelsTreeNode>(ReferenceComparer.Instance);
         private static readonly List<ShipRoomsVoxelsTreeNode> OutsideTouched = new List<ShipRoomsVoxelsTreeNode>();
         private static readonly List<ShipRoomsVoxelsTreeNode> SeedVisited = new List<ShipRoomsVoxelsTreeNode>();
-        // Węzły uznane w tym przeliczeniu za "na zewnątrz" (przy wczesnym zakończeniu nie przechodzimy całego obszaru,
-        // więc kolejne zalewanie, które na nie trafi, też jest na zewnątrz - inaczej powstawały fałszywe pomieszczenia).
         private static readonly HashSet<ShipRoomsVoxelsTreeNode> KnownOutside = new HashSet<ShipRoomsVoxelsTreeNode>(ReferenceComparer.Instance);
         private static readonly List<ShipRoomsVoxelsTreeNode> AllVisited = new List<ShipRoomsVoxelsTreeNode>();
         private static readonly HashSet<ushort> PreviousRooms = new HashSet<ushort>();
@@ -52,7 +43,7 @@ namespace Mining.Patches
         {
             if (!__runOriginal)
             {
-                return false; // RoomsDebouncePatch: jeszcze budujesz - przeliczymy później
+                return false;
             }
             if (_disabled || !MiningMod.FastRooms.Value)
             {
@@ -93,8 +84,8 @@ namespace Mining.Patches
             }
             catch (Exception e)
             {
-                _disabled = true; // coś się nie zgadza z wersją gry - od teraz liczy gra
-                Melon<MiningMod>.Logger.Warning($"Szybkie przeliczanie pomieszczeń wyłączone: {e}");
+                _disabled = true;
+                Melon<MiningMod>.Logger.Warning($"Fast room recalculation disabled: {e}");
             }
             finally
             {
@@ -115,8 +106,6 @@ namespace Mining.Patches
             return false;
         }
 
-        // Jak ClearRoomsVoxels w grze, ale bez wchodzenia w przestrzeń na zewnątrz (RoomId == NoRoomId) - tam nie ma
-        // czego czyścić. Ściany są jeszcze stare, więc zalewanie pomieszczenia nie wyjdzie poza nie.
         private static void ClearRooms(ShipRoomsVoxelsTree tree, ShipRoomsGases gases, HashSet<Vector3Int> seeds)
         {
             ushort noRoom = ShipRoomsConstants.NoRoomId;
@@ -171,7 +160,7 @@ namespace Mining.Patches
                 {
                     if (KnownOutside.Contains(node))
                     {
-                        outside = true; // styka się z obszarem, który już okazał się zewnętrzem
+                        outside = true;
                         break;
                     }
                     continue;
@@ -185,7 +174,6 @@ namespace Mining.Patches
                 AllVisited.Add(node);
                 if (!ClearedSet.Contains(node))
                 {
-                    // dotąd "na zewnątrz" - gra nadałaby mu gaz atmosfery przy czyszczeniu
                     node.TmpGasContent = atmosphere;
                     OutsideTouched.Add(node);
                 }
@@ -193,7 +181,7 @@ namespace Mining.Patches
                 Vector3Int end = c + Vector3Int.one * node.Bounds - Vector3Int.one;
                 if (c.x <= lower.x || c.y <= lower.y || c.z <= lower.z || end.x >= upper.x || end.y >= upper.y || end.z >= upper.z)
                 {
-                    outside = true; // połączone z granicą drzewa = na zewnątrz; reszty nie trzeba przechodzić
+                    outside = true;
                     break;
                 }
                 PushAll(node.NeighborsTop);
@@ -236,7 +224,6 @@ namespace Mining.Patches
             });
         }
 
-        // Kolejka "największy węzeł najpierw" - duże węzły drzewa to otwarta przestrzeń, którą najszybciej dochodzi się do granicy.
         private sealed class NodeHeap
         {
             private readonly List<ShipRoomsVoxelsTreeNode> _items = new List<ShipRoomsVoxelsTreeNode>();
@@ -245,7 +232,7 @@ namespace Mining.Patches
 
             public void Push(ShipRoomsVoxelsTreeNode node)
             {
-                if (node.Visited && !KnownOutside.Contains(node)) return; // odwiedzone wcześniej w tym zalewaniu
+                if (node.Visited && !KnownOutside.Contains(node)) return;
                 _items.Add(node);
                 int i = _items.Count - 1;
                 while (i > 0)
@@ -288,8 +275,6 @@ namespace Mining.Patches
 
 namespace Mining.Patches
 {
-    // Zapis może zawierać pomieszczenie, którego po wczytaniu już nie ma (np. fałszywe pomieszczenia z Mining 0.1.6-0.2.1).
-    // Gra wypisuje wtedy błąd z pełnym zrzutem stosu - setki takich błędów wydłużały wczytywanie o ~20 s. Pomijamy po cichu.
     [HarmonyLib.HarmonyPatch(typeof(Ships.Rooms.ShipRoomsGases), nameof(Ships.Rooms.ShipRoomsGases.LoadRoom))]
     internal static class RoomsLoadMissingPatch
     {
@@ -303,7 +288,7 @@ namespace Mining.Patches
             }
             if (++_skipped == 1)
             {
-                MelonLoader.Melon<MiningMod>.Logger.Msg("Pominięto zapisane pomieszczenia, których już nie ma (znikną przy następnym zapisie)");
+                MelonLoader.Melon<MiningMod>.Logger.Msg("Skipped saved rooms that no longer exist (they disappear on the next save)");
             }
             return false;
         }

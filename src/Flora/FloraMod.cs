@@ -18,26 +18,24 @@ namespace Flora
         public override void OnInitializeMelon()
         {
             var category = MelonPreferences.CreateCategory("Flora");
-            FlowersEnabled = category.CreateEntry("FlowersEnabled", true, description: "Pola kwiatów");
+            FlowersEnabled = category.CreateEntry("FlowersEnabled", true, description: "Flower fields");
             FlowerNoiseOffset = category.CreateEntry("FlowerNoiseOffset", -0.45f,
-                description: "Wielkość pól kwiatów: więcej = większe pola (np. 0), mniej = mniejsze i rzadsze (np. -0.7)");
+                description: "Flower field size: more = bigger fields (e.g. 0), less = smaller and sparser (e.g. -0.7)");
             FlowerViewRange = category.CreateEntry("FlowerViewDistance", 50f,
-                description: "Z jakiej odległości widać kwiaty (m). Dalej znikają jak trawa (trawa w grze: 100 m)");
-            // Stare wpisy: z wersji 0.1.0 (z innymi domyślnymi wartościami) i krzaki usunięte w 0.4.0.
+                description: "Distance at which flowers are visible (m). Further away they fade like grass (game grass: 100 m)");
             foreach (string old in new[] { "BushViewRange", "FlowerViewRange", "BushesEnabled", "BushNoiseOffset", "BushViewDistance", "BushNoiseFrequency" })
             {
                 category.DeleteEntry(old);
             }
-            // Dla porównania w grze: las ma częstotliwość 100 (duże plamy), trawa 3200 (drobne plamki).
             FlowerNoiseFrequency = category.CreateEntry("FlowerNoiseFrequency", 600f,
-                description: "Wielkość pól kwiatów: mniej = większe pola (trawa w grze ma 3200)");
+                description: "Flower field size: less = bigger fields (game grass uses 3200)");
             DumpEnvironment = category.CreateEntry("DumpEnvironment", false,
-                description: "Wypisuje do UserData\\Flora\\ spis roślinności planet (diagnostyka)");
+                description: "Writes a dump of planet vegetation to UserData\\Flora\\ (diagnostics)");
             ScanPlanetResources = category.CreateEntry("ScanPlanetResources", true,
-                description: "Po wczytaniu świata sprawdza, gdzie na planetach mogą pojawić się złoża (plik UserData/Flora/planet_resources.txt)");
+                description: "After a world loads, checks where deposits can appear on planets (file UserData/Flora/planet_resources.txt)");
             category.SaveToFile(false);
 
-            LoggerInstance.Msg("Zmiany gęstości działają po ponownym uruchomieniu gry.");
+            LoggerInstance.Msg("Density changes take effect after restarting the game.");
         }
 
         public override void OnUpdate()

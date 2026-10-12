@@ -45,39 +45,39 @@ namespace Mining
         public override void OnInitializeMelon()
         {
             var category = MelonPreferences.CreateCategory("Mining");
-            category.DeleteEntry("SecondsPerItem"); // stara wartość domyślna (4 s) - zastąpiona szybszą
-            SecondsPerItem = category.CreateEntry("SecondsPerOre", 1f, description: "Co ile sekund koparka wydobywa 1 sztukę rudy (przy pełnym zasilaniu). Wystarczy u hosta");
-            PowerWatts = category.CreateEntry("PowerWatts", 1500f, description: "Pobór prądu koparki (W). Generator na drewno daje 4000 W");
+            category.DeleteEntry("SecondsPerItem");
+            SecondsPerItem = category.CreateEntry("SecondsPerOre", 1f, description: "Seconds per 1 ore mined by the excavator (at full power). Host only");
+            PowerWatts = category.CreateEntry("PowerWatts", 1500f, description: "Excavator power draw (W). The wood generator gives 4000 W");
             SiteSpacing = category.CreateEntry("SiteSpacing", 300f,
-                description: "Rozmiar komórki siatki złóż (m) - w każdej może być jedno złoże. Mniej = złoża gęściej. Wszyscy gracze muszą mieć to samo");
-            SiteChance = category.CreateEntry("SiteChance", 0.5f, description: "Szansa na złoże w komórce (0-1). Wszyscy gracze muszą mieć to samo");
-            SiteRadius = category.CreateEntry("SiteRadius", 5f, description: "Promień złoża (m). Wszyscy gracze muszą mieć to samo");
-            category.DeleteEntry("UraniumChance"); // stara wartość (0.12) - uranu było za mało
-            UraniumChance = category.CreateEntry("UraniumShare", 0.3f, description: "Jaka część złóż na Otrera b to uran (0-1). Wszyscy gracze muszą mieć to samo");
-            ShowSites = category.CreateEntry("ShowSites", true, description: "Pokazuj złoża (pola kamieni z rudą)");
-            DrillVolume = category.CreateEntry("DrillVolume", 0.8f, description: "Głośność wiertła (0-1)");
-            ReactorPower = category.CreateEntry("ReactorPower", 20000f, description: "Moc reaktora (W). Generator na drewno daje 4000 W. Wystarczy u hosta");
-            ReactorSecondsPerUranium = category.CreateEntry("ReactorSecondsPerUranium", 120f, description: "Na ile sekund pracy na pełnej mocy starcza 1 uran. Wystarczy u hosta");
-            PumpRate = category.CreateEntry("PumpRate", 1f, description: "Ile wody na sekundę daje pompa przy pełnym zasilaniu. Wystarczy u hosta");
-            PumpVolume = category.CreateEntry("PumpVolume", 0.7f, description: "Głośność pompy wody i wyciągarki węża (0-1)");
-            ReactorVolume = category.CreateEntry("ReactorVolume", 0.6f, description: "Głośność pracującego reaktora (0-1)");
-            DoorVolume = category.CreateEntry("DoorVolume", 0.8f, description: "Głośność dużych drzwi (0-1)");
-            PumpHoseLength = category.CreateEntry("PumpHoseLength", 20f, description: "Długość węża pompy (m). Wszyscy gracze powinni mieć to samo");
-            JetpackSecondsPerWood = category.CreateEntry("JetpackSecondsPerWood", 20f, description: "Ile sekund lotu jetpackiem daje 1 drewno. Wystarczy u hosta");
-            JetpackAcceleration = category.CreateEntry("JetpackAcceleration", 6f, description: "Przyspieszenie jetpacka w górę ponad grawitację (m/s^2). Wszyscy gracze muszą mieć to samo");
-            JetpackMaxSpeed = category.CreateEntry("JetpackMaxSpeed", 7f, description: "Maksymalna prędkość wznoszenia jetpackiem (m/s). Wszyscy gracze muszą mieć to samo");
-            category.DeleteEntry("JetpackVolume"); // stara, za głośna wartość domyślna
-            JetpackVolume = category.CreateEntry("JetpackFireVolume", 0.45f, description: "Głośność ognia jetpacka (0-1)");
-            FastRooms = category.CreateEntry("FastRooms", true, description: "Szybkie przeliczanie pomieszczeń/tlenu po zmianie statku (mniej lagów przy budowaniu). false = jak w grze. Liczy host");
-            RotorSpeed = category.CreateEntry("RotorSpeed", 90f, description: "Prędkość obrotu rotora (stopnie na sekundę). Wystarczy u hosta");
-            HydrogenThrustMultiplier = category.CreateEntry("HydrogenThrustMultiplier", 1.8f, description: "Ile razy silnik wodorowy jest mocniejszy od chemicznego. Wystarczy u hosta");
+                description: "Deposit grid cell size (m) - each cell can hold one deposit. Less = denser deposits. All players must use the same value");
+            SiteChance = category.CreateEntry("SiteChance", 0.5f, description: "Chance of a deposit in a cell (0-1). All players must use the same value");
+            SiteRadius = category.CreateEntry("SiteRadius", 5f, description: "Deposit radius (m). All players must use the same value");
+            category.DeleteEntry("UraniumChance");
+            UraniumChance = category.CreateEntry("UraniumShare", 0.3f, description: "Share of Otrera b deposits that are uranium (0-1). All players must use the same value");
+            ShowSites = category.CreateEntry("ShowSites", true, description: "Show deposits (fields of ore rocks)");
+            DrillVolume = category.CreateEntry("DrillVolume", 0.8f, description: "Drill volume (0-1)");
+            ReactorPower = category.CreateEntry("ReactorPower", 20000f, description: "Reactor power (W). The wood generator gives 4000 W. Host only");
+            ReactorSecondsPerUranium = category.CreateEntry("ReactorSecondsPerUranium", 120f, description: "Seconds of full-power operation per 1 uranium. Host only");
+            PumpRate = category.CreateEntry("PumpRate", 1f, description: "Water per second pumped at full power. Host only");
+            PumpVolume = category.CreateEntry("PumpVolume", 0.7f, description: "Water pump and hose winch volume (0-1)");
+            ReactorVolume = category.CreateEntry("ReactorVolume", 0.6f, description: "Running reactor volume (0-1)");
+            DoorVolume = category.CreateEntry("DoorVolume", 0.8f, description: "Large door volume (0-1)");
+            PumpHoseLength = category.CreateEntry("PumpHoseLength", 20f, description: "Pump hose length (m). All players should use the same value");
+            JetpackSecondsPerWood = category.CreateEntry("JetpackSecondsPerWood", 20f, description: "Seconds of jetpack flight per 1 wood. Host only");
+            JetpackAcceleration = category.CreateEntry("JetpackAcceleration", 6f, description: "Jetpack upward acceleration above gravity (m/s^2). All players must use the same value");
+            JetpackMaxSpeed = category.CreateEntry("JetpackMaxSpeed", 7f, description: "Maximum jetpack climb speed (m/s). All players must use the same value");
+            category.DeleteEntry("JetpackVolume");
+            JetpackVolume = category.CreateEntry("JetpackFireVolume", 0.45f, description: "Jetpack flame volume (0-1)");
+            FastRooms = category.CreateEntry("FastRooms", true, description: "Fast room/oxygen recalculation after a ship change (less lag while building). false = like the game. Computed by the host");
+            RotorSpeed = category.CreateEntry("RotorSpeed", 90f, description: "Rotor turning speed (degrees per second). Host only");
+            HydrogenThrustMultiplier = category.CreateEntry("HydrogenThrustMultiplier", 1.8f, description: "How many times stronger the hydrogen thruster is than the chemical one. Host only");
             DevAutoLoadWorld = category.CreateEntry("DevAutoLoadWorld", "",
-                description: "Dla twórcy moda: pełna ścieżka do world.json wczytywanego automatycznie z menu (puste = wyłączone)");
-            DevDump = category.CreateEntry("DevDump", false, description: "Dla twórcy moda: zrzut części i materiałów do UserData/Mining/dump.txt");
-            DevQuitAfterDump = category.CreateEntry("DevQuitAfterDump", false, description: "Dla twórcy moda: zamknij grę po zrzucie");
-            DevTest = category.CreateEntry("DevTest", false, description: "Dla twórcy moda: podgląd koparki i złoża przed kamerą po wczytaniu świata");
-            DevJetpack = category.CreateEntry("DevJetpack", false, description: "Dla twórcy moda: test lotu jetpackiem");
-            DevPerf = category.CreateEntry("DevPerf", false, description: "Dla twórcy moda: pomiar lagów przy szybkim stawianiu i usuwaniu części");
+                description: "Mod developer: full path to a world.json loaded automatically from the menu (empty = off)");
+            DevDump = category.CreateEntry("DevDump", false, description: "Mod developer: dump parts and materials to UserData/Mining/dump.txt");
+            DevQuitAfterDump = category.CreateEntry("DevQuitAfterDump", false, description: "Mod developer: quit the game after the dump");
+            DevTest = category.CreateEntry("DevTest", false, description: "Mod developer: preview the excavator and a deposit in front of the camera after the world loads");
+            DevJetpack = category.CreateEntry("DevJetpack", false, description: "Mod developer: jetpack flight test");
+            DevPerf = category.CreateEntry("DevPerf", false, description: "Mod developer: measure lag while quickly placing and removing parts");
             category.SaveToFile(false);
             LoggerInstance.Msg("Press N: nearest ore deposit, U: nearest uranium deposit, J: jetpack on/off.");
         }
@@ -121,7 +121,7 @@ namespace Mining
             }
             catch (System.Exception e)
             {
-                LoggerInstance.Error($"Błąd złóż: {e}");
+                LoggerInstance.Error($"Deposit error: {e}");
                 ShowSites.Value = false;
             }
         }
@@ -135,7 +135,6 @@ namespace Mining
 
         public override void OnGUI()
         {
-            // Powód, dla którego koparka stoi - nad jej otwartym oknem (tylko u hosta - to serwer liczy wydobycie).
             if (Patches.StorageMenuPatch.TryGetOpenExcavator(out uint shipId, out ushort partId) && Server.ExcavatorServer.TryGetStatus(shipId, partId, out string status) &&
                 !status.StartsWith("working"))
             {

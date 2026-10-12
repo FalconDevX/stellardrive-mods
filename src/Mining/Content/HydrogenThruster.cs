@@ -12,9 +12,6 @@ using Object = UnityEngine.Object;
 
 namespace Mining.Content
 {
-    // Silnik wodorowy (jądrowo-termiczny): kopia silnika chemicznego (ten sam stan ThrusterState, płomień, dźwięk, fizyka),
-    // z własnym modelem i zasilaniem: wodór (106) z rury + prąd (np. z reaktora) rozgrzewający wodór.
-    // Gniazda: 0 i 1 - wodór i tlen (dowolnie), 2 - prąd. Logika: Server/HydrogenThrusterServer.
     internal static class HydrogenThruster
     {
         internal const ushort PartId = 201;
@@ -22,7 +19,7 @@ namespace Mining.Content
         internal const uint WaterItemId = 105;
         internal const byte PowerSocket = 2;
         internal const float PowerWatts = 3000f;
-        internal static readonly Vector3 NozzleTop = new Vector3(0f, 1.98f, 0f); // NOZZLE_TOP z AssetSource/build_hydrogen_glb.py
+        internal static readonly Vector3 NozzleTop = new Vector3(0f, 1.98f, 0f);
 
         private const ushort ChemicalThrusterId = 19;
         private const ushort GeneratorPartId = 60;
@@ -49,12 +46,12 @@ namespace Mining.Content
             try
             {
                 _part = Build(chemical, generator);
-                Melon<MiningMod>.Logger.Msg($"Dodano część '{_part.fullLabel}' (id {PartId})");
+                Melon<MiningMod>.Logger.Msg($"Added part '{_part.fullLabel}' (id {PartId})");
             }
             catch (Exception e)
             {
                 _failed = true;
-                Melon<MiningMod>.Logger.Error($"Nie udało się zbudować silnika wodorowego: {e}");
+                Melon<MiningMod>.Logger.Error($"Could not build the hydrogen thruster: {e}");
             }
             return _part;
         }
@@ -67,7 +64,6 @@ namespace Mining.Content
             Mesh mesh = ModAssets.LoadMesh("hydrogen_thruster.bin");
             Texture2D albedo = ModAssets.LoadTexture("hydrogen_thruster_albedo.jpg");
 
-            // Wygląd: wyłączamy model silnika chemicznego (bez płomienia i dźwięku), wstawiamy nasz.
             ThrusterVisual visual = root.GetComponentInChildren<ThrusterVisual>(true);
             ThrusterFlameVFX flame = root.GetComponentInChildren<ThrusterFlameVFX>(true);
             ThrusterSFX sound = root.GetComponentInChildren<ThrusterSFX>(true);
@@ -86,25 +82,19 @@ namespace Mining.Content
             }
             if (look == null)
             {
-                throw new InvalidOperationException("Brak materiału silnika chemicznego");
+                throw new InvalidOperationException("No chemical thruster material");
             }
             Material material = PartFactory.CreateMaterial(look.sharedMaterial, albedo, "HydrogenThruster");
             PartFactory.CreateRenderer("Body", visual.transform, mesh, material, look);
-            // mocowania gniazd (AssetSource/build_mounts.py): gniazda leżą tuż poza kolizją, mocowanie sięga ścianki modelu
             PartFactory.CreateRenderer("Mounts", visual.transform, ModAssets.LoadMesh("thruster_mounts.bin"),
                 PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("hydrogen_albedo.png"), "HydrogenThrusterMounts"), look);
 
-            // Płomień i dźwięk na końcu dyszy (dysza = lokalna góra części, jak w silniku chemicznym).
             Vector3 nozzleWorld = root.transform.TransformPoint(NozzleTop);
             if (flame != null) flame.transform.position = nozzleWorld;
             if (sound != null) sound.transform.position = nozzleWorld;
 
             PartFactory.SetBounds(root, mesh.bounds);
 
-            // Dwa wejścia wodoru (0 i 1) na bokach bloku i prąd (2) z tyłu - tuż poza obrysem kolizji (x 0.398, z 0.415),
-            // bo kolizja części zasłania gniazda w środku (nie dało się podpiąć rury). Te same liczby: build_mounts.py.
-            // Silnik chemiczny ma 4 gniazda rur (0-3): zostawiamy 0 i 1, reszta znika - gniazdo 2 miało ten sam numer co
-            // nasze gniazdo prądu (2) i rura się nie podpinała. Wodór i tlen to osobne sieci rur (bez połączenia gniazd).
             foreach (SocketObject extra in root.GetComponentsInChildren<SocketObject>(true).Where(s => s.Type == CableType.Fluid && s.Id > 1).ToArray())
             {
                 Object.DestroyImmediate(extra.gameObject);
@@ -127,7 +117,7 @@ namespace Mining.Content
             settings.hideFlags = HideFlags.DontUnloadUnusedAsset;
             settings.id = PartId;
             settings.fullLabel = "Hydrogen Thruster";
-            settings.internalStateClass = chemical.internalStateClass; // ThrusterState
+            settings.internalStateClass = chemical.internalStateClass;
             settings.snappingStyle = chemical.snappingStyle;
             settings.description = $"Hydrogen thruster: hydrogen pipe to a side socket plus power (back, {PowerWatts:0} W, e.g. from the Nuclear Reactor) " +
                                    "or oxygen (other side socket). Hydrogen + oxygen + power: oxygen afterburner, 1.4x thrust. " +

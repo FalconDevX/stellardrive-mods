@@ -19,22 +19,20 @@ namespace ResourceTweaks
         {
             var category = MelonPreferences.CreateCategory("ResourceTweaks");
             DropMultiplier = category.CreateEntry("DropMultiplier", 3f,
-                description: "Mnożnik wszystkich surowców wydobywanych na planetach (1 = bez zmian)");
-            // Nowa nazwa wpisu, żeby nie wczytała się stara wartość 3 z wersji 0.1.0.
+                description: "Multiplier for all resources mined on planets (1 = unchanged)");
             IronDropMultiplier = category.CreateEntry("IronMultiplier", 10f,
-                description: "Osobny mnożnik dla żelaza (zastępuje DropMultiplier dla żelaza, 10 = 10x więcej)");
+                description: "Separate multiplier for iron (replaces DropMultiplier for iron, 10 = 10x more)");
             MaxStackSize = category.CreateEntry("MaxStackSize", 100,
-                description: "Maksymalny stack przedmiotów, które da się stackować (1-255). Narzędzia (stack 1) bez zmian");
+                description: "Maximum stack size of stackable items (1-255). Tools (stack 1) unchanged");
             TreeMiningTime = category.CreateEntry("TreeMiningTime", 0.5f,
-                description: "Czas kopania drzew względem normalnego (0.5 = o 50% krócej, 1 = bez zmian)");
+                description: "Tree mining time relative to normal (0.5 = 50% shorter, 1 = unchanged)");
             OtherMiningTime = category.CreateEntry("OtherMiningTime", 0.75f,
-                description: "Czas kopania pozostałych surowców względem normalnego (0.75 = o 25% krócej)");
+                description: "Mining time of other resources relative to normal (0.75 = 25% shorter)");
             LogDrops = category.CreateEntry("LogDrops", true,
-                description: "Wypisuje każdy drop do MelonLoader\\Latest.log (do sprawdzania, wyłącz po testach)");
-            // Zapis od razu, żeby wpisy pojawiły się w UserData\MelonPreferences.cfg bez wychodzenia z gry.
+                description: "Logs every drop to MelonLoader\\Latest.log (for checking, turn off after testing)");
             category.SaveToFile(false);
 
-            LoggerInstance.Msg($"Surowce x{DropMultiplier.Value}, żelazo x{IronDropMultiplier.Value}, stack do {MaxStackSize.Value}");
+            LoggerInstance.Msg($"Resources x{DropMultiplier.Value}, iron x{IronDropMultiplier.Value}, stack up to {MaxStackSize.Value}");
         }
     }
 }

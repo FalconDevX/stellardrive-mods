@@ -19,14 +19,10 @@ using Random = System.Random;
 
 namespace Flora.Diagnostics
 {
-    // Sprawdza, czy na planetach mogą pojawić się złoża, bez latania tam. Gra próbuje postawić każde złoże
-    // na każdym fragmencie terenu danego poziomu (dla poziomu 2 to ok. 100-200 m) i odrzuca miejsca, które nie
-    // spełniają warunków (wysokość terenu, gęstość roślinności). Tu losujemy punkty na planecie, liczymy
-    // prawdziwą wysokość terenu tym samym kalkulatorem co gra i sprawdzamy te same warunki.
     internal static class PlanetResourceScan
     {
         private const int Samples = 3000;
-        private const int TriesPerChunk = 100; // gra sprawdza do 20 startów x 5 kroków na fragment
+        private const int TriesPerChunk = 100;
 
         internal static IEnumerator ScanAfterDelay(float seconds)
         {
@@ -37,7 +33,7 @@ namespace Flora.Diagnostics
             }
             catch (Exception e)
             {
-                Melon<FloraMod>.Logger.Warning($"Skan złóż nie powiódł się: {e}");
+                Melon<FloraMod>.Logger.Warning($"Deposit scan failed: {e}");
             }
         }
 
@@ -47,7 +43,7 @@ namespace Flora.Diagnostics
             Dictionary<ulong, TrackedPlanet> tracked = GetTrackedPlanets();
             if (calculator == null || tracked.Count == 0)
             {
-                Melon<FloraMod>.Logger.Warning("Skan złóż: brak planet albo kalkulatora terenu");
+                Melon<FloraMod>.Logger.Warning("Deposit scan: no planets or terrain calculator");
                 return;
             }
 
@@ -70,14 +66,14 @@ namespace Flora.Diagnostics
                 }
 
                 float min = points.Min(p => p.height), max = points.Max(p => p.height);
-                sb.AppendLine($"# {planet.name} (id {planet.Id}): promień {planet.Radius / 1000f:0} km, teren od {min:0} do {max:0} m, " +
-                              $"roślinność: {(dense != null ? dense.configs.Length + " warstw" : "brak")}");
-                string summary = $"{planet.name}: teren {min:0}..{max:0} m";
+                sb.AppendLine($"# {planet.name} (id {planet.Id}): radius {planet.Radius / 1000f:0} km, terrain from {min:0} to {max:0} m, " +
+                              $"vegetation: {(dense != null ? dense.configs.Length + " layers" : "none")}");
+                string summary = $"{planet.name}: terrain {min:0}..{max:0} m";
 
                 if (hotspots?.hotspotsPlacement == null || hotspots.hotspotsPlacement.Count == 0)
                 {
-                    sb.AppendLine("  brak złóż w konfiguracji");
-                    summary += ", brak złóż";
+                    sb.AppendLine("  no deposits in the configuration");
+                    summary += ", no deposits";
                 }
                 else
                 {
@@ -95,22 +91,21 @@ namespace Flora.Diagnostics
                         double chance = 1 - Math.Pow(1 - fraction, TriesPerChunk);
                         double estimate = chunks * config.spawnProbability * chance;
                         double chunkSize = 2 * Math.PI * planet.Radius / 4 / Math.Pow(2, Math.Max(0, highestLod - config.placementLevel));
-                        sb.AppendLine($"  [{string.Join(", ", objects)}]: dozwolone na {fraction * 100:0.#}% powierzchni, " +
-                                      $"ok. {estimate:N0} miejsc na planecie (fragment ~{chunkSize:0} m)");
+                        sb.AppendLine($"  [{string.Join(", ", objects)}]: allowed on {fraction * 100:0.#}% of the surface, " +
+                                      $"about {estimate:N0} spots on the planet (chunk ~{chunkSize:0} m)");
                         summary += $", {string.Join("+", objects.Distinct())} {fraction * 100:0.#}%";
                     }
                 }
-                Melon<FloraMod>.Logger.Msg($"Złoża: {summary}");
+                Melon<FloraMod>.Logger.Msg($"Deposits: {summary}");
             }
 
             string dir2 = Path.Combine(MelonEnvironment.UserDataDirectory, "Flora");
             Directory.CreateDirectory(dir2);
             string path = Path.Combine(dir2, "planet_resources.txt");
             File.WriteAllText(path, sb.ToString());
-            Melon<FloraMod>.Logger.Msg($"Skan złóż zapisany: {path}");
+            Melon<FloraMod>.Logger.Msg($"Deposit scan saved: {path}");
         }
 
-        // Te same warunki co w PlanetHotspotsEnvironmentGeneration.EvaluateSpot (bez odległości od innych złóż).
         private static bool Allowed(PlanetHotspotsPlacementConfig config, Vector3 dir, float height, PlanetDenseEnvironment dense)
         {
             if ((config.avoidDenseEnvConstraint || config.seekDenseEnvConstraint) && dense != null &&

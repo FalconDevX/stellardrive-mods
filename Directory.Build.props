@@ -1,9 +1,5 @@
 <Project>
-  <!--
-    Wspólna konfiguracja dla wszystkich modów w src/.
-    Ścieżkę do gry można nadpisać w pliku GamePath.props (nie trafia do gita)
-    albo zmienną środowiskową STELLARDRIVE_DIR.
-  -->
+
   <Import Project="$(MSBuildThisFileDirectory)GamePath.props" Condition="Exists('$(MSBuildThisFileDirectory)GamePath.props')" />
 
   <PropertyGroup>
@@ -13,7 +9,6 @@
     <MelonLoaderDir>$(GameDir)\MelonLoader\net35</MelonLoaderDir>
     <GameModsDir>$(GameDir)\Mods</GameModsDir>
 
-    <!-- Wyłącz, jeśli nie chcesz automatycznego kopiowania .dll do folderu Mods po buildzie. -->
     <DeployToGame Condition="'$(DeployToGame)' == ''">true</DeployToGame>
   </PropertyGroup>
 
@@ -29,7 +24,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Pozwala budować net472 bez zainstalowanego Developer Packa .NET Framework. -->
+
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
 
@@ -37,7 +32,6 @@
     <Reference Include="MelonLoader" HintPath="$(MelonLoaderDir)\MelonLoader.dll" Private="false" />
     <Reference Include="0Harmony" HintPath="$(MelonLoaderDir)\0Harmony.dll" Private="false" />
 
-    <!-- Wszystkie assembly gry i Unity, bez bibliotek systemowych (te dają reference assemblies). -->
     <GameAssembly Include="$(GameManagedDir)\*.dll"
                   Exclude="$(GameManagedDir)\mscorlib.dll;$(GameManagedDir)\netstandard.dll;$(GameManagedDir)\System*.dll;$(GameManagedDir)\Mono.*.dll;$(GameManagedDir)\Microsoft.*.dll" />
     <Reference Include="@(GameAssembly)" Private="false" />

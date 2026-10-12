@@ -4,8 +4,6 @@ using UI.Inventory;
 
 namespace ResourceTweaks.Patches
 {
-    // Pole z liczbą w slocie ekwipunku jest zaprojektowane na 2 cyfry (stack 20) - "100" łamało się na dwie linie.
-    // Wyłączamy zawijanie i pozwalamy tekstowi zmniejszyć się, żeby 3 cyfry zmieściły się w slocie.
     [HarmonyPatch(typeof(InventorySlotUI), nameof(InventorySlotUI.UpdateSlot))]
     internal static class SlotQuantityTextPatch
     {

@@ -3,5 +3,5 @@
   "name": "Velocity Indicator",
   "author": "mateu",
   "version": "0.1.0",
-  "description": "Wskaźnik prędkości statku nie przeskakuje na orbicie (zawsze względem powierzchni planety) i nie pokazuje fałszywego zera. Każdy gracz potrzebuje moda."
+  "description": "The ship velocity indicator does not jump in orbit (always relative to the planet surface) and does not show a false zero. Every player needs the mod."
 }

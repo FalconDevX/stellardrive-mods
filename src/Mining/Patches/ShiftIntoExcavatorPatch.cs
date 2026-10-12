@@ -9,8 +9,6 @@ using Items.Model;
 
 namespace Mining.Patches
 {
-    // Shift+klik z plecaka/paska wrzuca przedmiot do pierwszego wolnego slotu skrzyni - w koparce mógłby trafić
-    // do ukrytych slotów 5-10. Dlatego przy otwartej koparce shift działa tylko w drugą stronę (z koparki do gracza).
     [HarmonyPatch(typeof(PlayerInventoryTransactions))]
     internal static class ShiftIntoExcavatorPatch
     {

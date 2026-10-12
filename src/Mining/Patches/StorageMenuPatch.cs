@@ -11,7 +11,6 @@ using UnityEngine;
 
 namespace Mining.Patches
 {
-    // Koparka ma stan skrzyni (10 slotów), ale pokazujemy tylko 4 - tyle zapełnia wiertło.
     [HarmonyPatch(typeof(StorageMenuActivator), nameof(StorageMenuActivator.ShowMenu))]
     internal static class StorageMenuPatch
     {
@@ -63,9 +62,6 @@ namespace Mining.Patches
 
 namespace Mining.Patches
 {
-    // Reaktor używa okna generatora na drewno z gry (ten sam stan - slot na paliwo). Po otwarciu podmieniamy napisy
-    // ("Wood-Fired Generator" -> "Nuclear Reactor", "Wood" -> "Uranium"). Teksty z tłumaczeń wypełniają się klatkę później,
-    // więc podmiana jest w następnej klatce, a ich odświeżanie wyłączamy.
     [HarmonyPatch(typeof(StorageMenuActivator), nameof(StorageMenuActivator.ShowMenu))]
     internal static class ReactorMenuPatch
     {

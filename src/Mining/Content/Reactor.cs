@@ -12,17 +12,13 @@ using Object = UnityEngine.Object;
 
 namespace Mining.Content
 {
-    // Reaktor jądrowy: stan generatora na drewno (slot na paliwo, poziom produkcji, okno generatora), ale paliwem jest uran,
-    // a do pracy potrzebna jest woda do chłodzenia i sygnał włączenia. Gniazda: 0 i 1 = prąd (połączone), 2 = woda,
-    // 3 = sygnał (1 = praca). Logika: Server/ReactorServer. Model z GLB (AssetSource/build_reactor_glb.py), rdzenie w tubach
-    // i wirnik na kopule obracają się, a szkło i ekrany świecą przy pracy (Content/ReactorVisuals).
     internal static class Reactor
     {
         internal const ushort PartId = 203;
         internal const byte PowerSocket = 0, WaterSocket = 2, SignalSocket = 3;
-        internal static readonly Vector3[] CorePositions = { new Vector3(0f, 0.64f, -0.45f), new Vector3(0f, 0.64f, 0.45f) }; // osie szklanych tub
-        internal static bool HasSignalSocket; // bez gniazda (gra bez gniazd sygnałowych) reaktor nie czeka na sygnał
-        internal static readonly Vector3 RotorPosition = new Vector3(0f, 1.525f, 0f); // środek kopuły
+        internal static readonly Vector3[] CorePositions = { new Vector3(0f, 0.64f, -0.45f), new Vector3(0f, 0.64f, 0.45f) };
+        internal static bool HasSignalSocket;
+        internal static readonly Vector3 RotorPosition = new Vector3(0f, 1.525f, 0f);
         private const ushort ChestPartId = 30, GeneratorPartId = 60, DistillerPartId = 80;
         private static PartSettings _part;
         private static bool _failed;
@@ -46,12 +42,12 @@ namespace Mining.Content
             try
             {
                 _part = Build(chest, generator, distiller);
-                Melon<MiningMod>.Logger.Msg($"Dodano część '{_part.fullLabel}' (id {PartId})");
+                Melon<MiningMod>.Logger.Msg($"Added part '{_part.fullLabel}' (id {PartId})");
             }
             catch (Exception e)
             {
                 _failed = true;
-                Melon<MiningMod>.Logger.Error($"Nie udało się zbudować reaktora: {e}");
+                Melon<MiningMod>.Logger.Error($"Could not build the reactor: {e}");
             }
             return _part;
         }
@@ -66,12 +62,10 @@ namespace Mining.Content
 
             Transform visual = root.transform.Find("Visual");
             MeshRenderer look = visual.GetComponentInChildren<MeshRenderer>(true);
-            // korpus: kolor z GLB, świecenie tylko w miejscach z maski (szkło tub, ekrany)
             Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("reactor_albedo.jpg"), "NuclearReactor");
             material.SetTexture("_EmissionMap", ModAssets.LoadTexture("reactor_emission.png"));
             material.SetColor("_EmissionColor", Color.black);
             material.EnableKeyword("_EMISSION");
-            // rdzenie i wirnik: paleta low-poly; rdzeń świeci własnymi kolorami (mapa emisji = paleta)
             Texture2D parts = ModAssets.LoadTexture("reactor_parts.png");
             Material partsMaterial = PartFactory.CreateMaterial(look.sharedMaterial, parts, "NuclearReactorParts");
             Material coreMaterial = PartFactory.CreateMaterial(look.sharedMaterial, parts, "NuclearReactorCore");
@@ -94,15 +88,13 @@ namespace Mining.Content
                 PartFactory.CreateRenderer("Core" + i, visual, core, coreMaterial, lookCopy).transform.localPosition = CorePositions[i];
             }
             PartFactory.CreateRenderer("Rotor", visual, rotor, partsMaterial, lookCopy).transform.localPosition = RotorPosition;
-            // mocowania gniazd (AssetSource/build_mounts.py) - gniazda tuż poza kolizją, połączone z konstrukcją
             PartFactory.CreateRenderer("Mounts", visual, ModAssets.LoadMesh("reactor_mounts.bin"), partsMaterial, lookCopy);
             Object.DestroyImmediate(lookCopy.gameObject);
 
             PartFactory.SetBounds(root, body.bounds);
 
-            // Okno paliwa otwiera się na przednim panelu (musi wystawać przed obrys reaktora).
             var box = root.transform.Find("Interactions").GetComponentInChildren<BoxCollider>(true);
-            box.center = new Vector3(0f, 0.75f, -1.0f);   // model sięga do z = -0.944, strefa do -1.15
+            box.center = new Vector3(0f, 0.75f, -1.0f);
             box.size = new Vector3(1.0f, 0.9f, 0.3f);
 
             SocketObject power = PartFactory.FindSocket(generator, CableType.Power);
@@ -120,7 +112,7 @@ namespace Mining.Content
             }
             else
             {
-                Melon<MiningMod>.Logger.Warning("Nie znaleziono gniazda sygnałowego do skopiowania - reaktor bez wejścia sygnału (działa bez niego)");
+                Melon<MiningMod>.Logger.Warning("No signal socket found to copy - reactor without a signal input (runs without it)");
             }
 
             var settings = ScriptableObject.CreateInstance<PartSettings>();
@@ -128,7 +120,7 @@ namespace Mining.Content
             settings.hideFlags = HideFlags.DontUnloadUnusedAsset;
             settings.id = PartId;
             settings.fullLabel = "Nuclear Reactor";
-            settings.internalStateClass = generator.internalStateClass; // WoodPowerGeneratorState (slot na paliwo)
+            settings.internalStateClass = generator.internalStateClass;
             settings.snappingStyle = SnappingStyle.PreciseOnFloor;
             settings.description = $"Makes {MiningMod.ReactorPower.Value:0} W of power from uranium (put it in the slot) while cooled by water from a pipe (socket on the back) " +
                                    "and switched on by signal 1 (signal socket on the back, e.g. from a lever). Power sockets on both sides. Without water or signal it stops.";

@@ -3,5 +3,5 @@
   "name": "Shared Piloting",
   "author": "mateu",
   "version": "0.1.0",
-  "description": "Kilka foteli pilota na statku: obraca ten, kto rusza myszą, a fotele bezczynne nie blokują sterowania. Wystarczy u hosta."
+  "description": "Several pilot seats on a ship: whoever moves the mouse turns it, idle seats do not block steering. Host only."
 }

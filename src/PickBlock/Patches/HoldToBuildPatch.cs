@@ -6,9 +6,6 @@ using UnityEngine.InputSystem;
 
 namespace PickBlock.Patches
 {
-    // Budowanie z przytrzymania (jak w Minecrafcie): przytrzymany lewy przycisk z narzędziem budowania stawia część
-    // za każdym razem, gdy podgląd przeskoczy na nowe wolne miejsce. Tylko przy dobudowywaniu do statku -
-    // na gołej ziemi przytrzymanie tworzyłoby mnóstwo osobnych statków.
     [HarmonyPatch(typeof(BuildToolLocalClient))]
     internal static class HoldToBuildPatch
     {
@@ -29,9 +26,6 @@ namespace PickBlock.Patches
             _lastKey = Key(PreviewRef(__instance)?.GetPlacement());
             _nextPlaceTime = Time.time + PickBlockMod.HoldDelay.Value;
         }
-
-        // Nie kończymy na PrimaryActionEnd: gra potrafi wysłać je od razu po kliknięciu (przycisk typu "naciśnij"),
-        // wtedy przytrzymanie nigdy nie działało. Koniec = puszczony lewy przycisk myszy (sprawdzane w Update).
 
         [HarmonyPostfix]
         [HarmonyPatch(nameof(BuildToolLocalClient.DisableTool))]
@@ -72,7 +66,6 @@ namespace PickBlock.Patches
             }
         }
 
-        // To samo miejsce = ta sama pozycja i obrót podglądu (z dokładnością do kilku cm).
         private static string Key(PreviewPlacement placement)
         {
             if (placement == null)

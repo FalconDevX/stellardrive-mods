@@ -7,8 +7,6 @@ using Ships.Interface.Settings;
 
 namespace WarpUnlock.Patches
 {
-    // Zapas: gdyby w danych dema żadne badanie nie odblokowywało części warpa, menu budowania by jej nie pokazało.
-    // Wtedy traktujemy ją jako odblokowaną od razu.
     [HarmonyPatch(typeof(ResearchClientProxy), nameof(ResearchClientProxy.IsPartUnlocked))]
     internal static class PartUnlockPatch
     {

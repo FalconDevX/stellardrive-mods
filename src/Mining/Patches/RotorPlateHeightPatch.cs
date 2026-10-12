@@ -5,8 +5,6 @@ using Ships.Interface.Model.Placement;
 
 namespace Mining.Patches
 {
-    // Talerz rotora na wierzchu rozciągniętej podstawy (Content/RotorUnlock.StretchBase liczy przesunięcie z wymiarów
-    // modelu). Gra buduje to połączenie przy tworzeniu rotora i przy odtwarzaniu połączeń - dotyczy też starych rotorów.
     [HarmonyPatch(typeof(RotorJointConnection), nameof(RotorJointConnection.BuildFromRotorPart))]
     internal static class RotorPlateHeightPatch
     {

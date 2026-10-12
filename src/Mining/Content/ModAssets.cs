@@ -6,8 +6,6 @@ using UnityEngine.Rendering;
 
 namespace Mining.Content
 {
-    // Pliki osadzone w DLL (Assets/*): siatki koparki w prostym formacie binarnym i tekstura.
-    // Siatki i paletę kolorów generuje skrypt AssetSource/build_excavator.py.
     internal static class ModAssets
     {
         internal static byte[] Read(string name)
@@ -27,8 +25,6 @@ namespace Mining.Content
 
         internal static readonly Vector2 PaletteUv = new Vector2(0.11f, 0.02f);
 
-        // Format MSH1: liczba wierzchołków, liczba indeksów, wierzchołki (pozycja, normalna, uv), indeksy.
-        // Współrzędne są już w układzie Unity (Y w górę, metry, przód części = -Z).
         internal static Mesh LoadMesh(string name)
         {
             byte[] data = Read(name) ?? throw new FileNotFoundException(name);
@@ -58,8 +54,6 @@ namespace Mining.Content
                 mesh.vertices = pos;
                 mesh.normals = nrm;
                 mesh.uv = uv;
-                // Drugi zestaw UV w częściach gry wskazuje kolor z palety statku (_ColorPalette 32x32), który mnoży teksturę.
-                // Wszystkie wierzchołki dostają ten sam jasny kolor co korpus skrzyni.
                 var palette = new Vector2[vertCount];
                 for (int i = 0; i < vertCount; i++) palette[i] = PaletteUv;
                 mesh.uv2 = palette;
@@ -71,12 +65,10 @@ namespace Mining.Content
             }
         }
 
-        // linear: dane zamiast koloru (mapa normalnych, chropowatość) - bez korekcji sRGB.
         internal static Texture2D LoadTexture(string name, bool linear = false)
         {
             byte[] data = Read(name) ?? throw new FileNotFoundException(name);
             var tex = new Texture2D(2, 2, TextureFormat.RGBA32, true, linear) { name = Path.GetFileNameWithoutExtension(name) };
-            // ImageConversion wywołujemy przez refleksję: moduł jest zbudowany na netstandard 2.1, a mody na net472.
             var loadImage = Type.GetType("UnityEngine.ImageConversion, UnityEngine.ImageConversionModule")
                 ?.GetMethod("LoadImage", new[] { typeof(Texture2D), typeof(byte[]), typeof(bool) });
             if (loadImage == null || !(bool)loadImage.Invoke(null, new object[] { tex, data, false }))

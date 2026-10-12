@@ -7,8 +7,6 @@ using UnityEngine;
 
 namespace ShipSafety.Patches
 {
-    // Gra liczy siły statku po kolei (opór, grawitacja, ciąg, magnetyzm, siła nośna) i dodaje je do rigidbody.
-    // Zapamiętujemy każdą składową, a gdy suma daje absurdalne przyspieszenie - logujemy składowe i przycinamy siłę.
     internal static class ForceGuard
     {
         internal static Vector3 Drag, Gravity, Thrust, Magnetism, Lift;
@@ -29,9 +27,9 @@ namespace ShipSafety.Patches
                 {
                     _nextLogTime = Time.realtimeSinceStartup + 1f;
                     Melon<ShipSafetyMod>.Logger.Warning(
-                        $"Za duże przyspieszenie statku: {acceleration:0.#} m/s^2 (masa {mass:0}, prędkość {props.PhysicsState.Velocity.magnitude:0.#} m/s). " +
-                        $"Opór {Drag.magnitude / mass:0.#}, grawitacja {Gravity.magnitude / mass:0.#}, ciąg {Thrust.magnitude / mass:0.#}, " +
-                        $"magnetyzm {Magnetism.magnitude / mass:0.#}, siła nośna {Lift.magnitude / mass:0.#} m/s^2");
+                        $"Ship acceleration too high: {acceleration:0.#} m/s^2 (mass {mass:0}, speed {props.PhysicsState.Velocity.magnitude:0.#} m/s). " +
+                        $"Drag {Drag.magnitude / mass:0.#}, gravity {Gravity.magnitude / mass:0.#}, thrust {Thrust.magnitude / mass:0.#}, " +
+                        $"magnetism {Magnetism.magnitude / mass:0.#}, lift {Lift.magnitude / mass:0.#} m/s^2");
                 }
                 if (ShipSafetyMod.Enabled.Value)
                 {

@@ -8,14 +8,11 @@ using UnityEngine;
 
 namespace Mining.Audio
 {
-    // Dźwięk w pętli przez rdzeń FMOD-a (dźwięk Unity jest w grze wyłączony), jak DrillSound.
-    // Źródło: plik UserData/Mining/<nazwa>.(wav|ogg|mp3) albo osadzony Assets/<nazwa>_loop.wav.
     internal static class LoopSound
     {
         private static readonly Dictionary<string, FMOD.Sound> Sounds = new Dictionary<string, FMOD.Sound>();
         private static readonly HashSet<string> Failed = new HashSet<string>();
 
-        // loop = false: dźwięk jednorazowy, osadzony jako Assets/<nazwa>.wav (OneShot).
         internal static bool TryGet(string name, out FMOD.Sound sound, bool loop = true)
         {
             if (Sounds.TryGetValue(name, out sound))
@@ -58,19 +55,18 @@ namespace Mining.Audio
                     throw new Exception($"createSound: {result}");
                 }
                 Sounds[name] = sound;
-                Melon<MiningMod>.Logger.Msg($"Dźwięk {name}: {source}");
+                Melon<MiningMod>.Logger.Msg($"Sound {name}: {source}");
                 return true;
             }
             catch (Exception e)
             {
                 Failed.Add(name);
-                Melon<MiningMod>.Logger.Warning($"Nie udało się przygotować dźwięku {name}: {e.Message}");
+                Melon<MiningMod>.Logger.Warning($"Could not prepare sound {name}: {e.Message}");
                 return false;
             }
         }
     }
 
-    // Jedna pętla przypięta do obiektu: głośność zależna od odległości od kamery, panorama lewo/prawo.
     internal sealed class LoopEmitter
     {
         private readonly string _name;
@@ -79,7 +75,7 @@ namespace Mining.Audio
         private FMOD.Channel _channel;
         private bool _playing;
 
-        internal static Camera ListenerOverride; // tylko testy twórcy moda (kamera testowa zamiast głównej)
+        internal static Camera ListenerOverride;
 
         internal LoopEmitter(string name, float hearDistance, MelonPreferences_Entry<float> volume = null)
         {
@@ -108,7 +104,7 @@ namespace Mining.Audio
                 FMOD.System core = FMODUnity.RuntimeManager.CoreSystem;
                 core.getMasterChannelGroup(out FMOD.ChannelGroup master);
                 core.playSound(sound, master, true, out _channel);
-                _channel.setPosition((uint)UnityEngine.Random.Range(0, 20000), FMOD.TIMEUNIT.PCM); // kilka pomp nie gra w fazie
+                _channel.setPosition((uint)UnityEngine.Random.Range(0, 20000), FMOD.TIMEUNIT.PCM);
                 _channel.setPaused(false);
                 _playing = true;
             }
@@ -131,7 +127,6 @@ namespace Mining.Audio
         }
     }
 
-    // Dźwięk jednorazowy w miejscu obiektu (głośność od odległości od kamery, panorama) - np. uderzenie dużych drzwi.
     internal static class OneShot
     {
         internal static void Play(string name, Vector3 position, float hearDistance, float volume, float pitch)

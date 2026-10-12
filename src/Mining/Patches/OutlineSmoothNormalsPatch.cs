@@ -5,10 +5,6 @@ using UnityEngine;
 
 namespace Mining.Patches
 {
-    // Obrys podglądu budowania (QuickOutline) przy pierwszym wyborze części liczy "wygładzone normalne" każdej siatki,
-    // ale przy każdym wierzchołku pobiera z silnika kopię całej tablicy normalnych (mesh.normals w pętli) - czas rośnie
-    // z kwadratem liczby wierzchołków: brama 16x8 to ok. 6 s przycięcia, brama 10x5 ok. 2,4 s. Ten sam wynik liczymy raz
-    // na tablicach (średnia normalnych wierzchołków w tym samym punkcie).
     [HarmonyPatch]
     internal static class OutlineSmoothNormalsPatch
     {

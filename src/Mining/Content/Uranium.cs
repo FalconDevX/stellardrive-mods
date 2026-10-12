@@ -8,8 +8,6 @@ using Object = UnityEngine.Object;
 
 namespace Mining.Content
 {
-    // Ruda uranu: nowy przedmiot (zielony, świecący) - paliwo reaktora. Złoża uranu są tylko na Otrera b
-    // (Sites/MiningSites), kopie się je koparką jak inne rudy.
     internal static class Uranium
     {
         internal const uint ItemId = 120;
@@ -19,7 +17,6 @@ namespace Mining.Content
 
         internal static ItemSettings Item => _item;
 
-        // Dokłada uran do listy przedmiotów gry (przed zbudowaniem jej słownika). Wzór: żelazo.
         internal static ItemSettings[] EnsureIn(ItemSettings[] items)
         {
             if (items == null || items.Any(i => i != null && i.id == ItemId))
@@ -35,7 +32,6 @@ namespace Mining.Content
             return items.Concat(new[] { _item }).ToArray();
         }
 
-        // Uran potrzebny wcześniej niż lista przedmiotów (np. w koszcie badania) - tworzymy go od razu na wzór żelaza.
         internal static ItemSettings GetOrCreate()
         {
             if (_item == null)
@@ -71,11 +67,10 @@ namespace Mining.Content
                     }
                     _item.itemObject = model;
                 }
-                Melon<MiningMod>.Logger.Msg($"Dodano przedmiot 'Uranium' (id {ItemId})");
+                Melon<MiningMod>.Logger.Msg($"Added item 'Uranium' (id {ItemId})");
             }
         }
 
-        // Świecący zielony wariant materiału (kamienie złoża, przedmiot).
         internal static Material Glow(Material source)
         {
             if (source == null)

@@ -22,20 +22,17 @@ using Object = UnityEngine.Object;
 
 namespace Mining.Content
 {
-    // Pompa wody 1x1: z wysuwanym wężem do jezior na Otrera b. Stan jak drzwi (DoorState: IsOpen = wąż opuszczony),
-    // więc E przełącza go tym samym zapytaniem do serwera co drzwi; sygnał 1/0 na wejściu sygnału też.
-    // Gniazda: 0 = prąd, 1 = sygnał, 2 = wejście wody (rura), 3 i 4 = wyjścia wody. Logika: Server/WaterPumpServer.
     internal static class WaterPump
     {
         internal const ushort PartId = 214;
         internal const byte PowerSocket = 0, SignalSocket = 1, InSocket = 2, OutSocketA = 3, OutSocketB = 4;
 
         internal const float FanY = 0.835f;
-        internal const float NozzleTop = 0.36f;     // góra głowicy przy zwiniętym wężu (schowana w obudowie)
-        internal const float NozzleDepth = 0.26f;   // wysokość głowicy
-        internal const float Immersion = 0.3f;      // jak głęboko głowica wchodzi pod wodę
-        internal const float HoseSpeed = 1.5f;      // m/s
-        internal const float SeaLevel = 64f;        // tafla jezior Otrera b (płaski teren gry na 64 m)
+        internal const float NozzleTop = 0.36f;
+        internal const float NozzleDepth = 0.26f;
+        internal const float Immersion = 0.3f;
+        internal const float HoseSpeed = 1.5f;
+        internal const float SeaLevel = 64f;
         internal const ulong LakePlanetId = 4;
 
         private const ushort ChestPartId = 30, GeneratorPartId = 60, DistillerPartId = 80;
@@ -47,12 +44,10 @@ namespace Mining.Content
 
         internal static bool Is(PartSettings settings) => settings != null && settings.id == PartId;
 
-        // Ile węża trzeba wysunąć, żeby głowica sięgnęła powierzchni będącej `above` m pod spodem pompy.
         internal static float HoseNeeded(float above, bool water) => above + NozzleTop - NozzleDepth + (water ? Immersion : 0f);
 
         internal static float HoseMax => Mathf.Max(1f, MiningMod.PumpHoseLength.Value) + NozzleTop;
 
-        // Z kablem sygnału długość węża = sygnał (0-1) x pełna długość; bez kabla - pełna (sterowanie F).
         internal static float HoseLimit(Ships.Cables.ConnectionsTracker connections, uint shipId, ushort partId, out bool signalled, out float signal)
         {
             signal = 1f;
@@ -66,14 +61,13 @@ namespace Mining.Content
             return signalled ? signal * Mathf.Max(1f, MiningMod.PumpHoseLength.Value) + NozzleTop : HoseMax;
         }
 
-        // Punkt w układzie planety (środek planety = 0): ile metrów nad powierzchnią i czy pod spodem jest jezioro.
         internal static bool TryProbe(ulong planetId, Vector3 planetPos, out float above, out bool water)
         {
             above = 0f;
             water = false;
             if (!Planets.TryGetValue(planetId, out Planets.Network.TrackedPlanet tracked) || tracked?.Planet == null)
             {
-                Planets[planetId] = tracked = MiningSites.FindTrackedPlanet(planetId); // szukanie po scenie - tylko raz
+                Planets[planetId] = tracked = MiningSites.FindTrackedPlanet(planetId);
             }
             if (tracked?.Planet == null)
             {
@@ -102,12 +96,12 @@ namespace Mining.Content
             try
             {
                 _part = Build(chest, generator, distiller);
-                Melon<MiningMod>.Logger.Msg($"Dodano część '{_part.fullLabel}' (id {PartId})");
+                Melon<MiningMod>.Logger.Msg($"Added part '{_part.fullLabel}' (id {PartId})");
             }
             catch (Exception e)
             {
                 _failed = true;
-                Melon<MiningMod>.Logger.Error($"Nie udało się zbudować pompy: {e}");
+                Melon<MiningMod>.Logger.Error($"Could not build the pump: {e}");
             }
             return _part;
         }
@@ -118,7 +112,6 @@ namespace Mining.Content
             root.name = "WaterPump";
             Mesh body = ModAssets.LoadMesh("pump_body.bin");
 
-            // Wygląd: własny model (korpus, wirnik, wąż, głowica) i własna animacja zamiast wyglądu skrzyni.
             Transform visual = root.transform.Find("Visual");
             MeshRenderer look = visual.GetComponentInChildren<MeshRenderer>(true);
             Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("door_albedo.png"), "WaterPump");
@@ -143,7 +136,6 @@ namespace Mining.Content
 
             PartFactory.SetBounds(root, body.bounds);
 
-            // Interakcja: E opuszcza / zwija wąż (zamiast otwierania skrzyni); podnoszenie części zostaje.
             Transform interactions = root.transform.Find("Interactions");
             foreach (DefaultShipPartInteractions i in interactions.GetComponentsInChildren<DefaultShipPartInteractions>(true))
             {
@@ -168,8 +160,6 @@ namespace Mining.Content
             var box = interactions.GetComponentInChildren<BoxCollider>(true);
             if (box != null)
             {
-                // musi wystawać poza kolizję części (inaczej promień trafia raz w nią, raz w bryłę i "F" miga):
-                // z przodu i u góry; boki i tył zostają wolne dla gniazd
                 box.center = new Vector3(0f, 0.47f, -0.035f);
                 box.size = new Vector3(0.86f, 0.96f, 0.97f);
             }
@@ -188,7 +178,7 @@ namespace Mining.Content
             }
             else
             {
-                Melon<MiningMod>.Logger.Warning("Nie znaleziono gniazda sygnałowego do skopiowania - pompa bez wejścia sygnału");
+                Melon<MiningMod>.Logger.Warning("No signal socket found to copy - pump without a signal input");
             }
 
             var settings = ScriptableObject.CreateInstance<PartSettings>();
@@ -212,7 +202,6 @@ namespace Mining.Content
         }
     }
 
-    // Stan pompy dla interakcji (podpis "Lower hose" / "Raise hose").
     internal class WaterPumpInteractions : DefaultShipPartInteractions
     {
         public override void SetNetworkState(IStatefulPartState state) => Set(state);
@@ -264,7 +253,6 @@ namespace Mining.Content
         }
     }
 
-    // Wąż zwisa pionowo w dół (względem planety, nie statku) do tafli albo ziemi; wirnik kręci się, gdy głowica jest w wodzie.
     internal class WaterPumpVisuals : DefaultShipPartVisuals, Ships.Parts.Common.Model.IContextAwarePart
     {
         private uint _shipId;
@@ -335,7 +323,6 @@ namespace Mining.Content
                 _hoseRenderer.enabled = _extension > 0.05f;
             }
             bool pumping = _down && _inWater && _extension >= _target - 0.05f && _target > 0f;
-            // wirnik i dźwięk pompy rozkręcają się i zwalniają płynnie
             _pumpLevel = Mathf.MoveTowards(_pumpLevel, pumping ? 1f : 0f, Time.deltaTime / (pumping ? 1.2f : 0.8f));
             if (_fan != null && _pumpLevel > 0f)
             {
@@ -344,7 +331,7 @@ namespace Mining.Content
             bool moving = Mathf.Abs(_extension - _target) > 0.01f;
             _winchLevel = Mathf.MoveTowards(_winchLevel, moving ? 1f : 0f, Time.deltaTime / 0.15f);
             Vector3 position = transform.TransformPoint(new Vector3(0f, 0.4f, 0f));
-            _winchSound.Update(position, _winchLevel * 0.8f, _target > _extension ? 0.95f : 1.08f); // zwijanie trochę wyżej
+            _winchSound.Update(position, _winchLevel * 0.8f, _target > _extension ? 0.95f : 1.08f);
             _pumpSound.Update(position, _pumpLevel, 0.6f + 0.4f * _pumpLevel);
         }
 
@@ -380,7 +367,7 @@ namespace Mining.Content
             }
             catch (Exception e)
             {
-                Melon<MiningMod>.Logger.Warning($"Pompa: {e.Message}");
+                Melon<MiningMod>.Logger.Warning($"Pump: {e.Message}");
             }
             _target = _down ? reach : 0f;
         }

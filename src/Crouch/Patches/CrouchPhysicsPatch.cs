@@ -8,13 +8,6 @@ using UnityEngine;
 
 namespace Crouch.Patches
 {
-    // Kucanie w fizyce chodzenia. Gra ma już akcję "crouch" (VerticalInput < 0), ale na ziemi jej nie używa -
-    // w kosmosie (brak gruntu) dalej działa jako opadanie.
-    //
-    // Na czas jednego kroku fizyki zmniejszamy kapsułę gracza (prefab współdzielony przez wszystkich graczy,
-    // więc przywracamy go w Finalizerze) i spowalniamy chód. Stan kucania jest liczony od nowa w każdym kroku
-    // z wejścia i pozycji, więc działa też przy powtarzaniu kroków przez predykcję sieciową.
-    // Kamera opuszcza się sama, bo jest liczona od środka kapsuły.
     [HarmonyPatch(typeof(PlayerWalkingPhysics), nameof(PlayerWalkingPhysics.ProcessPhysicsStep))]
     internal static class CrouchPhysicsPatch
     {
@@ -56,7 +49,7 @@ namespace Crouch.Patches
                 if (!_loggedError)
                 {
                     _loggedError = true;
-                    Melon<CrouchMod>.Logger.Error("Błąd kucania (dalsze pomijam): " + e);
+                    Melon<CrouchMod>.Logger.Error("Crouch error (further ones are skipped): " + e);
                 }
             }
         }
@@ -69,7 +62,6 @@ namespace Crouch.Patches
         private static void Apply(PlayerWalkingPhysics physics, PlayerPhysicsStepContext context, ref Saved saved)
         {
             var state = context.State;
-            // Bez gruntu (skok, kosmos, brak grawitacji) klawisz zostaje opadaniem jak w oryginale.
             if (!state.IsOnGround || context.DeltaTime <= 0f)
             {
                 return;
@@ -125,7 +117,6 @@ namespace Crouch.Patches
             settings.walkingSpeed = speed;
             settings.sprintingSpeed = speed;
             settings.sprintingAcceleration = settings.walkingAcceleration;
-            // Dłuższy test gruntu: po skurczeniu kapsuły gra "dociąga" postać do ziemi zamiast spadać.
             if (settings.collisionSettings != null)
             {
                 settings.collisionSettings.groundSphereCheckDistance += delta;
@@ -155,7 +146,6 @@ namespace Crouch.Patches
             }
         }
 
-        // Czy środek postaci jest nisko nad ziemią, tzn. postać jest jeszcze w pozycji kucającej.
         private static bool IsLow(PhysicsScene scene, Vector3 center, Vector3 up, float fullHeight, float delta)
         {
             int count = scene.Raycast(center, -up, Hits, fullHeight * 0.5f + 0.1f, _layerMask, QueryTriggerInteraction.Ignore);
@@ -170,7 +160,6 @@ namespace Crouch.Patches
             return nearest < fullHeight * 0.5f - delta * 0.25f;
         }
 
-        // Czy nad głową jest miejsce na wstanie (sprawdzamy górną połowę pełnej kapsuły).
         private static bool CanStand(PhysicsScene scene, Vector3 standCenter, Vector3 up, float fullHeight, float radius)
         {
             float r = radius * 0.95f;

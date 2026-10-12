@@ -9,9 +9,6 @@ using UnityEngine;
 
 namespace PlanetUnlock.Patches
 {
-    // Demo w PlanetsTracker.LoadPlanets ma na sztywno "if (planet.Id == 4)" - wczytuje tylko Otrera b.
-    // Transpiler podmienia w tej metodzie odczyt planet.Id na funkcję, która zwraca 4 dla każdej planety,
-    // więc warunek przepuszcza wszystkie planety ze sceny.
     [HarmonyPatch]
     internal static class LoadAllPlanetsPatch
     {
@@ -21,8 +18,6 @@ namespace PlanetUnlock.Patches
 
         private static IEnumerable<MethodBase> TargetMethods()
         {
-            // Klasa jest generyczna z typem referencyjnym, więc Mono współdzieli kod metody między wersją
-            // serwera i klienta - patch jednej obejmuje obie (w logu Postfix pokaże obie klasy).
             yield return AccessTools.Method(typeof(PlanetsServerTracker).BaseType, "LoadPlanets");
         }
 
@@ -41,7 +36,7 @@ namespace PlanetUnlock.Patches
             {
                 if (!planet.gameObject.activeInHierarchy)
                 {
-                    Melon<PlanetUnlockMod>.Logger.Msg($"Włączam wyłączoną planetę '{planet.name}' (id {planet.Id})");
+                    Melon<PlanetUnlockMod>.Logger.Msg($"Enabling disabled planet '{planet.name}' (id {planet.Id})");
                     Transform t = planet.transform;
                     while (t != null)
                     {
@@ -54,8 +49,6 @@ namespace PlanetUnlock.Patches
 
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
-            // Podmieniamy tylko odczyt Id, po którym od razu jest porównanie ze stałą 4 (ldc.i4.4 + conv.i8).
-            // Pozostałe odczyty Id (klucze słowników planet i pierścieni) muszą zostać prawdziwe.
             List<CodeInstruction> code = new List<CodeInstruction>(instructions);
             int replaced = 0;
             for (int i = 0; i < code.Count - 1; i++)
@@ -69,7 +62,7 @@ namespace PlanetUnlock.Patches
                     code[i] = new CodeInstruction(OpCodes.Call, IdForDemoCheck).WithLabels(instruction.labels);
                 }
             }
-            Melon<PlanetUnlockMod>.Logger.Msg($"Podmieniono {replaced} sprawdzeń planety demo w LoadPlanets");
+            Melon<PlanetUnlockMod>.Logger.Msg($"Replaced {replaced} demo planet checks in LoadPlanets");
             return code;
         }
 
@@ -90,11 +83,11 @@ namespace PlanetUnlock.Patches
         private static void Postfix(object __instance)
         {
             var planets = Traverse.Create(__instance).Field("_planets").GetValue() as System.Collections.IDictionary;
-            Melon<PlanetUnlockMod>.Logger.Msg($"{__instance.GetType().Name}: wczytane planety: {planets?.Count}");
+            Melon<PlanetUnlockMod>.Logger.Msg($"{__instance.GetType().Name}: loaded planets: {planets?.Count}");
             foreach (Planet planet in Object.FindObjectsOfType<Planet>(true))
             {
-                Melon<PlanetUnlockMod>.Logger.Msg($"  '{planet.name}' id {planet.Id}, promień {planet.Radius / 1000f:0} km, " +
-                                                  $"grawitacja {planet.PhysicalProperties.gravityInG:0.##} g, aktywna {planet.gameObject.activeInHierarchy}");
+                Melon<PlanetUnlockMod>.Logger.Msg($"  '{planet.name}' id {planet.Id}, radius {planet.Radius / 1000f:0} km, " +
+                                                  $"gravity {planet.PhysicalProperties.gravityInG:0.##} g, active {planet.gameObject.activeInHierarchy}");
             }
         }
     }

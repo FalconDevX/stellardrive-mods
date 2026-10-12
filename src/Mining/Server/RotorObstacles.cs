@@ -10,12 +10,9 @@ using UnityEngine;
 
 namespace Mining.Server
 {
-    // Rotor zatrzymuje się na przeszkodzie: przed każdym krokiem obrotu sprawdzamy, czy obracana część (podstatek na
-    // talerzu, razem z jego własnymi podstatkami) w nowym położeniu nie wjedzie w teren, inny statek/element albo
-    // gracza (kolizje fizyki u hosta). Jeśli tak - rotor stoi i próbuje dalej w kolejnych klatkach, aż przeszkoda zniknie.
     internal static class RotorObstacles
     {
-        private const float Margin = 0.08f;          // zmniejszenie brył, żeby stykające się elementy nie blokowały
+        private const float Margin = 0.08f;
         private static readonly Collider[] Hits = new Collider[16];
         private static readonly HashSet<Collider> Own = new HashSet<Collider>();
         private static readonly List<Collider> Moving = new List<Collider>();
@@ -41,7 +38,6 @@ namespace Mining.Server
                 return false;
             }
 
-            // Ruch talerza w układzie statku-rodzica: T(nowy kąt) * T(stary kąt)^-1 (jak gra liczy pozycję podstatku).
             RotorJointConnection joint = RotorJointConnection.BuildFromRotorPart(new PartContext(parent.Id, rotor.Id), rotor.Placement, state.ChildShipAnchorPosition);
             joint.IsDirectionReversed = true;
             (Vector3 oldPos, Quaternion oldRot) = joint.CalculateTransform(state.Angle);
@@ -71,7 +67,6 @@ namespace Mining.Server
             return false;
         }
 
-        // Podstatek i wszystko, co jest na jego własnych rotorach.
         private static void CollectOwn(ShipsServerTracker ships, TrackedShipServer ship, int depth)
         {
             Transform frame = CollidersObject(ship);
@@ -111,7 +106,6 @@ namespace Mining.Server
             return go != null ? go.transform : null;
         }
 
-        // Bryła kolizji jako prostopadłościan w świecie (pudełka dokładnie, rogi i skosy - ich obrys), zmniejszona o margines.
         private static bool GetBox(Collider collider, out Vector3 center, out Vector3 halfExtents, out Quaternion rotation)
         {
             Transform t = collider.transform;

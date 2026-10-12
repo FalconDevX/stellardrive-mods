@@ -1,5 +1,4 @@
 @echo off
-rem Pobiera najnowsze mody z GitHuba (git pull) i od razu je instaluje. Gra musi byc zamknieta.
 cd /d "%~dp0"
 git pull
 if errorlevel 1 (

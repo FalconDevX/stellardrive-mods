@@ -3,5 +3,5 @@
   "name": "Crouch",
   "author": "mateu",
   "version": "0.1.0",
-  "description": "Kucanie na klawisz 'crouch': niższa postać i kamera, wolniejszy chód, nie wstaje pod przeszkodą. Host musi mieć moda."
+  "description": "Crouching on the 'crouch' key: lower character and camera, slower walking, does not stand up under an obstacle. The host needs the mod."
 }

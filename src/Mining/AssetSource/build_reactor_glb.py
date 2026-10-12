@@ -1,9 +1,3 @@
-# Reaktor jądrowy z modelu Meshy "Flux Reactor Module" (GLB od użytkownika): uproszczenie siatki w Blenderze,
-# kolor wypalony z oryginału na nowy rozkład UV i maska świecenia (szklane tuby rdzenia i ekrany - kolor cyjan).
-# Układ części: środek podstawy w (0, 0, 0), część 2 x 2 x 2 m, przód (-Z) = strona ze znakiem radiacji i panelem
-# (w GLB: +X). Wynik: Assets/reactor_body.bin, reactor_albedo.jpg, reactor_emission.png; w konsoli obrysy
-# świecących miejsc (TUBE ...) do ustawienia elementów obracających się (build_reactor_spin.py, Content/Reactor.cs).
-# Użycie: blender -b --factory-startup -P build_reactor_glb.py -- <plik .glb> <folder Assets> [liczba trójkątów]
 import bpy, math, os, struct, sys
 import numpy as np
 from mathutils import Vector
@@ -11,7 +5,7 @@ from mathutils import Vector
 argv = sys.argv[sys.argv.index('--') + 1:]
 SRC, OUT = argv[0], argv[1]
 TARGET_TRIS = int(argv[2]) if len(argv) > 2 else 30000
-SIZE = 1.96         # największy wymiar poziomy w części 2 x 2 m (trochę luzu)
+SIZE = 1.96
 TEX_SIZE = 2048
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -26,7 +20,6 @@ if len(meshes) > 1:
 high = bpy.context.view_layer.objects.active
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
-# Uproszczona kopia (scalone szwy UV - inaczej szczeliny), nowy rozkład UV, kolor wypalony z oryginału.
 bpy.ops.object.duplicate()
 obj = bpy.context.view_layer.objects.active
 bpy.ops.object.mode_set(mode='EDIT')
@@ -71,7 +64,6 @@ bpy.context.view_layer.objects.active = obj
 bpy.ops.object.bake(type='DIFFUSE', pass_filter={'COLOR'})
 me.calc_loop_triangles()
 
-# --- maska świecenia: nasycony cyjan / błękit (szkło tub, ekrany) ---
 px = np.empty(TEX_SIZE * TEX_SIZE * 4, dtype=np.float32)
 baked.pixels.foreach_get(px)
 px = px.reshape(TEX_SIZE, TEX_SIZE, 4)
@@ -82,7 +74,6 @@ small = glow.reshape(TEX_SIZE // 4, 4, TEX_SIZE // 4, 4).mean(axis=(1, 3)).astyp
 mask_px = np.stack([small, small, small, np.ones_like(small)], axis=-1)
 mask.pixels.foreach_set(mask_px.ravel())
 
-# --- układ części ---
 xs = [v.co.x for v in me.vertices]
 ys = [v.co.y for v in me.vertices]
 zs = [v.co.z for v in me.vertices]
@@ -90,15 +81,11 @@ cx, cy = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
 z0 = min(zs)
 s = SIZE / max(max(xs) - min(xs), max(ys) - min(ys))
 
-
 def to_unity(p):
-    # Blender +X (strona z panelem) -> Unity -Z (przód), Blender Y -> Unity X, Blender Z -> Unity Y (wyznacznik -1)
     return ((p.y - cy) * s, (p.z - z0) * s, -(p.x - cx) * s)
-
 
 def normal_to_unity(n):
     return tuple(Vector((n.y, n.z, -n.x)).normalized())
-
 
 uv_layer = me.uv_layers.active.data
 verts, index, lookup = [], [], {}
@@ -128,7 +115,7 @@ with open(os.path.join(OUT, 'reactor_body.bin'), 'wb') as f:
     for v in verts:
         f.write(struct.pack('<8f', *v))
     f.write(struct.pack('<%di' % len(index), *index))
-print('reactor_body.bin', len(verts), 'wierzcholkow', len(index) // 3, 'trojkatow')
+print('reactor_body.bin', len(verts), 'vertices', len(index) // 3, 'triangles')
 
 scn.view_settings.view_transform = 'Standard'
 scn.render.image_settings.file_format = 'JPEG'
@@ -140,11 +127,10 @@ mask.save_render(os.path.join(OUT, 'reactor_emission.png'), scene=scn)
 
 bounds = [(min(v[k] for v in verts), max(v[k] for v in verts)) for k in range(3)]
 print('BOUNDS', [(round(a, 3), round(b, 3)) for a, b in bounds])
-# skupiska świecących trójkątów (grupy po stronie i wysokości)
 pts = np.array(glow_pts)
 print('GLOW TRIS', len(pts))
 if len(argv) > 3:
-    np.save(argv[3], pts)  # punkty do analizy (opcjonalnie)
+    np.save(argv[3], pts)
 if len(pts):
     for name, sel in (('-X', pts[:, 0] < -0.3), ('+X', pts[:, 0] > 0.3), ('-Z', pts[:, 2] < -0.3), ('+Z', pts[:, 2] > 0.3), ('top', pts[:, 1] > 1.2)):
         q = pts[sel]

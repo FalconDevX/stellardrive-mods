@@ -31,14 +31,12 @@ namespace ShipSafety.Patches
         {
             ShipState state = NetworkState(physics);
             ShipMassState mass = MassState(physics);
-            return $"statek {state?.Id}" + (mass != null
-                ? $" (kadłub {mass.HullMass:0.#} kg, z częściami {mass.HullAndPartsMass:0.#} kg, z graczami {mass.HullPartsAndPlayersMass:0.#} kg)"
+            return $"ship {state?.Id}" + (mass != null
+                ? $" (hull {mass.HullMass:0.#} kg, with parts {mass.HullAndPartsMass:0.#} kg, with players {mass.HullPartsAndPlayersMass:0.#} kg)"
                 : "");
         }
     }
 
-    // Gra ustawia masę rigidbody na sumę mas połączonych statków. W logach z błędu ta masa wynosiła ~0 kg,
-    // a wtedy każde zderzenie albo siła daje miliardy m/s. Pilnujemy, żeby masa nie spadła poniżej masy samego statku.
     [HarmonyPatch(typeof(ShipServerPhysics), "UpdateRootRigidbody")]
     internal static class MassGuardPatch
     {
@@ -60,8 +58,8 @@ namespace ShipSafety.Patches
             {
                 _nextLogTime = Time.realtimeSinceStartup + 1f;
                 Melon<ShipSafetyMod>.Logger.Warning(
-                    $"Za mała masa rigidbody: {rigidbody.mass:0.###} kg (gra policzyła {props.MassIncludingConnectedShips:0.###} kg z połączonymi statkami), " +
-                    $"{ShipPhysicsAccess.Describe(__instance)}" + (ShipSafetyMod.Enabled.Value ? $" -> ustawiona na {fixedMass:0.#} kg" : ""));
+                    $"Rigidbody mass too low: {rigidbody.mass:0.###} kg (the game computed {props.MassIncludingConnectedShips:0.###} kg with connected ships), " +
+                    $"{ShipPhysicsAccess.Describe(__instance)}" + (ShipSafetyMod.Enabled.Value ? $" -> set to {fixedMass:0.#} kg" : ""));
             }
             if (ShipSafetyMod.Enabled.Value)
             {
@@ -70,8 +68,6 @@ namespace ShipSafety.Patches
         }
     }
 
-    // Po kroku fizyki, zanim gra zapisze stan statku: jeśli prędkość skoczyła o absurdalną wartość w jednym kroku
-    // (błąd fizyki) - przywracamy prędkość sprzed kroku. Gdy statek i tak jest za szybki - obcinamy do limitu.
     [HarmonyPatch(typeof(ShipServerPhysics), nameof(ShipServerPhysics.WritePhysicsState))]
     internal static class VelocityGuardPatch
     {
@@ -102,8 +98,8 @@ namespace ShipSafety.Patches
             {
                 _nextLogTime = Time.realtimeSinceStartup + 1f;
                 Melon<ShipSafetyMod>.Logger.Warning(
-                    $"Prędkość {speed:0.#} m/s (przed krokiem fizyki {before.magnitude:0.#} m/s, skok {jump:0.#} m/s), " +
-                    $"masa rigidbody {rigidbody.mass:0.###} kg, {ShipPhysicsAccess.Describe(__instance)}");
+                    $"Speed {speed:0.#} m/s (before the physics step {before.magnitude:0.#} m/s, jump {jump:0.#} m/s), " +
+                    $"rigidbody mass {rigidbody.mass:0.###} kg, {ShipPhysicsAccess.Describe(__instance)}");
             }
             if (!ShipSafetyMod.Enabled.Value)
             {

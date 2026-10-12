@@ -10,9 +10,6 @@ using Ships.Interface.Model.Parts.Common;
 
 namespace Mining.Patches
 {
-    // Błąd gry: przy wyjmowaniu wtyczki gra porównuje tylko numer części i gniazda, bez statku. Kabel między dwoma
-    // statkami (np. koparka stojąca na ziemi i generator na statku) z takimi samymi numerami po obu stronach
-    // odpinał się wtedy z obu końców naraz. Tu porównujemy też statek - drugi koniec zostaje wpięty.
     [HarmonyPatch(typeof(ShipInteractionService), "RpcLogic___PickUpCable_ServerRPC___1176123958")]
     internal static class CablePickUpFixPatch
     {

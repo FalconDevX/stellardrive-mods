@@ -4,22 +4,17 @@ using UnityEngine;
 
 namespace Flora.Models
 {
-    // Proste siatki low-poly w stylu gry: płaskie cieniowanie (każdy trójkąt ma własne wierzchołki i normalną),
-    // mało trójkątów, kolor nadaje materiał. Losowość z podanego ziarna, więc każdy wariant wygląda zawsze tak samo.
     internal static class LowPolyMeshes
     {
-        // Pomocnik zbierający trójkąty w kilka podsiatek (jedna podsiatka = jeden materiał/kolor).
         internal sealed class Builder
         {
             private readonly List<Vector3> _vertices = new List<Vector3>();
             private readonly List<Vector3> _normals = new List<Vector3>();
             private readonly List<Vector2> _uvs = new List<Vector2>();
 
-            // UV trójkąta na teksturze z obrysem (FloraTextures.Outline): rogi trójkąta = krawędzie z czarną kreską.
             public static readonly Vector2 UvA = new Vector2(0.02f, 0.02f);
             public static readonly Vector2 UvB = new Vector2(0.98f, 0.02f);
             public static readonly Vector2 UvC = new Vector2(0.5f, 0.98f);
-            // Punkt w środku tekstury (sam kolor, bez kreski) - dla części bez obrysu.
             public static readonly Vector2 UvPlain = new Vector2(0.5f, 0.33f);
             private readonly List<List<int>> _submeshes = new List<List<int>>();
 
@@ -54,7 +49,6 @@ namespace Flora.Models
                 _submeshes[submesh].Add(i + 2);
             }
 
-            // Trójkąt zwrócony na zewnątrz od punktu "inside" (żeby bryły nie były wywrócone na lewą stronę).
             public void OutwardTriangle(int submesh, Vector3 inside, Vector3 a, Vector3 b, Vector3 c)
             {
                 Vector3 n = Vector3.Cross(b - a, c - a);
@@ -68,24 +62,18 @@ namespace Flora.Models
                 }
             }
 
-            // Dwustronny trójkąt (płatki, liście) - widoczny z obu stron niezależnie od cullingu materiału.
             public void DoubleTriangle(int submesh, Vector3 a, Vector3 b, Vector3 c)
             {
                 Triangle(submesh, a, b, c);
                 Triangle(submesh, a, c, b);
             }
 
-            // Dwustronny trójkąt z narysowanym obrysem na krawędziach (tekstura z kreską).
             public void OutlinedTriangle(int submesh, Vector3 a, Vector3 b, Vector3 c)
             {
                 Triangle(submesh, a, b, c, UvA, UvB, UvC);
                 Triangle(submesh, a, c, b, UvA, UvC, UvB);
             }
 
-            // upNormals: wszystkie normalne w górę, jak w trawie gry - roślina jest oświetlona jak teren pod nią,
-            // a filtr konturów (liczony m.in. z normalnych) nie widzi na niej krawędzi.
-            // softCenter: normalne "od środka kępy" (jak w liściastych koronach drzew) - miękkie, zaokrąglone
-            // światło zamiast ostrych ścianek i mniej konturów na każdej krawędzi.
             public Mesh Build(string name, bool upNormals = false, Vector3? softCenter = null)
             {
                 var mesh = new Mesh { name = name };
@@ -139,7 +127,6 @@ namespace Flora.Models
             return v;
         }
 
-        // Nieregularna "kula" z 20 trójkątów - podstawa krzaka (jak kępa liści w low-poly).
         private static void Blob(Builder b, int submesh, Vector3 center, Vector3 radius, System.Random rng, float jitter)
         {
             var verts = new Vector3[IcoVertices.Length];
@@ -155,7 +142,6 @@ namespace Flora.Models
             }
         }
 
-        // Kępa kwiatów: kilka łodyg z liśćmi (podsiatka 0), płatki (podsiatka 1) i środek (podsiatka 2).
         internal static Mesh FlowerClump(int seed, int flowers, float height)
         {
             var rng = new System.Random(seed);
@@ -169,7 +155,6 @@ namespace Flora.Models
                 var lean = new Vector3((float)rng.NextDouble() - 0.5f, 0f, (float)rng.NextDouble() - 0.5f) * 0.15f;
                 Vector3 top = basePos + Vector3.up * h + lean;
 
-                // Łodyga: wąski trójkątny graniastosłup.
                 float w = 0.02f;
                 Vector3 s0 = new Vector3(w, 0, 0), s1 = new Vector3(-w * 0.5f, 0, w * 0.87f), s2 = new Vector3(-w * 0.5f, 0, -w * 0.87f);
                 Vector3[] bottom = { basePos + s0, basePos + s1, basePos + s2 };
@@ -182,14 +167,12 @@ namespace Flora.Models
                     b.OutwardTriangle(0, axisMid, bottom[i], upper[n], bottom[n]);
                 }
 
-                // Liść w połowie łodygi.
                 Vector3 mid = Vector3.Lerp(basePos, top, 0.4f);
                 float la = (float)(rng.NextDouble() * Mathf.PI * 2f);
                 var leafDir = new Vector3(Mathf.Cos(la), 0.35f, Mathf.Sin(la));
                 var leafSide = Vector3.Cross(leafDir, Vector3.up).normalized * 0.03f;
                 b.OutlinedTriangle(0, mid + leafSide * 1.5f, mid - leafSide * 1.5f, mid + leafDir * 0.1f);
 
-                // Kwiat: 5 płatków w kształcie gwiazdy, lekko uniesionych na końcach.
                 int petals = 5;
                 float petalLen = 0.09f + 0.04f * (float)rng.NextDouble();
                 float rot = (float)(rng.NextDouble() * Mathf.PI * 2f);
@@ -201,12 +184,10 @@ namespace Flora.Models
                     Vector3 tip = top + new Vector3(Mathf.Cos(a0), 0.25f, Mathf.Sin(a0)) * petalLen;
                     Vector3 l = top + new Vector3(Mathf.Cos(a1), 0.05f, Mathf.Sin(a1)) * petalLen * 0.45f;
                     Vector3 r = top + new Vector3(Mathf.Cos(a2), 0.05f, Mathf.Sin(a2)) * petalLen * 0.45f;
-                    // Obrys narysowany na teksturze: brzeg płatka i kreska w środku (jak pseudo-kontury na trawie).
                     b.OutlinedTriangle(1, l, tip, r);
                     b.OutlinedTriangle(1, top, l, r);
                 }
 
-                // Środek kwiatu: mała piramidka.
                 float c = petalLen * 0.25f;
                 Vector3 cTop = top + Vector3.up * c * 0.8f;
                 Vector3[] ring =

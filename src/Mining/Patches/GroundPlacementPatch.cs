@@ -29,12 +29,8 @@ using WorldTracking.Interface.Values;
 
 namespace Mining.Patches
 {
-    // W grze na gołej ziemi da się postawić tylko podłogę (zakłada nowy "statek"). Koparkę też można postawić prosto
-    // na terenie: klient dopasowuje ją do nachylenia (teren pod czterema nogami), a serwer zakłada statek z samą koparką.
     internal static class GroundPlacement
     {
-        // Pozycje stóp (x, z) względem środka koparki - LX, LZ z AssetSource/build_excavator.py.
-        // Kolejność: lewy przód, prawy przód, lewy tył, prawy tył (przekątne 0-3 i 1-2).
         internal static readonly Vector2[] Feet = { new Vector2(-0.72f, -0.62f), new Vector2(0.72f, -0.62f), new Vector2(-0.72f, 0.62f), new Vector2(0.72f, 0.62f) };
     }
 
@@ -50,8 +46,6 @@ namespace Mining.Patches
         }
     }
 
-    // Hologram podglądu: na ziemi pokazujemy koparkę przechyloną zgodnie z terenem (tak, jak zostanie postawiona).
-    // Przechylamy dzieci obiektu podglądu, bo jego własny obrót gra wykorzystuje w następnej klatce.
     [HarmonyPatch(typeof(PartPreview), "Update")]
     internal static class PreviewTiltPatch
     {
@@ -108,13 +102,11 @@ namespace Mining.Patches
             }
             catch (Exception e)
             {
-                Melon<MiningMod>.Logger.Error($"Nie udało się postawić koparki na ziemi: {e}");
+                Melon<MiningMod>.Logger.Error($"Could not place the excavator on the ground: {e}");
             }
             return false;
         }
 
-        // Teren pod każdą stopą (promień w dół wzdłuż "góry" gracza), z tego płaszczyzna: obrót i wysokość.
-        // Zwraca, pod iloma stopami znaleziono teren.
         internal static int AlignToTerrain(ref Vector3 position, ref Quaternion rotation, Vector3 up)
         {
             Vector3 forward = Vector3.ProjectOnPlane(rotation * Vector3.forward, up).normalized;
@@ -136,16 +128,14 @@ namespace Mining.Patches
                     hits[i] = above - up * 3f;
                 }
             }
-            // Przekątne stóp (0-3 i 1-2) wyznaczają nachylenie.
             Vector3 normal = Vector3.Cross(hits[3] - hits[0], hits[1] - hits[2]).normalized;
             if (Vector3.Dot(normal, up) < 0f) normal = -normal;
             if (Vector3.Angle(normal, up) > 35f)
             {
-                normal = Vector3.Slerp(up, normal, 35f / Vector3.Angle(normal, up)); // za stromo - ograniczamy przechył
+                normal = Vector3.Slerp(up, normal, 35f / Vector3.Angle(normal, up));
             }
             Vector3 alignedForward = Vector3.ProjectOnPlane(forward, normal).normalized;
             rotation = Quaternion.LookRotation(alignedForward, normal);
-            // Najwyżej położona stopa dotyka ziemi (pozostałe najwyżej kilka cm nad nią - fizyka dociśnie).
             float best = float.MinValue;
             Vector3 center = (hits[0] + hits[1] + hits[2] + hits[3]) / 4f;
             foreach (Vector3 h in hits) best = Mathf.Max(best, Vector3.Dot(h - center, normal));
@@ -154,11 +144,9 @@ namespace Mining.Patches
         }
     }
 
-    // Serwer: CreateShip dla koparki - statek bez podłogi, z samą koparką w środku układu statku.
     [HarmonyPatch(typeof(ShipInteractionService), "RpcLogic___CreateShip_ServerRPC___2476380455")]
     internal static class ServerCreateShipPatch
     {
-        // Parametry po pozycji (__0, __1) - nazwy w skompilowanej grze różnią się od tych z dekompilacji.
         private static bool Prefix(CreateShipNetworkRequest __0, FishNet.Connection.NetworkConnection __1)
         {
             CreateShipNetworkRequest P_0 = __0;
@@ -207,7 +195,7 @@ namespace Mining.Patches
             }
             catch (Exception e)
             {
-                Melon<MiningMod>.Logger.Error($"Serwer: nie udało się postawić koparki na ziemi: {e}");
+                Melon<MiningMod>.Logger.Error($"Server: could not place the excavator on the ground: {e}");
             }
             return false;
         }

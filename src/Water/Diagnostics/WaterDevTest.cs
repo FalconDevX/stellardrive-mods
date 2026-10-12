@@ -16,8 +16,6 @@ using WorldTracking.Interface.Values;
 
 namespace Water.Diagnostics
 {
-    // Tylko dla twórcy moda: parametr startowy --water-dev-test (świat wczytuje Mining: --mining-dev-world=...).
-    // Po wczytaniu szuka najbliższego akwenu, robi zdjęcia z kamery testowej do UserData/Water i zamyka grę.
     internal static class WaterDevTest
     {
         private static bool _started;
@@ -46,7 +44,7 @@ namespace Water.Diagnostics
                 TrackedPlanet tracked = WaterSurface.FindTracked();
                 if (cam == null || transpose == null || tracked == null || !(ClientOrigin.LocalVisualSpace is PlanetSurfaceSpace surface))
                 {
-                    log.Msg("[test] brak kamery/planety");
+                    log.Msg("[test] no camera/planet");
                     yield break;
                 }
                 var planetSpace = new PlanetSurfaceSpace { PlanetId = surface.PlanetId, Center = Vector3Double.Zero };
@@ -73,10 +71,10 @@ namespace Water.Diagnostics
                 }
                 if (bestDist == float.MaxValue)
                 {
-                    log.Msg("[test] brak akwenu w promieniu 4 km");
+                    log.Msg("[test] no lake within 4 km");
                     yield break;
                 }
-                log.Msg($"[test] akwen {Mathf.Sqrt(bestDist):0} m od kamery, dno {bestElev:0.0} m, woda {LakeTerrainPatch.SeaLevel} m; materiał {WaterSurface.Material?.shader?.name}");
+                log.Msg($"[test] lake {Mathf.Sqrt(bestDist):0} m from the camera, bottom {bestElev:0.0} m, water {LakeTerrainPatch.SeaLevel} m; material {WaterSurface.Material?.shader?.name}");
                 MelonCoroutines.Start(Shots(cam, transpose, planetSpace, surface, best, radius, outDir));
             }
             catch (Exception e)
@@ -118,7 +116,7 @@ namespace Water.Diagnostics
             cam.enabled = true;
             WaterSurface.OverrideCamera = null;
             UnityEngine.Object.Destroy(testCam.gameObject);
-            Melon<WaterMod>.Logger.Msg("[test] zdjęcia gotowe");
+            Melon<WaterMod>.Logger.Msg("[test] screenshots done");
             yield return new WaitForSeconds(2f);
             if (HasArg("quit"))
             {

@@ -15,9 +15,6 @@ using WorldTracking.Interface.Values;
 
 namespace Water.Surface
 {
-    // Tafla wody na poziomie morza Otrera b: dysk (gęsta siatka przy kamerze, rzadsza dalej) wygięty po kuli planety.
-    // Siatka ma współrzędne względem punktu kotwicy pod kamerą (dokładność float), a sam obiekt co klatkę przenosimy
-    // z układu planety do układu widoku (gra przesuwa początek układu za graczem). Kotwica przeskakuje co ~300 m.
     internal static class WaterSurface
     {
         private const ulong PlanetId = 4;
@@ -28,13 +25,13 @@ namespace Water.Surface
 
         private static GameObject _object;
         private static Mesh _mesh;
-        private static Vector3 _anchor;      // punkt tafli pod kamerą, układ planety
+        private static Vector3 _anchor;
         private static bool _hasAnchor;
-        private static float _radius;        // promień planety + poziom morza
+        private static float _radius;
         private static int _logBuilds = 3;
 
         internal static Material Material { get; private set; }
-        internal static Camera OverrideCamera; // tylko test (Diagnostics): kamera testowa zamiast głównej
+        internal static Camera OverrideCamera;
 
         internal static void Clear()
         {
@@ -100,7 +97,6 @@ namespace Water.Surface
             renderer.sharedMaterial = Material;
         }
 
-        // Dzień i noc: jasność wody wg wysokości słońca (najjaśniejsze światło kierunkowe) nad horyzontem w tym miejscu.
         private static Light _sun;
         private static float _exposure = -1f;
         private static float _nextSunSearch;
@@ -115,19 +111,18 @@ namespace Water.Surface
             {
                 _nextSunSearch = Time.unscaledTime + 5f;
                 _sun = Object.FindObjectsOfType<Light>().Where(l => l.type == LightType.Directional && l.isActiveAndEnabled).OrderByDescending(l => l.intensity).FirstOrDefault();
-                Melon<WaterMod>.Logger.Msg($"Woda: słońce = {(_sun != null ? _sun.name + " " + _sun.intensity : "brak")}");
+                Melon<WaterMod>.Logger.Msg($"Water: sun = {(_sun != null ? _sun.name + " " + _sun.intensity : "none")}");
             }
             float target = 1f;
             if (_sun != null)
             {
-                float height = Vector3.Dot(upVisual, -_sun.transform.forward);   // >0: słońce nad horyzontem
+                float height = Vector3.Dot(upVisual, -_sun.transform.forward);
                 target = Mathf.Lerp(0.1f, 1f, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-0.12f, 0.3f, height)));
             }
             _exposure = _exposure < 0f ? target : Mathf.MoveTowards(_exposure, target, Time.deltaTime * 0.5f);
             Material.SetFloat("_Exposure", _exposure);
         }
 
-        // Piana przy brzegu i obiektach potrzebuje bufora głębokości kamery (URP tworzy go na żądanie).
         private static Camera _depthCam;
 
         private static void RequestDepth(Camera cam)
@@ -143,10 +138,9 @@ namespace Water.Surface
                 data.requiresDepthTexture = true;
             }
             var asset = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
-            Melon<WaterMod>.Logger.Msg($"Woda: bufor głębokości w ustawieniach URP: {asset?.supportsCameraDepthTexture}, kamera: {data?.requiresDepthTexture}");
+            Melon<WaterMod>.Logger.Msg($"Water: depth buffer in URP settings: {asset?.supportsCameraDepthTexture}, camera: {data?.requiresDepthTexture}");
         }
 
-        // Dysk wokół kotwicy: pierścienie coraz rzadsze (kwadratowo), wierzchołki na kuli o promieniu _radius.
         private static void BuildMesh(Vector3 anchor, float extent)
         {
             Vector3 up = anchor.normalized;
@@ -156,8 +150,6 @@ namespace Water.Surface
             var normals = new Vector3[verts.Length];
             var uvs = new Vector2[verts.Length];
             var depth = new Vector2[verts.Length];
-            // stałe współrzędne tekstur: osie świata prostopadłe do dominującej osi kotwicy, przesunięte o wielokrotność
-            // 500 m (wszystkie skale tekstur w shaderze mają okres będący dzielnikiem 500 m) - bez przeskoków
             Vector3 ax = new Vector3(Mathf.Abs(up.x), Mathf.Abs(up.y), Mathf.Abs(up.z));
             Vector3 axisU = ax.y >= ax.x && ax.y >= ax.z ? Vector3.right : Vector3.up;
             Vector3 axisV = ax.z >= ax.x && ax.z >= ax.y ? Vector3.right : Vector3.forward;
@@ -217,7 +209,7 @@ namespace Water.Surface
                 _mesh.uv = uvs;
                 _mesh.uv2 = depth;
             }
-            if (_logBuilds-- > 0) Melon<WaterMod>.Logger.Msg($"Woda: siatka {verts.Length} wierzch., odczyt dna {sw.Elapsed.TotalMilliseconds:0.0} ms");
+            if (_logBuilds-- > 0) Melon<WaterMod>.Logger.Msg($"Water: mesh {verts.Length} verts, bottom read {sw.Elapsed.TotalMilliseconds:0.0} ms");
             _mesh.triangles = tris;
             _mesh.bounds = new Bounds(Vector3.zero, Vector3.one * extent * 2.2f);
         }

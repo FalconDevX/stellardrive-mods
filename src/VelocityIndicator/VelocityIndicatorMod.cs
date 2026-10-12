@@ -15,14 +15,14 @@ namespace VelocityIndicator
         {
             var category = MelonPreferences.CreateCategory("VelocityIndicator");
             OrbitRelativeToSurface = category.CreateEntry("OrbitRelativeToSurface", true,
-                description: "Na orbicie planety wskaźnik pokazuje prędkość względem powierzchni (jak przy ziemi), a nie względem kosmosu");
+                description: "In planet orbit the indicator shows speed relative to the surface (like near the ground), not relative to space");
             LogModeChanges = category.CreateEntry("LogModeChanges", true,
-                description: "Zapisuje do MelonLoader\\Latest.log każdą zmianę trybu wskaźnika (do sprawdzania)");
+                description: "Logs every indicator mode change to MelonLoader\\Latest.log (for checking)");
             category.SaveToFile(false);
 
             LoggerInstance.Msg(OrbitRelativeToSurface.Value
-                ? "Wskaźnik prędkości: przy planecie i na jej orbicie zawsze względem powierzchni."
-                : "Wskaźnik prędkości: tryb według przestrzeni statku.");
+                ? "Velocity indicator: near a planet and in its orbit always relative to the surface."
+                : "Velocity indicator: mode follows the ship's space.");
         }
     }
 }

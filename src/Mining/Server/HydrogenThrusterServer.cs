@@ -19,13 +19,6 @@ using UnityEngine;
 
 namespace Mining.Server
 {
-    // Silnik wodorowy ma stan silnika chemicznego, więc gra traktuje go jak zwykły silnik - tylko jej sprawdzenie paliwa
-    // (tlen + etanol) go odrzuca i ustawia mu ciąg 0. Po zwykłej aktualizacji silników liczymy nasz. Gniazda 0 i 1: wodór
-    // i (opcjonalnie) tlen w dowolnej kolejności, gniazdo 2: prąd.
-    //  - wodór + prąd: jądrowo-termiczny (prąd rozgrzewa wodór),
-    //  - wodór + tlen: spalanie (bez prądu),
-    //  - wodór + tlen + prąd: dopalanie tlenem, ciąg x OxygenBoost.
-    // Ciąg mocniejszy niż chemiczny (MiningMod.HydrogenThrustMultiplier).
     [HarmonyPatch(typeof(ShipThrustersUpdater))]
     internal static class HydrogenThrusterServer
     {
@@ -34,7 +27,6 @@ namespace Mining.Server
         internal const float OxygenBoost = 1.4f;
         private static bool _loggedError;
 
-        // Silniki z dopalaniem w tym kroku (do liczenia siły ciągu).
         internal static readonly HashSet<(uint ship, ushort part)> Boosted = new HashSet<(uint, ushort)>();
 
         [HarmonyPostfix]
@@ -65,8 +57,6 @@ namespace Mining.Server
         private static readonly TryGroups GameGroups =
             AccessTools.MethodDelegate<TryGroups>(AccessTools.Method(typeof(ShipThrustersUpdater), "TryGetValidFluidGroups"));
 
-        // Zamiast aktualizacji gry (która najpierw dawała naszym silnikom ciąg 0, a my potem właściwy - dwie zmiany stanu
-        // w każdym kroku restartowały dźwięk silnika): zwykłe silniki dokładnie jak w grze, wodorowe po naszemu, jeden zapis.
         [HarmonyPrefix]
         [HarmonyPatch(nameof(ShipThrustersUpdater.Update))]
         private static bool Update(ShipThrustersUpdater __instance, IShipStateWrite ____ship, ConnectionsServerTracker ____connections, float deltaTime)
@@ -117,10 +107,9 @@ namespace Mining.Server
                 }
                 done = true;
             });
-            return !done; // błąd w naszym kodzie - niech zadziała aktualizacja gry
+            return !done;
         }
 
-        // Gniazda 0 i 1: wodór (wymagany) i tlen (opcjonalny), w dowolnej kolejności.
         private static bool TryGetFluids(IShipStateWrite ship, ConnectionsServerTracker connections, ushort partId,
             out FluidGroupServerState hydrogen, out FluidGroupServerState oxygen)
         {
@@ -149,13 +138,12 @@ namespace Mining.Server
                 if (!_loggedError)
                 {
                     _loggedError = true;
-                    Melon<MiningMod>.Logger.Error($"Błąd silnika wodorowego: {e}");
+                    Melon<MiningMod>.Logger.Error($"Hydrogen thruster error: {e}");
                 }
             }
         }
     }
 
-    // Ciąg: gra liczy 7800 x przepływ dla każdego silnika - silnikom wodorowym dokładamy różnicę do mnożnika.
     [HarmonyPatch(typeof(ShipThrust), "CalculateShipThrustForce")]
     internal static class HydrogenThrustForcePatch
     {

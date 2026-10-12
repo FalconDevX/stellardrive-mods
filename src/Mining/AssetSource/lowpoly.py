@@ -1,51 +1,42 @@
-# Wspólny kod modeli low-poly w stylu części StellarDrive: proste bryły, płaskie kolory z palety, kreskowanie
-# przy dolnych krawędziach ścian (jak w teksturach gry). Format wyjściowy MSH1 czyta Content/ModAssets.cs.
 import math, os, struct
 from PIL import Image
 
-# Paleta 5x5 pól po 128 px.
 COLORS = {
     'yellow': (238, 170, 56), 'yellow_dark': (196, 132, 30), 'dark': (64, 68, 76), 'grey': (138, 144, 152),
     'light': (210, 214, 220), 'orange': (214, 98, 44), 'steel': (168, 174, 182), 'screen': (40, 96, 120),
     'black': (36, 38, 42), 'rubber': (50, 52, 56), 'olive': (112, 122, 72),
     'white': (226, 230, 234), 'cyan': (70, 190, 220), 'blue': (60, 110, 190),
 }
-# Kreskowanie jak w teksturach gry (ukośne ciemne kreski przy dolnej krawędzi ścianki) - pola z dopiskiem '#h'.
 HATCHED = ('yellow', 'olive', 'grey', 'white')
 NAMES = list(COLORS) + [c + '#h' for c in HATCHED]
 CELL, GRID = 128, 5
-
 
 def uv_of(color):
     i = NAMES.index(color)
     cx, cy = i % GRID, i // GRID
     return ((cx + 0.5) / GRID, 1 - (cy + 0.5) / GRID)
 
-
 def cell_uv(color, u, v):
-    # (u, v) w [0,1] wewnątrz pola koloru, v = 0 na dole ścianki
     i = NAMES.index(color)
     cx, cy = i % GRID, i // GRID
     m = 0.03
     return ((cx + m + u * (1 - 2 * m)) / GRID, 1 - (cy + 1 - m - v * (1 - 2 * m)) / GRID)
 
-
 def hatch_cell(img, color, x0, y0):
-    # ukośne kreski, gęste przy dole pola i zanikające ku górze
     import random
     rnd = random.Random(hash(color) & 0xffff)
     base = COLORS[color]
     stroke = tuple(int(c * 0.5) for c in base)
     px = img.load()
     for y in range(CELL):
-        v = 1 - y / (CELL - 1)              # 0 = dół pola
+        v = 1 - y / (CELL - 1)
         for x in range(CELL):
             px[x0 + x, y0 + y] = base
     spacing = 9
     for k in range(-CELL, CELL * 2, spacing):
-        reach = 0.22 + 0.25 * rnd.random()  # jak wysoko sięga kreska (część wysokości pola)
+        reach = 0.22 + 0.25 * rnd.random()
         for t in range(CELL):
-            x, y = k + t, CELL - 1 - t       # kreska pod kątem 45 stopni od dołu
+            x, y = k + t, CELL - 1 - t
             if not (0 <= x < CELL and 0 <= y < CELL):
                 continue
             v = 1 - y / (CELL - 1)
@@ -54,7 +45,6 @@ def hatch_cell(img, color, x0, y0):
             for w in range(3):
                 if 0 <= x + w < CELL:
                     px[x0 + x + w, y0 + y] = stroke
-
 
 class Mesh:
     def __init__(self):
@@ -73,8 +63,6 @@ class Mesh:
         self.i += [base, base + 1, base + 2]
 
     def quad(self, a, b, c, d, color, normals=None):
-        # Ściany boczne (a = lewy dół, b = lewa góra, c = prawa góra, d = prawy dół) w kolorach z kreskowaniem
-        # dostają UV na całe pole z kreskami, jeśli są wystarczająco duże.
         uvs = None
         vertical = abs(b[1] - a[1]) > 0.12 and abs(a[1] - d[1]) < 1e-6
         width = math.sqrt(sum((d[i] - a[i]) ** 2 for i in range(3)))
@@ -85,12 +73,10 @@ class Mesh:
         self.tri(a, c, d, color, (normals[0], normals[2], normals[3]) if normals else None, (uvs[0], uvs[2], uvs[3]) if uvs else None)
 
     def box(self, center, size, color, colors=None):
-        # colors: opcjonalnie inny kolor dla ścian {'top','bottom','front','back','left','right'}
         cx, cy, cz = center
         hx, hy, hz = size[0] / 2, size[1] / 2, size[2] / 2
         p = lambda x, y, z: (cx + x * hx, cy + y * hy, cz + z * hz)
         c = lambda face: (colors or {}).get(face, color)
-        # Unity: lewoskrętny układ, ścianki zgodnie z ruchem wskazówek zegara patrząc z zewnątrz
         self.quad(p(-1, 1, -1), p(-1, 1, 1), p(1, 1, 1), p(1, 1, -1), c('top'))
         self.quad(p(-1, -1, 1), p(-1, -1, -1), p(1, -1, -1), p(1, -1, 1), c('bottom'))
         self.quad(p(-1, -1, -1), p(-1, 1, -1), p(1, 1, -1), p(1, -1, -1), c('front'))
@@ -134,15 +120,13 @@ class Mesh:
             for v in verts:
                 f.write(struct.pack('<8f', *v))
             f.write(struct.pack('<%di' % len(index), *index))
-        print(os.path.basename(path), len(verts), 'wierzchołków', len(index) // 3, 'trójkątów')
-
+        print(os.path.basename(path), len(verts), 'vertices', len(index) // 3, 'triangles')
 
 def sub(a, b): return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
 def cross(a, b): return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
 def norm(a):
     l = math.sqrt(sum(x * x for x in a)) or 1
     return (a[0] / l, a[1] / l, a[2] / l)
-
 
 def write_palette(path):
     img = Image.new('RGB', (CELL * GRID, CELL * GRID), COLORS['grey'])
@@ -154,9 +138,7 @@ def write_palette(path):
             img.paste(COLORS[name], (x, y, x + CELL, y + CELL))
     img.save(path)
 
-
 def write_preview_obj(path, texture, parts):
-    # OBJ do podglądu w Blenderze (importer OBJ zamienia Y-w-górę na Z; odbicie X zamienia układ lewoskrętny na prawoskrętny)
     nl = chr(10)
     with open(path, 'w') as f:
         f.write('mtllib preview.mtl' + nl + 'usemtl m' + nl)

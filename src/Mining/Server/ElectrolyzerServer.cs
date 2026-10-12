@@ -16,16 +16,12 @@ using UnityEngine;
 
 namespace Mining.Server
 {
-    // Elektrolizer (gra ma jego aktualizację, ale w demie nie było części - tu zastępujemy ją naszą):
-    //  - z lodem w slocie: lód -> tlen (gniazdo 0) + wodór (2) + woda (3),
-    //  - bez lodu: woda z rury na gnieździe 3 -> wodór + tlen.
-    // Pracuje tylko z prądem (gniazdo 1) i gdy wodór ma dokąd płynąć; tlen i woda bez miejsca w rurach są wypuszczane.
     [HarmonyPatch(typeof(ElectrolyzersUpdater))]
     internal static class ElectrolyzerServer
     {
         private const float PowerWatts = 2000f;
-        private const float IcePerSecond = 0.25f;   // przy pełnym zasilaniu
-        private const float WaterPerSecond = 0.5f;  // tryb bez lodu
+        private const float IcePerSecond = 0.25f;
+        private const float WaterPerSecond = 0.5f;
         private const float HydrogenPerSecond = 0.5f;
         private const float OxygenPerSecond = 0.25f;
         private const float WaterFromIcePerSecond = 0.25f;
@@ -148,7 +144,7 @@ namespace Mining.Server
                 if (!_loggedError)
                 {
                     _loggedError = true;
-                    Melon<MiningMod>.Logger.Error($"Błąd elektrolizera: {e}");
+                    Melon<MiningMod>.Logger.Error($"Electrolyzer error: {e}");
                 }
             }
         }

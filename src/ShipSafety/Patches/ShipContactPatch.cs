@@ -6,11 +6,6 @@ using UnityEngine;
 
 namespace ShipSafety.Patches
 {
-    // Statek w hangarze innego statku. Gra przy każdym kontakcie liczy niszczenie: część pęka, gdy uderzenie
-    // przekroczy twardość x masę statku (szkło już przy ~1 m/s, drewno ~16 m/s, urządzenia zależnie od rozmiaru).
-    // Po zniszczeniu przywraca prędkość sprzed zderzenia, więc statek dalej wjeżdża w drugi i niszczy kolejne
-    // części - stąd rozwalanie i telepanie przy lądowaniu w hangarze. Kontakty z innym statkiem przy małej
-    // prędkości względnej pomijamy w niszczeniu (fizyka nadal je odpycha). Liczy serwer (host).
     [HarmonyPatch(typeof(ShipCollisionDestruction), "OnCollisionEnter")]
     internal static class ShipContactDestructionPatch
     {
@@ -30,15 +25,12 @@ namespace ShipSafety.Patches
             if (Time.realtimeSinceStartup >= _nextLogTime)
             {
                 _nextLogTime = Time.realtimeSinceStartup + 5f;
-                Melon<ShipSafetyMod>.Logger.Msg($"Kontakt statków ({__instance.name} z {collision.rigidbody.name}) przy {speed:0.0} m/s - bez zniszczeń");
+                Melon<ShipSafetyMod>.Logger.Msg($"Ship contact ({__instance.name} with {collision.rigidbody.name}) at {speed:0.0} m/s - no damage");
             }
             return false;
         }
     }
 
-    // Spokojniejsza fizyka stykających się statków: więcej iteracji solvera (mniej drgań statku stojącego na innym
-    // statku) i wolniejsze wypychanie z nakładania się (statek, który wjechał w drugi, jest odsuwany łagodnie,
-    // zamiast być wystrzelony).
     [HarmonyPatch(typeof(ShipRigidbody), nameof(ShipRigidbody.SetRootPhysicsStateServer))]
     internal static class ShipSolverPatch
     {

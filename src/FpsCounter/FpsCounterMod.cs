@@ -8,7 +8,6 @@ using UnityEngine.InputSystem;
 
 namespace FpsCounter
 {
-    // Licznik FPS w prawym górnym rogu ekranu. Włączanie w ustawieniach (ShowFps) albo klawiszem F3.
     public class FpsCounterMod : MelonMod
     {
         private MelonPreferences_Category _category;
@@ -24,8 +23,8 @@ namespace FpsCounter
         public override void OnInitializeMelon()
         {
             _category = MelonPreferences.CreateCategory("FpsCounter");
-            _show = _category.CreateEntry("ShowFps", true, description: "Pokazuj FPS w prawym górnym rogu ekranu");
-            _toggleKey = _category.CreateEntry("ToggleKey", Key.F3, description: "Klawisz włączający/wyłączający licznik FPS");
+            _show = _category.CreateEntry("ShowFps", true, description: "Show FPS in the top right corner of the screen");
+            _toggleKey = _category.CreateEntry("ToggleKey", Key.F3, description: "Key that toggles the FPS counter");
             _category.SaveToFile(false);
         }
 
@@ -38,7 +37,6 @@ namespace FpsCounter
                 _category.SaveToFile(false);
             }
 
-            // Średnia z pół sekundy + najdłuższa klatka (pokazuje przycięcia, których średnia nie widać).
             _frames++;
             _elapsed += Time.unscaledDeltaTime;
             _worstFrame = Mathf.Max(_worstFrame, Time.unscaledDeltaTime);

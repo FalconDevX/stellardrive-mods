@@ -21,10 +21,6 @@ using WorldTracking.Interface.Services;
 
 namespace Mining.Server
 {
-    // Praca koparki po stronie hosta, w tym samym cyklu co inne urządzenia statku:
-    //  PrepareConsumers - zgłasza zapotrzebowanie na prąd (jak elektrolizer),
-    //  UpdateParts      - postęp wydobycia zależny od dostarczonego prądu; co pełny cykl 1 sztuka rudy do slotów 1-4.
-    // Kopie tylko, gdy stoi na złożu (MiningSites), na planecie, i ma miejsce w slotach.
     [HarmonyPatch(typeof(TrackedShipServer))]
     internal static class ExcavatorServer
     {
@@ -36,7 +32,6 @@ namespace Mining.Server
         private static float _nextSiteRefresh;
         private static bool _loggedError;
 
-        // Stan każdej koparki (do okna koparki u hosta i do logu).
         private static readonly Dictionary<(uint ship, ushort part), string> Status = new Dictionary<(uint, ushort), string>();
 
         internal static void Reset()
@@ -140,8 +135,6 @@ namespace Mining.Server
             return site != null && SignalAllows(ship, part) && HasSpace((StorageState)part.State, site.Kind.ItemId);
         }
 
-        // Wejście sygnału: koparka kopie tylko wtedy, gdy kablem dochodzi teraz sygnał 1 (>= 0,5).
-        // Bez kabla albo przy 0 stoi - sprawdzane w każdej klatce, nic nie jest zapamiętywane.
         private static bool SignalAllows(TrackedShipServer ship, StatefulPart part)
         {
             var connections = ServiceLocator.GetService<Ships.Cables.ConnectionsServerTracker>();
@@ -163,7 +156,6 @@ namespace Mining.Server
             if (ships.TryGetRootShip(ship.Id, out IShipStateRead root) && root is TrackedShipServer rootShip &&
                 spaces.GetSpace(rootShip.SpaceId) is PlanetSurfaceSpace surface)
             {
-                // Czubek wiertła (pod koparką) w układzie planety.
                 Vector3 drillTip = part.LocalPosition + part.LocalRotation * (Excavator.DrillPivot + Vector3.down * Excavator.DrillLength);
                 Vector3Double inSurface = transpose.Position(ship.RelativeSpaceId, surface, (Vector3Double)drillTip);
                 Vector3 planetPos = (Vector3)(surface.Center + inSurface);
@@ -186,7 +178,6 @@ namespace Mining.Server
             return false;
         }
 
-        // Najpierw dokłada do niepełnego stosu tej rudy, potem do pustego slotu.
         private static bool TryAddItem(StorageState state, uint itemId, out StorageState updated)
         {
             updated = state;
@@ -226,7 +217,7 @@ namespace Mining.Server
                 if (!_loggedError)
                 {
                     _loggedError = true;
-                    Melon<MiningMod>.Logger.Error($"Błąd koparki (serwer): {e}");
+                    Melon<MiningMod>.Logger.Error($"Excavator error (server): {e}");
                 }
             }
         }

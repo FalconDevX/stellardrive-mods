@@ -17,22 +17,17 @@ using UnityEngine.SceneManagement;
 
 namespace Mining.Diagnostics
 {
-    // Narzędzia dla twórcy moda (domyślnie wyłączone): automatyczne wczytanie świata z menu,
-    // zrzut budowy części/materiałów do pliku i zrzuty ekranu.
     internal static class DevTools
     {
         private static bool _autoLoaded;
         private static bool _dumpStarted;
 
-        // Czy gracz pisze w polu tekstowym (np. nazwa beacona) - wtedy skróty klawiszowe moda nie działają.
         internal static bool IsTyping()
         {
             var selected = UnityEngine.EventSystems.EventSystem.current?.currentSelectedGameObject;
             return selected != null && (selected.GetComponent<TMPro.TMP_InputField>() != null || selected.GetComponent<UnityEngine.UI.InputField>() != null);
         }
 
-        // Parametry startowe gry (--mining-dev-world=<ścieżka>, --mining-dev-test, --mining-dev-quit...) - działają tylko
-        // w instancji uruchomionej z nimi, bez zmiany wspólnego pliku ustawień (gracz może grać równolegle).
         private static string Arg(string name)
         {
             string prefix = "--mining-dev-" + name + "=";
@@ -62,7 +57,7 @@ namespace Mining.Diagnostics
             }
             if (sceneName == "MainGame" && (HasArg("dump") || MiningMod.DevDump.Value) && !_dumpStarted)
             {
-                _dumpStarted = true; // gra zgłasza wczytanie sceny MainGame dwa razy
+                _dumpStarted = true;
                 MelonCoroutines.Start(DumpAfterDelay(25f));
             }
         }
@@ -70,28 +65,27 @@ namespace Mining.Diagnostics
         private static IEnumerator LoadWorld(string world)
         {
             yield return new WaitForSeconds(3f);
-            Melon<MiningMod>.Logger.Msg($"[dev] wczytuję świat {world}");
+            Melon<MiningMod>.Logger.Msg($"[dev] loading world {world}");
             MainGameSceneLoadData.Mode = MainGameSceneLoadData.GameMode.SinglePlayer;
             MainGameSceneLoadData.SaveFileFullName = world;
             SceneManager.LoadScene("MainGame", LoadSceneMode.Single);
         }
 
-        // Pomiar lagów przy szybkim stawianiu i usuwaniu: 30 podłóg na statku startowym, po jednej na klatkę.
         private static IEnumerator RunPerfTest()
         {
             var log = Melon<MiningMod>.Logger;
             var shipsServer = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>();
             var floor = new Ships.Interface.Services.PartSettingsProvider().GetAllPartSettings().FirstOrDefault(p => p.id == 70) as HullPartSettings;
             Ships.TrackedShipServer ship = shipsServer?.Ships.OrderByDescending(sh => sh.GetStateSnapshot().HullParts.Length).FirstOrDefault();
-            log.Msg($"[perf] statek {ship?.Id}: {ship?.GetStateSnapshot().HullParts.Length} elementów kadłuba, {ship?.StatefulParts.Count()} części");
+            log.Msg($"[perf] ship {ship?.Id}: {ship?.GetStateSnapshot().HullParts.Length} hull parts, {ship?.StatefulParts.Count()} parts");
             if (floor == null || ship == null)
             {
-                log.Msg("[perf] brak statku albo podłogi");
+                log.Msg("[perf] no ship or floor");
                 yield break;
             }
             var frames = new List<float>();
             for (int i = 0; i < 120; i++) { yield return null; frames.Add(Time.unscaledDeltaTime * 1000f); }
-            log.Msg($"[perf] spoczynek: średnio {frames.Average():0.0} ms, max {frames.Max():0.0} ms");
+            log.Msg($"[perf] idle: average {frames.Average():0.0} ms, max {frames.Max():0.0} ms");
 
             var call = new List<double>();
             frames.Clear();
@@ -108,7 +102,7 @@ namespace Mining.Diagnostics
                 frames.Add(Time.unscaledDeltaTime * 1000f);
             }
             for (int i = 0; i < 30; i++) { yield return null; frames.Add(Time.unscaledDeltaTime * 1000f); }
-            log.Msg($"[perf] stawianie: wywołanie serwera średnio {call.Average():0.00} ms (max {call.Max():0.00}), klatki średnio {frames.Average():0.0} ms, max {frames.Max():0.0} ms");
+            log.Msg($"[perf] placing: server call average {call.Average():0.00} ms (max {call.Max():0.00}), frames average {frames.Average():0.0} ms, max {frames.Max():0.0} ms");
 
             call.Clear();
             frames.Clear();
@@ -121,9 +115,8 @@ namespace Mining.Diagnostics
                 frames.Add(Time.unscaledDeltaTime * 1000f);
             }
             for (int i = 0; i < 30; i++) { yield return null; frames.Add(Time.unscaledDeltaTime * 1000f); }
-            log.Msg($"[perf] usuwanie: wywołanie serwera średnio {call.Average():0.00} ms (max {call.Max():0.00}), klatki średnio {frames.Average():0.0} ms, max {frames.Max():0.0} ms");
+            log.Msg($"[perf] removing: server call average {call.Average():0.00} ms (max {call.Max():0.00}), frames average {frames.Average():0.0} ms, max {frames.Max():0.0} ms");
 
-            // Rotor: postawienie na statku, płyta na przegubie i obrót płyty razem z rotorem (kąt ustawiany wprost w stanie).
             PartSettings rotor = Content.RotorUnlock.Rotor;
             ushort rotorId = ship.AddStatefulPart(rotor, new Ships.Interface.Model.Placement.FloatingPartPlacement(new Vector3(0f, -0.46f, 0.25f),
                 Ships.Interface.Model.Placement.PartOrientation.Forward, Ships.Interface.Model.Placement.PartOrientation.Up));
@@ -131,7 +124,7 @@ namespace Mining.Diagnostics
             ship.TryGetStatefulPart(rotorId, out var rotorPart);
             var rotorState = rotorPart?.State as Ships.Interface.Model.Parts.State.RotorState;
             var child = rotorState != null ? shipsServer.GetShip(rotorState.AnchoredShipId) : null;
-            log.Msg($"[rotor] postawiony: {rotorPart != null}, płyta (podstatek): {(child != null ? child.Id.ToString() : "BRAK")}");
+            log.Msg($"[rotor] placed: {rotorPart != null}, plate (sub-ship): {(child != null ? child.Id.ToString() : "MISSING")}");
             if (child != null)
             {
                 Quaternion before = Quaternion.Inverse(ship.LocalPhysicsState.Rotation) * child.LocalPhysicsState.Rotation;
@@ -142,12 +135,11 @@ namespace Mining.Diagnostics
                 Quaternion after = Quaternion.Inverse(ship.LocalPhysicsState.Rotation) * child.LocalPhysicsState.Rotation;
                 Server.RotorDegreesPatch.TestTargetDegrees = null;
                 ship.TryGetStatefulPart(rotorId, out rotorPart);
-                log.Msg($"[rotor] sygnał 90: po 0,5 s płyta obrócona o {Quaternion.Angle(before, mid):0.0}°, po 2,5 s o {Quaternion.Angle(before, after):0.0}° " +
-                        $"(kąt rotora {((Ships.Interface.Model.Parts.State.RotorState)rotorPart.State).Angle * Mathf.Rad2Deg:0.0}°)");
+                log.Msg($"[rotor] signal 90: after 0.5 s the plate turned {Quaternion.Angle(before, mid):0.0}°, after 2.5 s {Quaternion.Angle(before, after):0.0}° " +
+                        $"(rotor angle {((Ships.Interface.Model.Parts.State.RotorState)rotorPart.State).Angle * Mathf.Rad2Deg:0.0}°)");
             }
         }
 
-        // Jetpack: skok + "przytrzymany skok" przez 3 s; wysokość i zużycie drewna ze slotu paliwa.
         private static IEnumerator RunJetpackTest()
         {
             var log = Melon<MiningMod>.Logger;
@@ -155,7 +147,7 @@ namespace Mining.Diagnostics
             Players.TrackedPlayerServer player = players?.ActivePlayers.FirstOrDefault();
             if (player == null)
             {
-                log.Msg("[jetpack] brak gracza");
+                log.Msg("[jetpack] no player");
                 yield break;
             }
             var net = Traverse.Create(player).Property("NetworkState").GetValue<Players.Network.PlayerNetworkState>();
@@ -165,7 +157,7 @@ namespace Mining.Diagnostics
             yield return new WaitForSeconds(0.5f);
             Vector3 start = player.PhysicsState.Position;
             Vector3 up = player.PhysicsState.Rotation * Vector3.up;
-            log.Msg($"[jetpack] odblokowany: {Content.Jetpack.IsUnlocked()}, drewno w slocie: {net.Inventory[Content.Jetpack.FuelSlot].Quantity}");
+            log.Msg($"[jetpack] unlocked: {Content.Jetpack.IsUnlocked()}, wood in slot: {net.Inventory[Content.Jetpack.FuelSlot].Quantity}");
             var step = AccessTools.Method(typeof(Players.TrackedPlayerServer), "DoPlayerPhysicsStep");
             var jump = new Players.LocalClient.Controls.Model.PlayerControlInput { MoveInput = Vector3.up };
             step.Invoke(player, new object[] { jump, 0.02f });
@@ -178,14 +170,13 @@ namespace Mining.Diagnostics
             }
             Content.Jetpack.TestForceUp = false;
             MiningMod.JetpackSecondsPerWood.Value = oldSeconds;
-            // Ekwipunek ze slotem paliwa (zrzut ekranu).
             var inventoryUi = UnityEngine.Object.FindObjectOfType<UI.Inventory.PlayerInventoryActivator>(true);
             inventoryUi?.ToggleInventory();
             yield return new WaitForSeconds(1f);
             ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, "test_jetpack_inventory.png"));
             yield return new WaitForSeconds(0.5f);
             inventoryUi?.ToggleInventory();
-            log.Msg($"[jetpack] po 3 s ciągu: wysokość {Vector3.Dot(player.PhysicsState.Position - start, up):0.0} m (max {maxHeight:0.0} m), drewno w slocie: {net.Inventory[Content.Jetpack.FuelSlot].Quantity}");
+            log.Msg($"[jetpack] after 3 s of thrust: height {Vector3.Dot(player.PhysicsState.Position - start, up):0.0} m (max {maxHeight:0.0} m), wood in slot: {net.Inventory[Content.Jetpack.FuelSlot].Quantity}");
         }
 
         private static IEnumerator DumpAfterDelay(float seconds)
@@ -197,7 +188,7 @@ namespace Mining.Diagnostics
             }
             catch (Exception e)
             {
-                Melon<MiningMod>.Logger.Error($"[dev] zrzut nie powiódł się: {e}");
+                Melon<MiningMod>.Logger.Error($"[dev] dump failed: {e}");
             }
             if (HasArg("jetpack") || MiningMod.DevJetpack.Value)
             {
@@ -231,15 +222,14 @@ namespace Mining.Diagnostics
             }
         }
 
-        // Podgląd bez budowania: koparka (z pracującym wiertłem) i najbliższe złoże przed kamerą + zrzuty ekranu.
         private static IEnumerator RunVisualTest()
         {
             var log = Melon<MiningMod>.Logger;
             PartSettings part = new Ships.Interface.Services.PartSettingsProvider().GetAllPartSettings().FirstOrDefault(p => p.id == Content.Excavator.PartId);
-            log.Msg($"[test] część koparki: {(part != null ? "jest" : "BRAK")}");
+            log.Msg($"[test] excavator part: {(part != null ? "present" : "MISSING")}");
             foreach (ResearchSettingsList list in Resources.FindObjectsOfTypeAll<ResearchSettingsList>())
             {
-                log.Msg($"[test] lista badań {list.name}: " + string.Join("; ", list.list.Where(r => r != null && r.availableInDemo && !r.hideFromTechTree).Select(r => $"{r.techName}@{r.positionInTechTree}")));
+                log.Msg($"[test] research list {list.name}: " + string.Join("; ", list.list.Where(r => r != null && r.availableInDemo && !r.hideFromTechTree).Select(r => $"{r.techName}@{r.positionInTechTree}")));
             }
             Camera cam = Camera.main;
             if (part == null || cam == null)
@@ -261,18 +251,17 @@ namespace Mining.Diagnostics
             {
                 ground = hit.point;
             }
-            log.Msg($"[test] ziemia: {(hit.collider != null ? hit.collider.name : "brak trafienia")}");
+            log.Msg($"[test] ground: {(hit.collider != null ? hit.collider.name : "no hit")}");
             var visualTemplate = part.part.GetComponentInChildren<Content.ExcavatorVisuals>(true).gameObject;
             GameObject excavator = UnityEngine.Object.Instantiate(visualTemplate, ground, Quaternion.LookRotation(-fwd, up));
             excavator.SetActive(true);
             excavator.GetComponent<Content.ExcavatorVisuals>().ForceWorking = true;
 
-            // Nowe części napędu wodorowego obok koparki (sam wygląd).
             var provider = new Ships.Interface.Services.PartSettingsProvider();
             foreach (var (id, offset) in new[] { (Content.HydrogenThruster.PartId, -2.2f), (Content.ElectrolyzerPart.PartId, 2.4f), (Content.Reactor.PartId, 5.6f) })
             {
                 PartSettings extra = provider.GetAllPartSettings().FirstOrDefault(p => p.id == id);
-                log.Msg($"[test] część {id}: {(extra != null ? extra.fullLabel : "BRAK")}");
+                log.Msg($"[test] part {id}: {(extra != null ? extra.fullLabel : "MISSING")}");
                 var visualComp = extra?.part.GetComponentInChildren<Ships.Parts.Common.Model.Reactions.IShipPartVisual>(true);
                 if (visualComp != null)
                 {
@@ -282,10 +271,10 @@ namespace Mining.Diagnostics
             }
 
             var storageMenu = UnityEngine.Object.FindObjectsOfType<UI.Inventory.StorageMenuActivator>(true).FirstOrDefault();
-            log.Msg($"[test] okno elektrolizera: {(storageMenu != null && Traverse.Create(storageMenu).Field("electrolyzerMenu").GetValue<GameObject>() != null ? "jest" : "BRAK")}");
+            log.Msg($"[test] electrolyzer window: {(storageMenu != null && Traverse.Create(storageMenu).Field("electrolyzerMenu").GetValue<GameObject>() != null ? "present" : "MISSING")}");
 
             Sites.MiningSite site = Sites.MiningSiteVisuals.FindNearest(3000f, out float distance);
-            log.Msg($"[test] najbliższe złoże: {(site != null ? site.Kind.Name + $" {distance:0} m, promień {site.Radius:0.0}" : "brak")}");
+            log.Msg($"[test] nearest deposit: {(site != null ? site.Kind.Name + $" {distance:0} m, radius {site.Radius:0.0}" : "none")}");
             log.Msg($"[test] {Sites.MiningSiteVisuals.DescribeNearest()}");
             Vector3 side = Vector3.Cross(up, fwd);
             PartSettings chest = new Ships.Interface.Services.PartSettingsProvider().GetAllPartSettings().FirstOrDefault(p => p.id == 30);
@@ -325,7 +314,6 @@ namespace Mining.Diagnostics
             ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, "test1.png"));
             yield return new WaitForSeconds(1f);
 
-            // Złoże w prawdziwym miejscu, oglądane z osobnej kamery (kopia ustawień głównej, z postprocesem i konturami).
             if (site != null && WorldTracking.Interface.Values.ClientOrigin.LocalVisualSpace is WorldTracking.Interface.Model.Spaces.PlanetSurfaceSpace surface2)
             {
                 var transpose = Core.Services.ServiceLocator.GetService<WorldTracking.Interface.Services.IWorldTransposeClient>();
@@ -336,7 +324,7 @@ namespace Mining.Diagnostics
                     .GroupBy(x => x.Kind.Key)
                     .Select(g => g.OrderBy(x => (x.Center - camPlanet2).sqrMagnitude).First())
                     .ToList();
-                log.Msg($"[test] złoża do zdjęć: {string.Join(", ", targets.Select(t => $"{t.Kind.Name} {(t.Center - camPlanet2).magnitude:0} m"))}");
+                log.Msg($"[test] deposits to photograph: {string.Join(", ", targets.Select(t => $"{t.Kind.Name} {(t.Center - camPlanet2).magnitude:0} m"))}");
                 var testCam = new GameObject("MiningTestCam").AddComponent<Camera>();
                 testCam.CopyFrom(cam);
                 var mainData = cam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
@@ -351,7 +339,7 @@ namespace Mining.Diagnostics
                     Sites.MiningSite target = targets[shot / 2];
                     var sw = System.Diagnostics.Stopwatch.StartNew();
                     GameObject real = Sites.MiningSiteVisuals.Build(target);
-                    log.Msg($"[test] budowa złoża {target.Kind.Name}: {sw.Elapsed.TotalMilliseconds:0.0} ms, renderery: {real.GetComponentsInChildren<MeshRenderer>().Length}");
+                    log.Msg($"[test] deposit build {target.Kind.Name}: {sw.Elapsed.TotalMilliseconds:0.0} ms, renderers: {real.GetComponentsInChildren<MeshRenderer>().Length}");
                     for (int frame = 0; frame < 30; frame++)
                     {
                         Vector3 center = (Vector3)transpose.Position(planetSpace, surface2, (Core.Values.Vector3Double)target.Center);
@@ -373,14 +361,13 @@ namespace Mining.Diagnostics
                 cam.enabled = true;
                 UnityEngine.Object.Destroy(testCam.gameObject);
 
-                // Logika serwera: czy punkt nad złożem i obok niego jest rozpoznany, i czy dokładanie rudy wypełnia 4 sloty po 100.
                 Sites.MiningSite s0 = targets.FirstOrDefault();
                 if (s0 != null)
                 {
                     var onSite = Sites.MiningSites.FindAt(s0.PlanetId, s0.Center + s0.Direction * 0.5f + s0.Rotation * Vector3.right * 2f, 1f, 3f);
                     var offSite = Sites.MiningSites.FindAt(s0.PlanetId, s0.Center + s0.Rotation * Vector3.right * (s0.Radius + 4f), 1f, 3f);
                     var high = Sites.MiningSites.FindAt(s0.PlanetId, s0.Center + s0.Direction * 10f, 1f, 3f);
-                    log.Msg($"[test] serwer: na złożu={(onSite != null ? onSite.Kind.Name : "nie")} obok={(offSite != null ? "TAK (błąd)" : "nie")} 10 m nad={(high != null ? "TAK (błąd)" : "nie")}");
+                    log.Msg($"[test] server: on deposit={(onSite != null ? onSite.Kind.Name : "no")} next to={(offSite != null ? "YES (bug)" : "no")} 10 m above={(high != null ? "YES (bug)" : "no")}");
                 }
                 var add = typeof(Server.ExcavatorServer).GetMethod("TryAddItem", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
                 object state = new Ships.Interface.Model.Parts.State.StorageState();
@@ -393,10 +380,9 @@ namespace Mining.Diagnostics
                     added++;
                 }
                 var st = (Ships.Interface.Model.Parts.State.StorageState)state;
-                log.Msg($"[test] serwer: dodano {added} rudy, sloty: {string.Join(", ", Enumerable.Range(0, 5).Select(i => st.GetSlot((byte)i).HasItem ? st.GetSlot((byte)i).Quantity.ToString() : "-"))}");
+                log.Msg($"[test] server: added {added} ore, slots: {string.Join(", ", Enumerable.Range(0, 5).Select(i => st.GetSlot((byte)i).HasItem ? st.GetSlot((byte)i).Quantity.ToString() : "-"))}");
             }
 
-            // Drzewo badań (jak po otwarciu stołu badawczego).
             var activator = UnityEngine.Object.FindObjectOfType<UI.Research.GenericPartOpenableMenuActivator>();
             GameObject menuPrefab = activator != null ? Traverse.Create(activator).Field("researchMenuPrefab").GetValue<GameObject>() : null;
             if (menuPrefab != null)
@@ -409,13 +395,12 @@ namespace Mining.Diagnostics
             }
             else
             {
-                log.Msg("[test] brak menu badań");
+                log.Msg("[test] no research menu");
             }
 
-            // Miniaturka do menu budowania.
             var thumbs = UnityEngine.Object.FindObjectOfType<Ships.Services.ShipPartsThumbnailRuntimeCache>();
             Texture2D thumb = thumbs != null ? thumbs.GetLargeThumbnail(Content.Excavator.PartId) : null;
-            log.Msg($"[test] miniaturka: {(thumb != null ? thumb.width + "x" + thumb.height : "brak")}");
+            log.Msg($"[test] thumbnail: {(thumb != null ? thumb.width + "x" + thumb.height : "none")}");
             if (thumb != null)
             {
                 var rt = RenderTexture.GetTemporary(thumb.width, thumb.height);
@@ -429,24 +414,22 @@ namespace Mining.Diagnostics
                 if (encode != null) File.WriteAllBytes(Path.Combine(OutDir, "test_thumb.png"), (byte[])encode.Invoke(null, new object[] { copy }));
             }
 
-            // Koparka postawiona na ziemi tak jak przez narzędzie budowania (dopasowanie do terenu + statek bez podłogi).
             Vector3 up2 = Core.Services.ServiceLocator.GetService<Players.Interface.Services.IPlayerUpProvider>()?.WorldPlayerUp ?? cam.transform.up;
             Vector3 fwd2 = Vector3.ProjectOnPlane(cam.transform.forward, up2).normalized;
             Vector3 groundPos = cam.transform.position + fwd2 * 6f;
             if (WorldTracking.Interface.Values.ClientScene.PhysicsScene.Raycast(groundPos + up2 * 10f, -up2, out RaycastHit gHit, 30f, Tools.Common.RaycastMasks.BuildDetectionLayer))
             {
                 groundPos = gHit.point;
-                log.Msg($"[test] ziemia (scena klienta): {gHit.collider.name} tag={gHit.collider.tag}");
+                log.Msg($"[test] ground (client scene): {gHit.collider.name} tag={gHit.collider.tag}");
             }
             Quaternion rot2 = Quaternion.LookRotation(-fwd2, up2);
             Patches.CreateShipWithExcavatorPatch.AlignToTerrain(ref groundPos, ref rot2, up2);
-            log.Msg($"[test] nachylenie terenu pod koparką: {Vector3.Angle(rot2 * Vector3.up, up2):0.0}°");
-            // Przez prawdziwą metodę serwera (z łatką Mining), jak po kliknięciu narzędziem budowania.
+            log.Msg($"[test] terrain slope under the excavator: {Vector3.Angle(rot2 * Vector3.up, up2):0.0}°");
             var shipsBefore = new HashSet<uint>(Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>().Ships.Select(sh => sh.Id));
             var interaction = UnityEngine.Object.FindObjectOfType<Managers.Server.Services.ShipInteractionService>();
             var conn = FishNet.InstanceFinder.ServerManager.Clients.Values.FirstOrDefault();
             var testPlayer = conn != null ? Core.Services.ServiceLocator.GetService<Players.Services.PlayersServerTracker>().GetTrackedPlayerFromConnectionId(conn.ClientId) : null;
-            log.Msg($"[test] połączenie: {(conn != null ? conn.ClientId.ToString() : "brak")}, gracz: {(testPlayer != null ? "jest" : "brak")}");
+            log.Msg($"[test] connection: {(conn != null ? conn.ClientId.ToString() : "none")}, player: {(testPlayer != null ? "present" : "none")}");
             testPlayer?.AddItemToInventory(new ItemDrop { ItemId = 101, Quantity = 30 });
             testPlayer?.AddItemToInventory(new ItemDrop { ItemId = 112, Quantity = 10 });
             var rpc = AccessTools.Method(typeof(Managers.Server.Services.ShipInteractionService), "RpcLogic___CreateShip_ServerRPC___2476380455");
@@ -456,7 +439,7 @@ namespace Mining.Diagnostics
                 WorldTransform = new WorldTracking.Interface.Model.WorldTransform { SpaceId = WorldTracking.Interface.Values.ClientOrigin.LocalPhysicsSpaceId, Position = groundPos, Rotation = rot2 },
             }, conn });
             uint shipId = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>().Ships.Select(sh => sh.Id).FirstOrDefault(id => !shipsBefore.Contains(id));
-            log.Msg($"[test] statek z koparką: {shipId}");
+            log.Msg($"[test] excavator ship: {shipId}");
             UnityEngine.Object.Destroy(excavator);
             yield return new WaitForSeconds(3f);
 
@@ -495,32 +478,29 @@ namespace Mining.Diagnostics
                 yield return null;
                 yield return null;
             }
-            // Czy promień "z ręki gracza" trafia w gniazdo prądu, a nie w kolizję koparki.
             foreach (var socket in UnityEngine.Object.FindObjectsOfType<Ships.Cables.VisualObjects.SocketInteractionObject>().Where(o => o.EntityPartSocket.EntityId == shipId))
             {
                 Vector3 target = socket.transform.position;
                 Vector3 outward = (target - (ship != null && shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(shipId, 1), out var v2) ? v2.GameObject.transform.position + v2.GameObject.transform.up * 0.42f : target - up2)).normalized;
                 Vector3 from = target + outward * 1.2f + up2 * 0.3f;
                 bool any = WorldTracking.Interface.Values.ClientScene.PhysicsScene.Raycast(from, (target - from).normalized, out RaycastHit sh, 3f, ~0, QueryTriggerInteraction.Collide);
-                log.Msg($"[test] gniazdo {socket.EntityPartSocket.Socket.SocketId}: promień trafia w {(any ? sh.collider.name + " (warstwa " + LayerMask.LayerToName(sh.collider.gameObject.layer) + ")" : "nic")}" +
-                        $"{(any && sh.collider.GetComponentInParent<Ships.Cables.VisualObjects.SocketInteractionObject>() == socket ? " = GNIAZDO OK" : "")}");
+                log.Msg($"[test] socket {socket.EntityPartSocket.Socket.SocketId}: ray hits {(any ? sh.collider.name + " (layer " + LayerMask.LayerToName(sh.collider.gameObject.layer) + ")" : "nothing")}" +
+                        $"{(any && sh.collider.GetComponentInParent<Ships.Cables.VisualObjects.SocketInteractionObject>() == socket ? " = SOCKET OK" : "")}");
             }
-            // Czy promień z przodu trafia w strefę otwierania koparki (a nie w jej kolizję).
             if (shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(shipId, 1), out var v3))
             {
                 Transform t3 = v3.GameObject.transform;
                 Vector3 aim = t3.position + t3.up * 1.05f - t3.forward * 0.6f;
                 Vector3 eye = t3.position + t3.up * 1.6f - t3.forward * 2.2f;
                 bool hitAny = WorldTracking.Interface.Values.ClientScene.PhysicsScene.Raycast(eye, (aim - eye).normalized, out RaycastHit ih, 4f, ~0, QueryTriggerInteraction.Collide);
-                log.Msg($"[test] otwieranie: promień trafia w {(hitAny ? ih.collider.name + " (warstwa " + LayerMask.LayerToName(ih.collider.gameObject.layer) + ")" : "nic")}" +
-                        $"{(hitAny && ih.collider.GetComponent<Ships.Parts.Common.PartInteraction>() != null ? " = STREFA OTWIERANIA OK" : "")}");
+                log.Msg($"[test] opening: ray hits {(hitAny ? ih.collider.name + " (layer " + LayerMask.LayerToName(ih.collider.gameObject.layer) + ")" : "nothing")}" +
+                        $"{(hitAny && ih.collider.GetComponent<Ships.Parts.Common.PartInteraction>() != null ? " = OPEN ZONE OK" : "")}");
             }
-            if (ship != null) log.Msg($"[test] statek po 8 s: pozycja {ship.LocalPhysicsState.Position}, nachylenie {Vector3.Angle(ship.LocalPhysicsState.Rotation * Vector3.up, up2):0.0}°");
+            if (ship != null) log.Msg($"[test] ship after 8 s: position {ship.LocalPhysicsState.Position}, tilt {Vector3.Angle(ship.LocalPhysicsState.Rotation * Vector3.up, up2):0.0}°");
             cam.enabled = true;
             UnityEngine.Object.Destroy(testCam2.gameObject);
         }
 
-        // Pompa: statek z pompą zawieszony 6 m nad najbliższym jeziorem, wąż opuszczony (jak po E), zdjęcia i stan serwera.
         private static IEnumerator RunPumpTest()
         {
             var log = Melon<MiningMod>.Logger;
@@ -528,7 +508,7 @@ namespace Mining.Diagnostics
             var transpose = Core.Services.ServiceLocator.GetService<WorldTracking.Interface.Services.IWorldTransposeClient>();
             if (cam == null || transpose == null || !(WorldTracking.Interface.Values.ClientOrigin.LocalVisualSpace is WorldTracking.Interface.Model.Spaces.PlanetSurfaceSpace surface))
             {
-                log.Msg("[pump] brak kamery/planety");
+                log.Msg("[pump] no camera/planet");
                 yield break;
             }
             var planetSpace = new WorldTracking.Interface.Model.Spaces.PlanetSurfaceSpace { PlanetId = surface.PlanetId, Center = Core.Values.Vector3Double.Zero };
@@ -542,7 +522,6 @@ namespace Mining.Diagnostics
                 for (float y = -4000f; y <= 4000f; y += 50f)
                 {
                     Vector3 p = (camPlanet + t1 * x + t2 * y).normalized * camPlanet.magnitude;
-                    // środek jeziora: jezioro w promieniu 12 m wokół
                     if (x * x + y * y < bestDist && Content.WaterPump.TryProbe(surface.PlanetId, p, out _, out bool w) && w &&
                         Content.WaterPump.TryProbe(surface.PlanetId, (p + t1 * 12f).normalized * p.magnitude, out _, out bool w2) && w2 &&
                         Content.WaterPump.TryProbe(surface.PlanetId, (p - t2 * 12f).normalized * p.magnitude, out _, out bool w3) && w3)
@@ -554,15 +533,14 @@ namespace Mining.Diagnostics
             }
             if (bestDist == float.MaxValue)
             {
-                log.Msg("[pump] brak jeziora w promieniu 4 km");
+                log.Msg("[pump] no lake within 4 km");
                 yield break;
             }
             var tracked = Sites.MiningSites.FindTrackedPlanet(surface.PlanetId);
             float radius = tracked.Planet.Radius;
             Vector3 hoverPlanet = best * (radius + Content.WaterPump.SeaLevel + 6f);
-            log.Msg($"[pump] jezioro {Mathf.Sqrt(bestDist):0} m od kamery");
+            log.Msg($"[pump] lake {Mathf.Sqrt(bestDist):0} m from the camera");
 
-            // statek z pompą przez prawdziwe zapytanie serwera (jak narzędzie budowania)
             var physicsSpace = WorldTracking.Interface.Values.ClientOrigin.LocalPhysicsSpace;
             Vector3 pos = (Vector3)transpose.Position(planetSpace, physicsSpace, (Core.Values.Vector3Double)hoverPlanet);
             Vector3 fwdPlanet = Vector3.Cross(Vector3.Cross(best, t1), best).normalized;
@@ -579,7 +557,7 @@ namespace Mining.Diagnostics
                 new WorldTracking.Interface.Model.WorldTransform { SpaceId = WorldTracking.Interface.Values.ClientOrigin.LocalPhysicsSpaceId, Position = pos, Rotation = rot });
             uint shipId = shipsServer.Ships.Select(sh => sh.Id).FirstOrDefault(id => !shipsBefore.Contains(id));
             Ships.TrackedShipServer ship = shipsServer.GetShip(shipId);
-            log.Msg($"[pump] statek z pompą: {(ship != null ? shipId.ToString() : "BRAK")}");
+            log.Msg($"[pump] pump ship: {(ship != null ? shipId.ToString() : "MISSING")}");
             if (ship == null)
             {
                 yield break;
@@ -595,7 +573,6 @@ namespace Mining.Diagnostics
             if (mainData != null) data.renderPostProcessing = mainData.renderPostProcessing;
             Audio.LoopEmitter.ListenerOverride = testCam;
 
-            // 0: wąż zwinięty z bliska, 1: po opuszczeniu (z boku), 2: z daleka (wąż do wody), 3: z bliska z dymkiem E
             for (int shot = 0; shot < 4; shot++)
             {
                 if (shot == 1)
@@ -622,7 +599,7 @@ namespace Mining.Diagnostics
                         var pumpInteraction = Resources.FindObjectsOfTypeAll<Content.WaterPumpInteraction>().FirstOrDefault();
                         if (pumpInteraction != null) pumpInteraction.HoseDown = true;
                         var tips = UnityEngine.Object.FindObjectOfType<UI.Interaction.InteractionTooltipsActivator>();
-                        log.Msg($"[pump] interakcja: {(pumpInteraction != null ? "jest, wąż " + (pumpInteraction.HoseDown ? "opuszczony" : "zwinięty") : "BRAK")}, dymki: {(tips != null ? "są" : "BRAK")}");
+                        log.Msg($"[pump] interaction: {(pumpInteraction != null ? "present, hose " + (pumpInteraction.HoseDown ? "lowered" : "retracted") : "MISSING")}, tooltips: {(tips != null ? "present" : "MISSING")}");
                         if (pumpInteraction != null && tips != null)
                         {
                             AccessTools.Method(typeof(UI.Interaction.InteractionTooltipsActivator), "OnPartHover").Invoke(tips, new object[] { pumpInteraction });
@@ -633,13 +610,12 @@ namespace Mining.Diagnostics
                 ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, $"test_pump{shot}.png"));
                 yield return null;
                 yield return null;
-                // serwer w tej instancji nie aktualizuje statków (gracz "czeka") - logika pompy wywołana wprost
                 var update = AccessTools.Method(typeof(Server.WaterPumpServer), "UpdateParts");
                 for (int i = 0; i < 3; i++) update.Invoke(null, new object[] { ship, 2f });
                 if (shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(shipId, partId), out var v))
                 {
                     var pv = v.GameObject.GetComponent<Content.WaterPumpVisuals>();
-                    log.Msg($"[pump] zdjęcie {shot}: wąż {(pv != null ? Traverse.Create(pv).Field<float>("_extension").Value.ToString("0.00") + " m (cel " + Traverse.Create(pv).Field<float>("_target").Value.ToString("0.00") + ", w wodzie " + Traverse.Create(pv).Field<bool>("_inWater").Value + ")" : "brak wyglądu pompy")}");
+                    log.Msg($"[pump] shot {shot}: hose {(pv != null ? Traverse.Create(pv).Field<float>("_extension").Value.ToString("0.00") + " m (target " + Traverse.Create(pv).Field<float>("_target").Value.ToString("0.00") + ", in water " + Traverse.Create(pv).Field<bool>("_inWater").Value + ")" : "no pump visuals")}");
                 }
             }
             Audio.LoopEmitter.ListenerOverride = null;
@@ -647,7 +623,6 @@ namespace Mining.Diagnostics
             UnityEngine.Object.Destroy(testCam.gameObject);
         }
 
-        // Duży zbiornik 4x4x4 obok zwykłego (oba napełnione do połowy wodą) przed kamerą: zdjęcia z trzech stron.
         private static IEnumerator RunTankTest()
         {
             var log = Melon<MiningMod>.Logger;
@@ -656,7 +631,7 @@ namespace Mining.Diagnostics
             var visualSpace = WorldTracking.Interface.Values.ClientOrigin.LocalVisualSpace;
             if (cam == null || transpose == null || visualSpace == null || Content.BigFluidTank.Part == null)
             {
-                log.Msg($"[tank] brak kamery/przestrzeni/części (część: {(Content.BigFluidTank.Part != null ? "jest" : "BRAK")})");
+                log.Msg($"[tank] no camera/space/part (part: {(Content.BigFluidTank.Part != null ? "present" : "MISSING")})");
                 yield break;
             }
             PartSettings small = new Ships.Interface.Services.PartSettingsProvider().GetAllPartSettings().FirstOrDefault(p => p.id == Content.BigFluidTank.TankPartId);
@@ -682,7 +657,7 @@ namespace Mining.Diagnostics
             Ships.TrackedShipServer reactorShip = shipsServer.GetShip(reactorId);
             uint thrusterId = Content.HydrogenThruster.Part != null ? Spawn(Content.HydrogenThruster.Part, basePos + right * 10f) : 0;
             Ships.TrackedShipServer big = shipsServer.GetShip(bigId), smallShip = shipsServer.GetShip(smallId);
-            log.Msg($"[tank] statki: duży {(big != null ? bigId.ToString() : "BRAK")}, mały {(smallShip != null ? smallId.ToString() : "BRAK")}");
+            log.Msg($"[tank] ships: large {(big != null ? bigId.ToString() : "MISSING")}, small {(smallShip != null ? smallId.ToString() : "MISSING")}");
             if (big == null)
             {
                 yield break;
@@ -719,7 +694,7 @@ namespace Mining.Diagnostics
                         {
                             Transform rt = rv.GameObject.transform;
                             var reactorLook = rv.GameObject.GetComponentInChildren<Content.ReactorVisuals>();
-                            if (reactorLook != null) Traverse.Create(reactorLook).Field("_target").SetValue(1f); // serwer bez uranu ustawia 0
+                            if (reactorLook != null) Traverse.Create(reactorLook).Field("_target").SetValue(1f);
                             Vector3 rc = rt.position + rt.up * 0.8f;
                             Vector3 ro = shot == 4 ? (-rt.forward * 3.2f + rt.right * 1.6f + rt.up * 1.2f) : shot == 5 ? (rt.forward * 3.2f - rt.right * 1.4f + rt.up * 1.0f) : (rt.up * 3.2f - rt.forward * 1.2f);
                             testCam.transform.position = rc + ro;
@@ -756,20 +731,19 @@ namespace Mining.Diagnostics
                 yield return null;
                 yield return null;
             }
-            // gniazda reaktora i silnika: promień z zewnątrz (jak celowanie kablem) - czy trafia w gniazdo
-            foreach (var (label, id) in new[] { ("reaktor", reactorId), ("silnik", thrusterId) })
+            foreach (var (label, id) in new[] { ("reactor", reactorId), ("thruster", thrusterId) })
             {
                 var sh = shipsServer.GetShip(id);
                 if (sh == null || !shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(id, sh.StatefulParts.First().Id), out var pv))
                 {
-                    log.Msg($"[gniazda] {label}: brak wyglądu");
+                    log.Msg($"[sockets] {label}: no visuals");
                     continue;
                 }
                 Transform part = pv.GameObject.transform;
                 Vector3 center = part.position + part.up * 0.7f;
                 int mask = Tools.Common.RaycastMasks.BuildDetectionLayer | (1 << LayerMask.NameToLayer("Interactable"));
                 var sockets = UnityEngine.Object.FindObjectsOfType<Ships.Cables.VisualObjects.SocketInteractionObject>().Where(s => s.ShipId == id).ToList();
-                log.Msg($"[gniazda] {label}: {sockets.Count} gniazd");
+                log.Msg($"[sockets] {label}: {sockets.Count} sockets");
                 foreach (var socket in sockets)
                 {
                     Vector3 target = socket.transform.position;
@@ -777,18 +751,17 @@ namespace Mining.Diagnostics
                     Vector3 from = target + outward * 1.2f + part.up * 0.25f;
                     bool ok = WorldTracking.Interface.Values.ClientScene.PhysicsScene.Raycast(from, (target - from).normalized, out RaycastHit hit, 3f, mask);
                     bool isSocket = ok && hit.collider.TryGetComponent(out Ships.Cables.VisualObjects.SocketInteractionObject hs) && hs == socket;
-                    log.Msg($"[gniazda] {label}: {socket.Type} {socket.Socket.SocketId} @ {part.InverseTransformPoint(target)} -> " +
-                            (isSocket ? "OK" : ok ? $"ZASŁONIĘTE przez '{PathOf(hit.collider.transform)}'" : "nic nie trafia"));
+                    log.Msg($"[sockets] {label}: {socket.Type} {socket.Socket.SocketId} @ {part.InverseTransformPoint(target)} -> " +
+                            (isSocket ? "OK" : ok ? $"BLOCKED by '{PathOf(hit.collider.transform)}'" : "nothing hit"));
                 }
             }
-            log.Msg($"[tank] stan dużego: {big.StatefulParts.First().State}");
-            if (reactorShip != null) log.Msg($"[tank] stan reaktora: {reactorShip.StatefulParts.First().State}");
+            log.Msg($"[tank] large tank state: {big.StatefulParts.First().State}");
+            if (reactorShip != null) log.Msg($"[tank] reactor state: {reactorShip.StatefulParts.First().State}");
             Audio.LoopEmitter.ListenerOverride = null;
             cam.enabled = true;
             UnityEngine.Object.Destroy(testCam.gameObject);
         }
 
-        // Wybór dużych drzwi jak w menu budowania (czas tworzenia podglądu) i ich miniaturki (czy nic nie jest ucięte).
         private static IEnumerator RunDoorsTest()
         {
             var log = Melon<MiningMod>.Logger;
@@ -796,7 +769,7 @@ namespace Mining.Diagnostics
             var thumbs = Core.Services.ServiceLocator.GetService<Ships.Interface.Services.IPartThumbnailProvider>();
             var select = AccessTools.Method(typeof(Tools.Build.PartPreview), "OnPartSelected");
             var unselect = AccessTools.Method(typeof(Tools.Build.PartPreview), "OnPartUnselected");
-            log.Msg($"[doors] podgląd: {(preview != null ? "jest" : "BRAK")}, miniaturki: {(thumbs != null ? "są" : "BRAK")}");
+            log.Msg($"[doors] preview: {(preview != null ? "present" : "MISSING")}, thumbnails: {(thumbs != null ? "present" : "MISSING")}");
             foreach (PartSettings door in Content.BigDoors.All.Concat(new[] { new Ships.Interface.Services.PartSettingsProvider().GetPartSettingById(Content.BigDoors.DoorPartId) }))
             {
                 if (door == null) continue;
@@ -809,7 +782,7 @@ namespace Mining.Diagnostics
                     }
                     catch (Exception e)
                     {
-                        log.Msg($"[doors] {door.fullLabel}: wybór - błąd {e.InnerException?.Message ?? e.Message}");
+                        log.Msg($"[doors] {door.fullLabel}: select - error {e.InnerException?.Message ?? e.Message}");
                     }
                     double selectMs = sw.Elapsed.TotalMilliseconds;
                     sw.Restart();
@@ -821,7 +794,6 @@ namespace Mining.Diagnostics
                         var obj = Traverse.Create(preview).Field<GameObject>("_objectPreview").Value;
                         renderers = obj != null ? obj.GetComponentsInChildren<Renderer>(true).Length : -1;
                     }
-                    // to samo, co PartPreview.InitiatePreview: kopia wyglądu, obrys (QuickOutline), hologram
                     var instancer = Core.Services.ServiceLocator.GetService<Ships.Interface.Services.IShipPartInstancer>();
                     var hologram = Core.Services.ServiceLocator.GetService<Ships.Interface.Services.IShipHologramService>();
                     Type outlineType = Type.GetType("Outline, QuickOutline");
@@ -842,7 +814,7 @@ namespace Mining.Diagnostics
                         holoMs = sw.Elapsed.TotalMilliseconds;
                         UnityEngine.Object.Destroy(holder);
                     }
-                    log.Msg($"[doors] {door.fullLabel} (runda {round + 1}): miniatura {thumbMs:0.0} ms, kopia wyglądu {instMs:0.0} ms, obrys {outlineMs:0.0} ms, hologram x2 {holoMs:0.0} ms, renderery {renderers}");
+                    log.Msg($"[doors] {door.fullLabel} (round {round + 1}): thumbnail {thumbMs:0.0} ms, visual copy {instMs:0.0} ms, outline {outlineMs:0.0} ms, hologram x2 {holoMs:0.0} ms, renderers {renderers}");
                     if (round == 0 && large != null) SaveTexture(large, Path.Combine(OutDir, $"test_thumb_{door.id}.png"));
                     yield return null;
                     yield return null;
@@ -930,8 +902,8 @@ namespace Mining.Diagnostics
                 var r = ps.GetComponent<ParticleSystemRenderer>();
                 Material m = r != null ? r.sharedMaterial : null;
                 Transform root = ps.transform.root;
-                sb.AppendLine($"{ps.name} (korzeń {root.name}) mat={(m != null ? m.name : "-")} shader={(m != null ? m.shader.name : "-")} tex={(m != null && m.mainTexture != null ? m.mainTexture.name : "-")} " +
-                              $"kolor={ps.main.startColor.color} rozmiar={ps.main.startSize.constant} czas={ps.main.startLifetime.constant}");
+                sb.AppendLine($"{ps.name} (root {root.name}) mat={(m != null ? m.name : "-")} shader={(m != null ? m.shader.name : "-")} tex={(m != null && m.mainTexture != null ? m.mainTexture.name : "-")} " +
+                              $"color={ps.main.startColor.color} size={ps.main.startSize.constant} lifetime={ps.main.startLifetime.constant}");
             }
 
             sb.AppendLine("== AUDIO ==");
@@ -946,11 +918,11 @@ namespace Mining.Diagnostics
                 for (int i = 0; i < (terrain.materials?.Length ?? 0); i++)
                 {
                     var m = terrain.materials[i];
-                    sb.AppendLine($"material {i}: kolor={m.albedoColor} tex={(m.albedoTexture != null ? m.albedoTexture.name : "-")} normal={(m.normalMap != null ? m.normalMap.name : "-")} tile={m.tile} step={m.footstepSoundParam}");
+                    sb.AppendLine($"material {i}: color={m.albedoColor} tex={(m.albedoTexture != null ? m.albedoTexture.name : "-")} normal={(m.normalMap != null ? m.normalMap.name : "-")} tile={m.tile} step={m.footstepSoundParam}");
                 }
                 foreach (Component c in terrain.GetComponents<Component>())
                 {
-                    sb.AppendLine("  komponent: " + c.GetType().FullName + " " + (c is MonoBehaviour ? JsonUtility.ToJson(c).Substring(0, Math.Min(600, JsonUtility.ToJson(c).Length)) : ""));
+                    sb.AppendLine("  component: " + c.GetType().FullName + " " + (c is MonoBehaviour ? JsonUtility.ToJson(c).Substring(0, Math.Min(600, JsonUtility.ToJson(c).Length)) : ""));
                 }
                 foreach (Renderer r in terrain.transform.root.GetComponentsInChildren<Renderer>(true).Take(3))
                 {
@@ -975,10 +947,9 @@ namespace Mining.Diagnostics
 
             string path = Path.Combine(OutDir, "dump.txt");
             File.WriteAllText(path, sb.ToString());
-            Melon<MiningMod>.Logger.Msg($"[dev] zrzut zapisany: {path}");
+            Melon<MiningMod>.Logger.Msg($"[dev] dump saved: {path}");
         }
 
-        // Zapis tekstury gry (zwykle nieczytelnej z kodu) przez kopię na GPU.
         private static void SaveTexture(Texture tex, string path)
         {
             var rt = RenderTexture.GetTemporary(tex.width, tex.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);

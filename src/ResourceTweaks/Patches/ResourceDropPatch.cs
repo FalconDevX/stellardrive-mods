@@ -8,10 +8,6 @@ using Planets.Services;
 
 namespace ResourceTweaks.Patches
 {
-    // Każdy drop z obiektu na planecie (skały, rudy, hotspoty, asteroidy, recykling, gruz po rozbiciu)
-    // przechodzi przez PlanetColliders.GetSpawnedObjectItemDrop - tu mnożymy wszystkie surowce.
-    // Koszty budowy/badań, wyrzucone przez gracza przedmioty i gruz statków idą inną drogą,
-    // więc nie da się w ten sposób duplikować przedmiotów.
     [HarmonyPatch(typeof(PlanetColliders), nameof(PlanetColliders.GetSpawnedObjectItemDrop))]
     internal static class ResourceDropPatch
     {
@@ -31,12 +27,10 @@ namespace ResourceTweaks.Patches
 
             if (ResourceTweaksMod.LogDrops.Value)
             {
-                Melon<ResourceTweaksMod>.Logger.Msg($"Drop: przedmiot {__result.ItemId} {before} -> {__result.Quantity}");
+                Melon<ResourceTweaksMod>.Logger.Msg($"Drop: item {__result.ItemId} {before} -> {__result.Quantity}");
             }
         }
 
-        // Narzędzia (np. recycler leżący na starcie) i przedmioty ze stackiem 1 zostawiamy w spokoju -
-        // inaczej podniesienie jednego narzędzia dawałoby kilka sztuk.
         private static bool IsStackableResource(uint itemId)
         {
             try
@@ -46,7 +40,7 @@ namespace ResourceTweaks.Patches
             }
             catch (Exception e)
             {
-                Melon<ResourceTweaksMod>.Logger.Warning($"Nie znaleziono ustawień przedmiotu {itemId}: {e.Message}");
+                Melon<ResourceTweaksMod>.Logger.Warning($"No settings found for item {itemId}: {e.Message}");
                 return false;
             }
         }

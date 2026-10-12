@@ -5,9 +5,6 @@ using UnityEngine;
 
 namespace ResourceTweaks.Patches
 {
-    // Szybsze kopanie laserem: laser co klatkę zbija obiektowi "zdrowie" (ReduceHealth). Krótszy czas kopania
-    // = większe obrażenia: czas x0.5 to obrażenia x2. Drzewo rozpoznajemy po tym, że daje drewno.
-    // Liczy się u gracza, który kopie - więc każdy gracz potrzebuje moda, żeby kopać szybciej.
     [HarmonyPatch(typeof(MinablePlanetObject), nameof(MinablePlanetObject.ReduceHealth))]
     internal static class MiningSpeedPatch
     {

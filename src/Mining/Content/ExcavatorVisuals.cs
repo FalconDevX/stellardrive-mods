@@ -9,13 +9,11 @@ using UnityEngine;
 
 namespace Mining.Content
 {
-    // Wygląd koparki u każdego gracza: wiertło rozkręca się, wysuwa w ziemię i kręci, a silnik warczy, gdy koparka pracuje.
-    // "Pracuje" = znacznik ustawiany przez serwer w ukrytym slocie (Excavator.WorkingMarkerSlot) - zmienia się od razu po odcięciu prądu lub sygnału.
     internal class ExcavatorVisuals : DefaultShipPartVisuals
     {
         private const float MaxRpm = 240f;
-        private const float RestLift = 1.23f;  // w spoczynku wał schowany w korpusie i wieżyczce, czubek tuż nad ziemią
-        private const float Extend = 0.9f;     // przy pracy wysuwa się tyle w dół (w ziemię)
+        private const float RestLift = 1.23f;
+        private const float Extend = 0.9f;
         private const float MaxHearDistance = 35f;
 
         private Transform _drill;
@@ -27,9 +25,7 @@ namespace Mining.Content
 
         internal bool ForceWorking;
 
-        // Pył spod wiertła: kopia mgiełki, którą gra pokazuje przy ścinaniu drzew (DustPoof).
-        // Dym z rury wydechowej: kopia dymu gry (SmokePoof). W grze to jednorazowe obłoki - tu ciągłe strumienie.
-        private static readonly Vector3 ExhaustTop = new Vector3(-0.44f, 1.99f, 0.34f); // EXHAUST_TOP z AssetSource/build_excavator.py
+        private static readonly Vector3 ExhaustTop = new Vector3(-0.44f, 1.99f, 0.34f);
         private ParticleSystem _dust;
         private ParticleSystem _smoke;
         private bool _dustPlaying;
@@ -48,7 +44,6 @@ namespace Mining.Content
                 lifetime: (2.5f, 3.5f), size: (0.15f, 0.3f), speed: (0.9f, 1.3f), rate: 6f, angle: 8f, radius: 0.03f, grow: 5f);
             if (_smoke != null)
             {
-                // Szary i półprzezroczysty, pod koniec znika (dym gry jest biały albo czarny i gęsty).
                 var main = _smoke.main;
                 main.startColor = new Color(0.55f, 0.55f, 0.56f, 0.32f);
                 var color = _smoke.colorOverLifetime;
@@ -73,7 +68,7 @@ namespace Mining.Content
             ParticleSystem effect = Instantiate(template.gameObject, transform).GetComponent<ParticleSystem>();
             effect.name = name;
             effect.transform.localPosition = localPosition;
-            effect.transform.localRotation = Quaternion.LookRotation(Vector3.up, Vector3.forward); // stożek w górę
+            effect.transform.localRotation = Quaternion.LookRotation(Vector3.up, Vector3.forward);
             effect.transform.localScale = Vector3.one;
             effect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = effect.main;
@@ -95,7 +90,6 @@ namespace Mining.Content
             shape.radius = radius;
             if (grow > 1f)
             {
-                // dym rośnie i rozwiewa się w miarę unoszenia
                 var sizeOverLifetime = effect.sizeOverLifetime;
                 sizeOverLifetime.enabled = true;
                 sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, grow));
@@ -120,11 +114,10 @@ namespace Mining.Content
         private void Update()
         {
             bool working = ForceWorking || _serverWorking;
-            _speed = Mathf.MoveTowards(_speed, working ? 1f : 0f, Time.deltaTime * (working ? 0.8f : 2.5f)); // zatrzymuje się szybko
+            _speed = Mathf.MoveTowards(_speed, working ? 1f : 0f, Time.deltaTime * (working ? 0.8f : 2.5f));
 
             if (_drill != null)
             {
-                // Najpierw się rozkręca, potem powoli wysuwa w dół; po zatrzymaniu chowa się z powrotem.
                 _extend = Mathf.MoveTowards(_extend, _speed > 0.6f ? 1f : 0f, Time.deltaTime * (_speed > 0.6f ? 0.25f : 0.4f));
                 _drill.localPosition = _drillRest + Vector3.up * RestLift - Vector3.up * (Extend * Mathf.SmoothStep(0f, 1f, _extend));
                 _drill.Rotate(Vector3.up, _speed * MaxRpm * 6f * Time.deltaTime, Space.Self);
@@ -135,8 +128,8 @@ namespace Mining.Content
 
         private void UpdateDust()
         {
-            SetPlaying(_dust, ref _dustPlaying, _extend > 0.25f && _speed > 0.5f); // kurz, gdy wiertło jest w ziemi
-            SetPlaying(_smoke, ref _smokePlaying, _speed > 0.3f);                  // dym, gdy silnik pracuje
+            SetPlaying(_dust, ref _dustPlaying, _extend > 0.25f && _speed > 0.5f);
+            SetPlaying(_smoke, ref _smokePlaying, _speed > 0.3f);
         }
 
         private static void SetPlaying(ParticleSystem effect, ref bool playing, bool shouldPlay)

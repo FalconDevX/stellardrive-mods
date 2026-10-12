@@ -6,8 +6,6 @@ using UnityEngine;
 
 namespace Mining.Content
 {
-    // Reaktor "żyje" przy pracy (poziom = NormalizedProductionLevel stanu generatora): szkło tub i ekrany świecą na cyjan
-    // i pulsują, rdzenie w tubach i wirnik na kopule rozkręcają się płynnie, buczenie i świst turbiny rosną z mocą.
     internal class ReactorVisuals : DefaultShipPartVisuals
     {
         private static readonly Color Cyan = new Color(0.3f, 0.9f, 1f);
@@ -21,7 +19,7 @@ namespace Mining.Content
         private void Awake()
         {
             var body = transform.Find("Body")?.GetComponent<MeshRenderer>();
-            if (body != null) _body = body.material; // własne kopie materiałów dla tego reaktora
+            if (body != null) _body = body.material;
             _cores = new Transform[Reactor.CorePositions.Length];
             Material core = null;
             for (int i = 0; i < _cores.Length; i++)
@@ -52,7 +50,6 @@ namespace Mining.Content
 
         private void Update()
         {
-            // rozruch ok. 3 s, wygaszanie ok. 2 s
             _level = Mathf.MoveTowards(_level, _target, Time.deltaTime / (_target > _level ? 3f : 2f));
             float t = Time.time + _phase;
             float pulse = 1f + 0.25f * Mathf.Sin(t * 2.2f) + 0.08f * Mathf.Sin(t * 13f);

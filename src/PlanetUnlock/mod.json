@@ -3,5 +3,5 @@
   "name": "Planet Unlock",
   "author": "mateu",
   "version": "0.1.1",
-  "description": "EKSPERYMENTALNE: wczytuje wszystkie planety układu 442 Otrera (demo wczytuje tylko Otrera b), żeby dało się do nich dolecieć warpem. Obaj gracze potrzebują moda."
+  "description": "EXPERIMENTAL: loads all planets of the 442 Otrera system (the demo loads only Otrera b) so you can warp to them. Both players need the mod."
 }

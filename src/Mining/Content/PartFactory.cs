@@ -14,12 +14,10 @@ using Object = UnityEngine.Object;
 
 namespace Mining.Content
 {
-    // Wspólne narzędzia do budowania nowych części z prefabów gry (koparka, silnik wodorowy, elektrolizer).
     internal static class PartFactory
     {
         private static GameObject _holder;
 
-        // Nieaktywny kontener na prefaby - kopie prefabów gry nie mogą się pojawić w świecie.
         internal static Transform Holder
         {
             get
@@ -37,7 +35,6 @@ namespace Mining.Content
 
         internal static PartSettings Find(IEnumerable<PartSettings> parts, ushort id) => parts.FirstOrDefault(p => p != null && p.id == id);
 
-        // Materiał części gry (Custom/PlanetObject) z naszą teksturą palety.
         internal static Material CreateMaterial(Material template, Texture2D albedo, string name)
         {
             var material = new Material(template) { name = name };
@@ -59,7 +56,6 @@ namespace Mining.Content
             return go;
         }
 
-        // Kopia gniazda z innej części. Lokalne +Z gniazda wskazuje do wnętrza części (jak w częściach gry).
         internal static SocketObject CloneSocket(SocketObject source, Transform root, byte id, Vector3 position, float yaw)
         {
             SocketObject copy = Object.Instantiate(source.gameObject, root).GetComponent<SocketObject>();
@@ -87,7 +83,7 @@ namespace Mining.Content
                                 ?? (itemId == Uranium.ItemId ? Uranium.GetOrCreate() : null);
             if (item == null)
             {
-                return null; // przedmiot niedostępny - pomijamy go w koszcie, zamiast psuć okno badań/budowania
+                return null;
             }
             var instance = new ItemInstance();
             Traverse.Create(instance).Field("itemSettings").SetValue(item);
@@ -101,7 +97,6 @@ namespace Mining.Content
         }
     }
 
-    // Nowe badanie dokładane do każdej listy badań gry (klient i serwer korzystają z tego samego zasobu).
     internal sealed class ModResearch
     {
         private readonly ushort _id;
@@ -111,7 +106,7 @@ namespace Mining.Content
         private readonly Func<PartSettings[]> _parts;
         private readonly (uint item, int quantity)[] _cost;
         private ResearchSettings _research;
-        internal bool AllowNoParts; // badanie odblokowujące funkcję (np. jetpack), a nie część
+        internal bool AllowNoParts;
 
         internal ModResearch(ushort id, string name, Vector2Int position, ushort requiredId, Func<PartSettings[]> parts, params (uint, int)[] cost)
         {
@@ -139,7 +134,7 @@ namespace Mining.Content
                 ResearchSettings required = list.list.FirstOrDefault(r => r != null && r.id == _requiredId);
                 if (required == null)
                 {
-                    continue; // wymagane badanie (np. inne z tego moda) jeszcze nie dodane - spróbujemy później
+                    continue;
                 }
                 if (_research == null)
                 {
@@ -157,7 +152,7 @@ namespace Mining.Content
                 _research.unlockedParts = parts;
                 _research.requirements = new[] { required };
                 list.list.Add(_research);
-                Melon<MiningMod>.Logger.Msg($"Dodano badanie '{_name}' (wymaga: {required.techName})");
+                Melon<MiningMod>.Logger.Msg($"Added research '{_name}' (requires: {required.techName})");
             }
         }
     }

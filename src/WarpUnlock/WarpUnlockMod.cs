@@ -15,14 +15,14 @@ namespace WarpUnlock
         {
             var category = MelonPreferences.CreateCategory("WarpUnlock");
             PartKeywords = category.CreateEntry("PartKeywords", "Warp",
-                description: "Badania odblokowujące części, których nazwa zawiera któreś z tych słów (oddzielone przecinkami), pojawią się w drzewie badań dema");
+                description: "Research unlocking parts whose name contains any of these words (comma separated) appears in the demo research tree");
             UnlockAllHidden = category.CreateEntry("UnlockAllHidden", false,
-                description: "true = pokaż WSZYSTKIE badania ukryte w demie (mogą być niedokończone)");
+                description: "true = show ALL research hidden in the demo (may be unfinished)");
             category.SaveToFile(false);
 
             LoggerInstance.Msg(UnlockAllHidden.Value
-                ? "Drzewo badań: pokazuję wszystkie badania ukryte w demie."
-                : $"Drzewo badań: odblokowuję badania z częściami: {PartKeywords.Value}");
+                ? "Research tree: showing all research hidden in the demo."
+                : $"Research tree: unlocking research with parts: {PartKeywords.Value}");
         }
     }
 }

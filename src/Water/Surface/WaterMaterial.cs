@@ -7,8 +7,6 @@ using UnityEngine.Rendering;
 
 namespace Water.Surface
 {
-    // Materiał tafli: własny shader StellarDriveMods/StylizedWater z paczki water.bundle (zbudowanej w Unity 6000.3.24f1,
-    // tej samej wersji co gra - UnityProject w tym modzie). Gdy paczki nie da się wczytać - przezroczysty URP/Lit.
     internal static class WaterMaterial
     {
         internal static readonly Color Shallow = new Color(0.24f, 0.69f, 0.71f, 0.55f);
@@ -48,7 +46,7 @@ namespace Water.Surface
                 Shader shader = _bundle.LoadAllAssets<Shader>().FirstOrDefault();
                 if (shader == null || !shader.isSupported)
                 {
-                    Melon<WaterMod>.Logger.Warning($"Shader wody nieobsługiwany: {shader?.name}");
+                    Melon<WaterMod>.Logger.Warning($"Water shader not supported: {shader?.name}");
                     return null;
                 }
                 Texture2D[] textures = _bundle.LoadAllAssets<Texture2D>();
@@ -57,12 +55,12 @@ namespace Water.Surface
                 m.SetTexture("_CausticsTex", Tex("water_caustics"));
                 m.SetTexture("_FoamTex", Tex("water_foam"));
                 m.SetTexture("_NormalTex", Tex("water_normal"));
-                Melon<WaterMod>.Logger.Msg($"Woda: shader {shader.name} z paczki, tekstury: {string.Join(", ", textures.Select(t => t.name))}");
+                Melon<WaterMod>.Logger.Msg($"Water: shader {shader.name} from the bundle, textures: {string.Join(", ", textures.Select(t => t.name))}");
                 return m;
             }
             catch (System.Exception e)
             {
-                Melon<WaterMod>.Logger.Warning($"Nie udało się wczytać shadera wody: {e.Message}");
+                Melon<WaterMod>.Logger.Warning($"Could not load the water shader: {e.Message}");
                 return null;
             }
         }

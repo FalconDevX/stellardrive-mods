@@ -10,7 +10,6 @@ using UnityEngine;
 
 namespace Flora.Diagnostics
 {
-    // Spis złóż (hotspotów) i obiektów statycznych wszystkich planet - tam gra trzyma krzaki, skały z rudą itp.
     internal static class WorldEnvironmentDump
     {
         internal static IEnumerator DumpAfterDelay(float seconds)
@@ -22,7 +21,7 @@ namespace Flora.Diagnostics
             }
             catch (Exception e)
             {
-                Melon<FloraMod>.Logger.Error("Błąd spisu złóż: " + e);
+                Melon<FloraMod>.Logger.Error("Deposit dump error: " + e);
             }
         }
 
@@ -52,7 +51,7 @@ namespace Flora.Diagnostics
 
             foreach (PlanetStaticEnvironment env in UnityEngine.Object.FindObjectsByType<PlanetStaticEnvironment>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
-                sb.AppendLine($"# Statyczne: {Path(env.transform)} objects={env.objects?.Count ?? 0}");
+                sb.AppendLine($"# Static: {Path(env.transform)} objects={env.objects?.Count ?? 0}");
                 foreach (PlanetStaticObjectPlacementConfig o in env.objects ?? new System.Collections.Generic.List<PlanetStaticObjectPlacementConfig>())
                 {
                     sb.AppendLine($"- '{o.prefab?.name}' pos={o.relativePosition} elev={o.elevation} sp={o.onlyInSinglePlayer}");
@@ -63,10 +62,9 @@ namespace Flora.Diagnostics
             Directory.CreateDirectory(dir);
             string file = System.IO.Path.Combine(dir, "world_hotspots.txt");
             File.WriteAllText(file, sb.ToString());
-            Melon<FloraMod>.Logger.Msg($"Spis złóż i obiektów: {file}");
+            Melon<FloraMod>.Logger.Msg($"Deposit and object dump: {file}");
         }
 
-        // Tylko modele: siatki i materiały (bez efektów cząsteczkowych).
         private static void DumpVisuals(StringBuilder sb, Transform t, string indent)
         {
             if (t.GetComponent<ParticleSystem>() != null)

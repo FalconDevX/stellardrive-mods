@@ -6,9 +6,6 @@ using ShipSafety;
 
 namespace ShipSafety
 {
-    // Zabezpieczenie przed błędem gry, w którym statek nagle dostaje absurdalną prędkość (np. 93c)
-    // i zostaje wyrzucony miliony km od planety. Mod zapisuje do logu, która siła to zrobiła,
-    // i nie pozwala statkowi przekroczyć rozsądnej prędkości. Liczy to serwer (host).
     public class ShipSafetyMod : MelonMod
     {
         internal static MelonPreferences_Entry<bool> Enabled;
@@ -23,23 +20,23 @@ namespace ShipSafety
         {
             var category = MelonPreferences.CreateCategory("ShipSafety");
             Enabled = category.CreateEntry("Enabled", true,
-                description: "Ograniczanie prędkości i przyspieszenia statków (false = tylko zapis do logu)");
+                description: "Limit ship speed and acceleration (false = log only)");
             MaxSpeed = category.CreateEntry("MaxSpeed", 5000f,
-                description: "Maksymalna prędkość statku w m/s (prędkość ucieczki z planet to ok. 700-2500 m/s)");
+                description: "Maximum ship speed in m/s (planet escape speed is about 700-2500 m/s)");
             MaxAcceleration = category.CreateEntry("MaxAcceleration", 300f,
-                description: "Maksymalne przyspieszenie od sił (silniki, opór, siła nośna...) w m/s^2 (300 = ok. 30 g)");
+                description: "Maximum acceleration from forces (thrusters, drag, lift...) in m/s^2 (300 = about 30 g)");
             MaxSpeedJump = category.CreateEntry("MaxSpeedJump", 1000f,
-                description: "Maksymalna zmiana prędkości statku w jednym kroku fizyki (m/s). Większy skok to błąd fizyki - prędkość wraca do tej sprzed kroku");
+                description: "Maximum ship speed change in one physics step (m/s). A bigger jump is a physics bug - the speed goes back to the one before the step");
             ShipCrashSpeed = category.CreateEntry("ShipCrashSpeed", 12f,
-                description: "Zderzenie dwóch statków niszczy części dopiero od tej prędkości względnej (m/s). Wolniejszy kontakt (lądowanie w hangarze) - bez zniszczeń");
+                description: "A collision of two ships destroys parts only from this relative speed (m/s). Slower contact (landing in a hangar) - no damage");
             ShipSolverIterations = category.CreateEntry("ShipSolverIterations", 12,
-                description: "Iteracje solvera fizyki statków (gra: 6). Więcej = mniej drgań statku stojącego na innym statku");
+                description: "Ship physics solver iterations (game: 6). More = less jitter of a ship resting on another ship");
             ShipDepenetrationSpeed = category.CreateEntry("ShipDepenetrationSpeed", 3f,
-                description: "Z jaką prędkością (m/s) fizyka rozsuwa statki, które weszły jeden w drugi (0 = jak w grze). Mniej = łagodniej, bez wystrzeliwania");
+                description: "Speed (m/s) at which physics pushes apart overlapping ships (0 = like the game). Less = gentler, no launching");
             category.SaveToFile(false);
 
-            LoggerInstance.Msg($"Limit prędkości statków {MaxSpeed.Value} m/s, przyspieszenia {MaxAcceleration.Value} m/s^2" +
-                               (Enabled.Value ? "" : " (tylko log)"));
+            LoggerInstance.Msg($"Ship speed limit {MaxSpeed.Value} m/s, acceleration {MaxAcceleration.Value} m/s^2" +
+                               (Enabled.Value ? "" : " (log only)"));
         }
     }
 }

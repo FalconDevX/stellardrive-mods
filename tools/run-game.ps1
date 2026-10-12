@@ -1,6 +1,4 @@
-﻿# Uruchamia grę (z MelonLoaderem) i opcjonalnie śledzi log MelonLoadera na żywo.
-# Użycie: .\tools\run-game.ps1 [-Follow]
-param(
+﻿param(
     [switch]$Follow,
     [string]$GameDir = $(if ($env:STELLARDRIVE_DIR) { $env:STELLARDRIVE_DIR } else { "C:\Program Files (x86)\Steam\steamapps\common\StellarDrive Demo" })
 )

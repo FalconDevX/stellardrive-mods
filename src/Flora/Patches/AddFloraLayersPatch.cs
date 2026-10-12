@@ -9,12 +9,6 @@ using UnityEngine;
 
 namespace Flora.Patches
 {
-    // Dokłada do planety nową warstwę roślinności (kwiaty) NA KOŃCU listy configs.
-    // Istniejące warstwy (jodły = 0, trawa = 1) zostają nietknięte, więc zapisy (ścięte drzewa są zapisane
-    // po numerze warstwy) działają jak wcześniej. Nowe rośliny nie mają fizyki - są tylko dekoracją,
-    // nic o nich nie trafia do zapisu.
-    //
-    // Prefix przed Awake, bo w Awake gra liczy bufory/zasięgi dla wszystkich warstw.
     [HarmonyPatch(typeof(PlanetDenseEnvironment), "Awake")]
     internal static class AddFloraLayersPatch
     {
@@ -29,7 +23,7 @@ namespace Flora.Patches
             }
             catch (Exception e)
             {
-                Melon<FloraMod>.Logger.Error($"Nie udało się dodać roślin na {__instance.gameObject.name}: {e}");
+                Melon<FloraMod>.Logger.Error($"Could not add plants on {__instance.gameObject.name}: {e}");
             }
         }
 
@@ -41,12 +35,11 @@ namespace Flora.Patches
                 return;
             }
 
-            // Wymagamy układu "drzewa + trawa" - na innych planetach (bez trawy) nic nie dokładamy.
             PlanetDensePlacementConfig trees = env.configs.FirstOrDefault(c => c.hasPhysics && c.objectsSpawn.Length > 0);
             PlanetDensePlacementConfig grass = env.configs.FirstOrDefault(c => !c.hasPhysics && c.alignWithTerrain && c.objectsSpawn.Length > 0);
             if (trees == null || grass == null)
             {
-                Melon<FloraMod>.Logger.Msg($"{env.gameObject.name}: brak drzew/trawy - pomijam");
+                Melon<FloraMod>.Logger.Msg($"{env.gameObject.name}: no trees/grass - skipping");
                 return;
             }
 
@@ -57,7 +50,7 @@ namespace Flora.Patches
                 FloraPrefabs.SetGrassTemplate(FindMaterial(grass, null));
                 if (!FloraPrefabs.IsReady)
                 {
-                    Melon<FloraMod>.Logger.Warning("Brak materiału roślin do skopiowania - pomijam");
+                    Melon<FloraMod>.Logger.Warning("No plant material to copy - skipping");
                     return;
                 }
             }
@@ -67,8 +60,8 @@ namespace Flora.Patches
                 alignWithTerrain: true, noiseShift: new Vector3(-21.3f, 7.9f, 3.1f), noiseFrequency: FloraMod.FlowerNoiseFrequency.Value));
             env.configs = layers.ToArray();
 
-            Melon<FloraMod>.Logger.Msg($"{env.gameObject.name}: dodano pola kwiatów " +
-                                       $"(szum drzew: {Describe(trees)}, trawy: {Describe(grass)})");
+            Melon<FloraMod>.Logger.Msg($"{env.gameObject.name}: added flower fields " +
+                                       $"(tree noise: {Describe(trees)}, grass: {Describe(grass)})");
         }
 
         private static PlanetDensePlacementConfig CreateLayer(PlanetDensePlacementConfig source, GameObject[] prefabs, float noiseOffset, float viewRange,
@@ -76,7 +69,6 @@ namespace Flora.Patches
         {
             var layer = (PlanetDensePlacementConfig)CloneObject(source);
 
-            // Kopia współdzieli z oryginałem bufory GPU i zdarzenia - czyścimy wszystko, co ma być własne.
             Traverse t = Traverse.Create(layer);
             t.Field("_spawnTable").SetValue(null);
             t.Field("_noiseConfigBuffer").SetValue(null);
@@ -92,7 +84,6 @@ namespace Flora.Patches
                 densityBiasPower = 0f,
             }).ToArray();
 
-            // Inny "kawałek" szumu niż oryginał: krzaki/kwiaty rosną w skupiskach w innych miejscach niż las.
             var noise = layer.noiseConfig;
             noise.center += noiseShift;
             if (noiseFrequency > 0f) noise.frequency = noiseFrequency;

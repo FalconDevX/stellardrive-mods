@@ -8,9 +8,6 @@ using Water;
 
 namespace Water
 {
-    // Prawdziwa woda w akwenach Otrera b. W grze "jeziora" to tylko teren pomalowany na niebiesko poniżej 64,2 m
-    // i ucięty płasko na 64 m. Mod obniża dno akwenów (Terrain/LakeTerrainPatch) i kładzie na poziomie 64 m taflę
-    // wody, która podąża za kamerą (Surface/WaterSurface).
     public class WaterMod : MelonMod
     {
         internal static MelonPreferences_Entry<bool> Enabled;
@@ -20,10 +17,10 @@ namespace Water
         public override void OnInitializeMelon()
         {
             var category = MelonPreferences.CreateCategory("Water");
-            Enabled = category.CreateEntry("Enabled", true, description: "Woda w akwenach Otrera b");
+            Enabled = category.CreateEntry("Enabled", true, description: "Water in the lakes of Otrera b");
             LakeDepth = category.CreateEntry("LakeDepth", 10f,
-                description: "O ile metrów obniżyć dno akwenów (0 = płaskie dno jak w grze). Wszyscy gracze muszą mieć to samo - zmienia teren");
-            SurfaceRadius = category.CreateEntry("SurfaceRadius", 3000f, description: "Promień tafli wody wokół kamery (m)");
+                description: "How many meters to lower lake bottoms (0 = flat bottom like the game). All players must use the same value - it changes the terrain");
+            SurfaceRadius = category.CreateEntry("SurfaceRadius", 3000f, description: "Radius of the water surface around the camera (m)");
             category.SaveToFile(false);
         }
 
@@ -44,7 +41,7 @@ namespace Water
             }
             catch (Exception e)
             {
-                LoggerInstance.Error($"Błąd wody: {e}");
+                LoggerInstance.Error($"Water error: {e}");
                 Enabled.Value = false;
             }
         }

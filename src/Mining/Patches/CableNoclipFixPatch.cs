@@ -7,10 +7,6 @@ using Ships.Interface.Model.Parts.Common;
 
 namespace Mining.Patches
 {
-    // Błąd gry: przy podniesieniu/odłożeniu wtyczki kabla każdy stan gracza inny niż dokładnie "Walking"
-    // (np. trzyma już drugi kabel albo ma otwarte okno koparki) zamienia się w CheatFlying - noclip i latanie.
-    // Poprawka: tryb latania tylko dla gracza, który już latał (kod CheatFlying), wszyscy inni chodzą.
-    // Parametry po pozycji (__0, __1...) - nazwy w skompilowanej grze mogą różnić się od dekompilacji.
     [HarmonyPatch(typeof(PlayersStateIntegrityRestorer))]
     internal static class CableNoclipFixPatch
     {

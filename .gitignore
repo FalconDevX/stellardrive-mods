@@ -3,6 +3,5 @@ obj/
 .vs/
 *.user
 GamePath.props
-# Zdekompilowany kod gry trzymamy lokalnie - nie publikujemy go.
 decompiled/
 __pycache__/

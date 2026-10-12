@@ -1,7 +1,3 @@
-// Stylizowana woda dla moda Water (StellarDrive, URP). Styl: turkusowa płycizna z widocznym dnem, błękitna głębia,
-// świetlna siateczka kaustyk, ostra biała piana przy brzegu i wokół obiektów, drobne zmarszczki, miękki odblask słońca.
-// Głębokość: z wierzchołków (dno odczytane z terenu gry przez mod, uv2.x w metrach) i - jeśli kamera ma bufor
-// głębokości - z różnicy głębokości sceny (ostra granica piany przy brzegu i przy obiektach).
 Shader "StellarDriveMods/StylizedWater"
 {
     Properties
@@ -64,8 +60,8 @@ Shader "StellarDriveMods/StylizedWater"
             {
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
-                float2 uv : TEXCOORD0;   // metry w płaszczyźnie stycznej (stałe dla świata, nie dla kamery)
-                float2 uv2 : TEXCOORD1;  // x: głębokość wody nad dnem z terenu (m)
+                float2 uv : TEXCOORD0;
+                float2 uv2 : TEXCOORD1;
             };
 
             struct Varyings
@@ -93,7 +89,6 @@ Shader "StellarDriveMods/StylizedWater"
                 return o;
             }
 
-            // Ostre progi zamiast miękkich przejść - komiksowy wygląd piany.
             float Band(float v, float edge) { return smoothstep(edge - 0.04, edge + 0.04, v); }
 
             half4 frag(Varyings i, bool front : SV_IsFrontFace) : SV_Target
@@ -102,7 +97,6 @@ Shader "StellarDriveMods/StylizedWater"
                 float3 up = normalize(i.normalWS);
                 float3 viewDir = normalize(GetWorldSpaceViewDir(i.positionWS));
 
-                // głębokość: z terenu (wierzchołki) i z bufora głębokości (dokładna przy brzegu/obiektach)
                 float depth = max(i.depth, 0);
                 float edgeDepth = depth;
                 if (_UseSceneDepth > 0.5)
@@ -113,14 +107,12 @@ Shader "StellarDriveMods/StylizedWater"
                     float viewThickness = scene - surface;
                     if (viewThickness > 0)
                     {
-                        // pionowa głębokość z grubości wzdłuż promienia widzenia
                         float vertical = viewThickness * saturate(dot(viewDir, up) + 0.05);
                         edgeDepth = min(edgeDepth > 0 ? edgeDepth : 1e4, vertical);
                         depth = min(depth, vertical * 1.5 + 0.2);
                     }
                 }
 
-                // zmarszczki: dwie przesuwane normal mapy
                 float2 uvN1 = i.uv * _NormalScale + float2(t * 0.012, t * 0.007);
                 float2 uvN2 = i.uv * _NormalScale * 1.7 + float2(-t * 0.009, t * 0.013);
                 float3 n1 = UnpackNormal(SAMPLE_TEXTURE2D(_NormalTex, sampler_NormalTex, uvN1));
@@ -130,11 +122,9 @@ Shader "StellarDriveMods/StylizedWater"
                 float3 bitangent = cross(up, tangent);
                 float3 normal = normalize(up + tangent * ripple.x + bitangent * ripple.y);
 
-                // kolor wg głębokości: płycizna -> środek -> głębia
                 half4 col = lerp(_ShallowColor, _MidColor, saturate(depth / _MidDepth));
                 col = lerp(col, _DeepColor, saturate((depth - _MidDepth) / max(_DeepDepth - _MidDepth, 0.01)));
 
-                // kaustyki: dwie warstwy w różnych kierunkach, min() daje cienkie świetlne linie; słabną z głębią
                 float2 cuv = i.uv * _CausticsScale + ripple * 0.15;
                 float c1 = SAMPLE_TEXTURE2D(_CausticsTex, sampler_CausticsTex, cuv + float2(t, t * 0.6) * _CausticsSpeed).r;
                 float c2 = SAMPLE_TEXTURE2D(_CausticsTex, sampler_CausticsTex, cuv * 1.4 + float2(-t * 0.7, t) * _CausticsSpeed).r;
@@ -142,7 +132,6 @@ Shader "StellarDriveMods/StylizedWater"
                 caustics *= _CausticsStrength * saturate(1.2 - depth / (_DeepDepth * 1.4));
                 col.rgb += caustics * half3(0.85, 1.0, 0.95);
 
-                // światło: rozproszone + miękki odblask słońca + niebo pod kątem (Fresnel)
                 Light sun = GetMainLight();
                 float ndl = saturate(dot(normal, sun.direction)) * 0.5 + 0.5;
                 half3 ambient = SampleSH(normal);
@@ -154,7 +143,6 @@ Shader "StellarDriveMods/StylizedWater"
                 float spec = pow(saturate(dot(normal, h)), lerp(16, 512, _Smoothness));
                 col.rgb += sun.color * Band(spec, 0.5) * 0.6;
 
-                // piana: przy brzegu (pasy biegnące do lądu) i wokół obiektów; ostra granica, wzór z tekstury
                 float foamTex = SAMPLE_TEXTURE2D(_FoamTex, sampler_FoamTex, i.uv * _FoamScale + float2(t * 0.01, -t * 0.008)).r;
                 float shore = 1 - saturate(edgeDepth / _FoamDistance);
                 float wavesBand = Band(frac(edgeDepth / (_FoamDistance * 0.9) + t * 0.18) * shore, 0.55);
@@ -164,9 +152,8 @@ Shader "StellarDriveMods/StylizedWater"
 
                 if (!front)
                 {
-                    col.a *= 0.6; // od spodu (pod wodą) trochę bardziej przezroczyście
+                    col.a *= 0.6;
                 }
-                // gra liczy dzień i noc po swojemu - jasność ustawia mod wg wysokości słońca nad horyzontem
                 col.rgb *= _Exposure;
                 col.rgb = MixFog(col.rgb, i.fog);
                 return col;
