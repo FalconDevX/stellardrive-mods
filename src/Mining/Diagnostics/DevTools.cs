@@ -565,6 +565,34 @@ namespace Mining.Diagnostics
             sb.AppendLine($"unity audio config: {AudioSettings.GetConfiguration().sampleRate} Hz, speakers {AudioSettings.GetConfiguration().speakerMode}");
             sb.AppendLine($"AudioListeners: {UnityEngine.Object.FindObjectsOfType<AudioListener>().Length}, FMOD listeners: {UnityEngine.Object.FindObjectsOfType<FMODUnity.StudioListener>().Length}");
 
+            sb.AppendLine("== TERRAIN ==");
+            foreach (Planets.Terrain.PlanetTerrain terrain in Resources.FindObjectsOfTypeAll<Planets.Terrain.PlanetTerrain>())
+            {
+                sb.AppendLine($"-- {terrain.transform.root.name}/{terrain.name} lod={terrain.numberOfLOD}");
+                sb.AppendLine("config: " + JsonUtility.ToJson(terrain.terrainConfig));
+                for (int i = 0; i < (terrain.materials?.Length ?? 0); i++)
+                {
+                    var m = terrain.materials[i];
+                    sb.AppendLine($"material {i}: kolor={m.albedoColor} tex={(m.albedoTexture != null ? m.albedoTexture.name : "-")} normal={(m.normalMap != null ? m.normalMap.name : "-")} tile={m.tile} step={m.footstepSoundParam}");
+                }
+                foreach (Component c in terrain.GetComponents<Component>())
+                {
+                    sb.AppendLine("  komponent: " + c.GetType().FullName + " " + (c is MonoBehaviour ? JsonUtility.ToJson(c).Substring(0, Math.Min(600, JsonUtility.ToJson(c).Length)) : ""));
+                }
+                foreach (Renderer r in terrain.transform.root.GetComponentsInChildren<Renderer>(true).Take(3))
+                {
+                    sb.AppendLine($"  renderer {r.name}: mat={(r.sharedMaterial != null ? r.sharedMaterial.name : "-")} shader={(r.sharedMaterial != null ? r.sharedMaterial.shader.name : "-")}");
+                }
+            }
+            foreach (Shader sh in Resources.FindObjectsOfTypeAll<Shader>().Where(x => x.name.IndexOf("Terrain", StringComparison.OrdinalIgnoreCase) >= 0 || x.name.IndexOf("Planet", StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                sb.AppendLine("shader: " + sh.name);
+            }
+            foreach (Material mat in Resources.FindObjectsOfTypeAll<Material>().Where(x => x.shader != null && x.shader.name.IndexOf("Terrain", StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                sb.AppendLine($"terrain material: {mat.name} shader={mat.shader.name} props=[{string.Join(", ", mat.GetTexturePropertyNames())}]");
+            }
+
             sb.AppendLine("== LAYERS ==");
             for (int i = 0; i < 32; i++)
             {
