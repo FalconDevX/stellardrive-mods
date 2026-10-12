@@ -161,6 +161,10 @@ namespace Mining.Content
                 StopSound();
                 return;
             }
+            if (_hasChannel && !DrillSound.IsAlive(_channel))
+            {
+                _hasChannel = false;
+            }
             if (!_hasChannel)
             {
                 if (!DrillSound.TryGet(out FMOD.Sound sound))

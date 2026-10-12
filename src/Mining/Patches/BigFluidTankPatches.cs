@@ -25,9 +25,9 @@ namespace Mining.Patches
 
         private static void Postfix(object __instance, ref float __result)
         {
-            if (_partField.GetValue(__instance) is StatefulPart part && BigFluidTank.Is(part.Settings))
+            if (_partField.GetValue(__instance) is StatefulPart part && BigFluidTank.TryGetCapacity(part.Settings, out float capacity))
             {
-                __result = BigFluidTank.Capacity;
+                __result = capacity;
             }
         }
     }
@@ -37,14 +37,15 @@ namespace Mining.Patches
     {
         private static void Postfix(FluidTankVisuals __instance, FluidTankState state, Gauge ___gauge, ref float ____targetDensity)
         {
-            if (__instance.GetComponent<BigFluidTankMarker>() == null)
+            var marker = __instance.GetComponent<BigFluidTankMarker>();
+            if (marker == null)
             {
                 return;
             }
-            ___gauge.UpdateGauge(state.FluidQuantity, BigFluidTank.Capacity);
+            ___gauge.UpdateGauge(state.FluidQuantity, marker.Capacity);
             if (state.FluidQuantity > 0f)
             {
-                ____targetDensity = 0.1f + Mathf.Clamp01(state.FluidQuantity / BigFluidTank.Capacity) / 0.9f;
+                ____targetDensity = 0.1f + Mathf.Clamp01(state.FluidQuantity / marker.Capacity) / 0.9f;
             }
         }
     }

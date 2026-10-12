@@ -89,7 +89,7 @@ namespace Mining.Server
                         float powerRate = power.TryGetGroupFromSocket(new EntityPartSocket(____ship.Id, part.Id, HydrogenThruster.PowerSocket), out PowerGroupServerState group)
                             ? group.NormalizedConsumerRate : 0f;
                         float oxygenRate = oxygen?.EffectiveConsumptionRate ?? 0f;
-                        rate = Mathf.Min(hydrogen.EffectiveConsumptionRate, Mathf.Max(powerRate, oxygenRate));
+                        rate = Mathf.Min(hydrogen.EffectiveConsumptionRate, powerRate);
                         if (rate > 0f)
                         {
                             hydrogen.RemoveFluid(rate * HydrogenPerSecond * deltaTime);
@@ -98,7 +98,7 @@ namespace Mining.Server
                             {
                                 oxygen.RemoveFluid(oxygenUsed * OxygenPerSecond * deltaTime);
                             }
-                            boosted = powerRate > 0f && oxygenRate > 0f;
+                            boosted = oxygenUsed > 0f;
                         }
                     }
                     if (boosted) Boosted.Add((____ship.Id, part.Id));

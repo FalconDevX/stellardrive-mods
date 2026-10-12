@@ -629,9 +629,9 @@ namespace Mining.Diagnostics
             Camera cam = Camera.main;
             var transpose = Core.Services.ServiceLocator.GetService<WorldTracking.Interface.Services.IWorldTransposeClient>();
             var visualSpace = WorldTracking.Interface.Values.ClientOrigin.LocalVisualSpace;
-            if (cam == null || transpose == null || visualSpace == null || Content.BigFluidTank.Part == null)
+            if (cam == null || transpose == null || visualSpace == null || Content.BigFluidTank.Get(Content.BigFluidTank.LargeId) == null)
             {
-                log.Msg($"[tank] no camera/space/part (part: {(Content.BigFluidTank.Part != null ? "present" : "MISSING")})");
+                log.Msg($"[tank] no camera/space/part (part: {(Content.BigFluidTank.Get(Content.BigFluidTank.LargeId) != null ? "present" : "MISSING")})");
                 yield break;
             }
             PartSettings small = new Ships.Interface.Services.PartSettingsProvider().GetAllPartSettings().FirstOrDefault(p => p.id == Content.BigFluidTank.TankPartId);
@@ -651,8 +651,9 @@ namespace Mining.Diagnostics
                     new WorldTracking.Interface.Model.WorldTransform { SpaceId = WorldTracking.Interface.Values.ClientOrigin.LocalPhysicsSpaceId, Position = pos, Rotation = rot });
             }
             Vector3 basePos = cam.transform.position + fwd * 12f + up * 1f;
-            uint bigId = Spawn(Content.BigFluidTank.Part, basePos);
+            uint bigId = Spawn(Content.BigFluidTank.Get(Content.BigFluidTank.LargeId), basePos);
             uint smallId = small != null ? Spawn(small, basePos - right * 4f) : 0;
+            uint mediumId = Content.BigFluidTank.Get(218) != null ? Spawn(Content.BigFluidTank.Get(218), basePos - right * 8f) : 0;
             uint reactorId = Content.Reactor.Part != null ? Spawn(Content.Reactor.Part, basePos + right * 6f) : 0;
             Ships.TrackedShipServer reactorShip = shipsServer.GetShip(reactorId);
             uint thrusterId = Content.HydrogenThruster.Part != null ? Spawn(Content.HydrogenThruster.Part, basePos + right * 10f) : 0;
@@ -664,7 +665,7 @@ namespace Mining.Diagnostics
             }
             yield return null;
             ushort bigPart = big.StatefulParts.First().Id;
-            big.UpdatePartState(bigPart, new Ships.Interface.Model.Parts.State.FluidTankState().WithFluid(105, Content.BigFluidTank.Capacity * 0.5f, 0f));
+            big.UpdatePartState(bigPart, new Ships.Interface.Model.Parts.State.FluidTankState().WithFluid(105, Content.BigFluidTank.Capacity(4) * 0.5f, 0f));
             if (smallShip != null)
             {
                 smallShip.UpdatePartState(smallShip.StatefulParts.First().Id, new Ships.Interface.Model.Parts.State.FluidTankState().WithFluid(105, 50f, 0f));
@@ -710,7 +711,7 @@ namespace Mining.Diagnostics
                     if (shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(bigId, bigPart), out var visual))
                     {
                         Transform t = visual.GameObject.transform;
-                        Vector3 center = t.TransformPoint(Content.BigFluidTank.Part.part.GetComponent<Ships.Interface.Model.Parts.ShipPartBounds>().center);
+                        Vector3 center = t.TransformPoint(Content.BigFluidTank.Get(Content.BigFluidTank.LargeId).part.GetComponent<Ships.Interface.Model.Parts.ShipPartBounds>().center);
                         Vector3 offset = shot == 0 ? (-t.forward * 9f - t.right * 3f + t.up * 1.5f)
                             : shot == 1 ? (t.forward * 9f + t.right * 4f + t.up * 2f)
                             : shot == 2 ? (-t.right * 9f + t.up * 6f)
@@ -731,7 +732,7 @@ namespace Mining.Diagnostics
                 yield return null;
                 yield return null;
             }
-            foreach (var (label, id) in new[] { ("reactor", reactorId), ("thruster", thrusterId) })
+            foreach (var (label, id) in new[] { ("reactor", reactorId), ("thruster", thrusterId), ("tank4", bigId), ("tank2", mediumId) })
             {
                 var sh = shipsServer.GetShip(id);
                 if (sh == null || !shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(id, sh.StatefulParts.First().Id), out var pv))
@@ -754,6 +755,37 @@ namespace Mining.Diagnostics
                     log.Msg($"[sockets] {label}: {socket.Type} {socket.Socket.SocketId} @ {part.InverseTransformPoint(target)} -> " +
                             (isSocket ? "OK" : ok ? $"BLOCKED by '{PathOf(hit.collider.transform)}'" : "nothing hit"));
                 }
+            }
+            var storageUi = UnityEngine.Object.FindObjectOfType<UI.Inventory.StorageMenuActivator>(true);
+            GameObject chestPrefab = storageUi != null ? Traverse.Create(storageUi).Field<GameObject>("smallStorageMenu").Value : null;
+            if (chestPrefab != null)
+            {
+                cam.enabled = true;
+                UnityEngine.Object.Destroy(testCam.gameObject);
+                GameObject menu = UnityEngine.Object.Instantiate(chestPrefab, storageUi.transform);
+                foreach (RectTransform rt in menu.GetComponentsInChildren<RectTransform>(true))
+                {
+                    if (rt.GetComponent<UI.Inventory.InventorySlotUI>() != null || rt.parent?.GetComponent<UI.Inventory.InventorySlotUI>() != null) continue;
+                    log.Msg($"[chest] rect {PathOf(rt)}: anchors {rt.anchorMin}-{rt.anchorMax} pivot {rt.pivot} pos {rt.anchoredPosition} size {rt.sizeDelta} rect {rt.rect.size}");
+                }
+                try
+                {
+                    Patches.BigChestMenuPatch.Expand(menu, 60, 20);
+                }
+                catch (Exception e)
+                {
+                    log.Msg($"[chest] menu error: {e.Message}");
+                }
+                yield return null;
+                yield return null;
+                ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, "test_chest_menu.png"));
+                yield return null;
+                var sb = new System.Text.StringBuilder();
+                DumpHierarchy(sb, menu.transform, 0);
+                File.WriteAllText(Path.Combine(OutDir, "test_chest_menu.txt"), sb.ToString());
+                log.Msg($"[chest] menu slots: {menu.GetComponentsInChildren<UI.Inventory.InventorySlotUI>(true).Length}");
+                UnityEngine.Object.Destroy(menu);
+                testCam = new GameObject("TankTestCam2").AddComponent<Camera>();
             }
             log.Msg($"[tank] large tank state: {big.StatefulParts.First().State}");
             if (reactorShip != null) log.Msg($"[tank] reactor state: {reactorShip.StatefulParts.First().State}");

@@ -2,6 +2,6 @@
   <PropertyGroup>
     <AssemblyName>Crouch</AssemblyName>
     <RootNamespace>Crouch</RootNamespace>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
   </PropertyGroup>
 </Project>

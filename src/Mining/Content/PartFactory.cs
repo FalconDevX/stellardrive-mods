@@ -9,6 +9,7 @@ using Research.Interface.Values;
 using Ships.Interface.Model.Parts;
 using Ships.Interface.Model.Parts.Common;
 using Ships.Interface.Settings;
+using Ships.Parts.Common.Gauge;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -75,6 +76,74 @@ namespace Mining.Content
             var bounds = root.GetComponent<ShipPartBounds>();
             bounds.center = b.center;
             bounds.bounds = b.size;
+        }
+
+        internal static void ScaleUniform(GameObject root, Vector3 size, float scale, string label)
+        {
+            var bounds = root.GetComponent<ShipPartBounds>();
+            Vector3 c0 = bounds.center, b0 = bounds.bounds;
+            Vector3 b1 = b0 * scale;
+            var cell = new Vector3(0f, size.y * 0.5f, 0f);
+            Vector3 block = cell + (size * scale - size) * 0.5f;
+            Vector3 c1 = block + (c0 - cell) * scale;
+            bounds.center = c1;
+            bounds.bounds = b1;
+
+            Vector3 MapScaled(Vector3 p) => c1 + (p - c0) * scale;
+
+            Vector3 MapKeepSize(Vector3 p)
+            {
+                var r = new Vector3();
+                for (int k = 0; k < 3; k++)
+                {
+                    float d = p[k] - c0[k], h0 = b0[k] * 0.5f, h1 = b1[k] * 0.5f;
+                    r[k] = Mathf.Abs(d) > h0 - 0.15f ? c1[k] + Mathf.Sign(d) * (h1 - (h0 - Mathf.Abs(d))) : c1[k] + d * scale;
+                }
+                return r;
+            }
+
+            var s = Vector3.one * scale;
+            foreach (Transform unit in root.transform.Cast<Transform>().ToArray())
+            {
+                if (unit.GetComponent<SocketObject>() != null)
+                {
+                    unit.localPosition = MapScaled(unit.localPosition);
+                    continue;
+                }
+                var sockets = unit.GetComponentsInChildren<SocketObject>(true).Select(x => x.transform)
+                    .Select(t => (t, pos: root.transform.InverseTransformPoint(t.position))).ToList();
+                var gauges = unit.GetComponentsInChildren<Gauge>(true).Select(x => x.transform)
+                    .Select(t => (t, pos: root.transform.InverseTransformPoint(t.position))).ToList();
+
+                Vector3 offset = c1 - Vector3.Scale(s, c0) + Vector3.Scale(s - Vector3.one, unit.localPosition);
+                var scaled = new GameObject("Scaled").transform;
+                scaled.SetParent(unit, false);
+                foreach (Transform child in unit.Cast<Transform>().Where(t => t != scaled).ToArray())
+                {
+                    child.SetParent(scaled, false);
+                }
+                scaled.localPosition = offset;
+                scaled.localScale = s;
+                foreach (BoxCollider box in unit.GetComponents<BoxCollider>())
+                {
+                    box.center = offset + Vector3.Scale(s, box.center);
+                    box.size = Vector3.Scale(s, box.size);
+                }
+                foreach (var (t, pos) in sockets)
+                {
+                    t.position = root.transform.TransformPoint(MapScaled(pos));
+                    t.localScale /= scale;
+                }
+                foreach (var (t, pos) in gauges)
+                {
+                    t.position = root.transform.TransformPoint(MapKeepSize(pos));
+                    t.localScale /= scale;
+                }
+                if (unit.GetComponents<Collider>().Any(c => !(c is BoxCollider)))
+                {
+                    Melon<MiningMod>.Logger.Warning($"{label}: {unit.name} has a collider other than BoxCollider - it keeps the small size");
+                }
+            }
         }
 
         internal static ItemInstance CreateItemInstance(uint itemId, int quantity)

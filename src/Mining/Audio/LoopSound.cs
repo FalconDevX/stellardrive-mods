@@ -95,6 +95,10 @@ namespace Mining.Audio
                 Stop();
                 return;
             }
+            if (_playing && !DrillSound.IsAlive(_channel))
+            {
+                _playing = false;
+            }
             if (!_playing)
             {
                 if (!LoopSound.TryGet(_name, out FMOD.Sound sound))
@@ -104,6 +108,7 @@ namespace Mining.Audio
                 FMOD.System core = FMODUnity.RuntimeManager.CoreSystem;
                 core.getMasterChannelGroup(out FMOD.ChannelGroup master);
                 core.playSound(sound, master, true, out _channel);
+                _channel.setPriority(0);
                 _channel.setPosition((uint)UnityEngine.Random.Range(0, 20000), FMOD.TIMEUNIT.PCM);
                 _channel.setPaused(false);
                 _playing = true;

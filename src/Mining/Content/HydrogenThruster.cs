@@ -119,8 +119,8 @@ namespace Mining.Content
             settings.fullLabel = "Hydrogen Thruster";
             settings.internalStateClass = chemical.internalStateClass;
             settings.snappingStyle = chemical.snappingStyle;
-            settings.description = $"Hydrogen thruster: hydrogen pipe to a side socket plus power (back, {PowerWatts:0} W, e.g. from the Nuclear Reactor) " +
-                                   "or oxygen (other side socket). Hydrogen + oxygen + power: oxygen afterburner, 1.4x thrust. " +
+            settings.description = $"Hydrogen thruster: needs a hydrogen pipe (side socket) and power (back, {PowerWatts:0} W, e.g. from the Nuclear Reactor). " +
+                                   "Oxygen in the other side socket gives an afterburner: 1.4x thrust. " +
                                    $"{MiningMod.HydrogenThrustMultiplier.Value:0.#}x stronger than the chemical thruster. Make hydrogen in the Electrolyzer.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;

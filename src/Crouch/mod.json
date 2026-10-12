@@ -2,6 +2,6 @@
   "id": "stellardrive-crouch",
   "name": "Crouch",
   "author": "mateu",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Crouching on the 'crouch' key: lower character and camera, slower walking, does not stand up under an obstacle. The host needs the mod."
 }

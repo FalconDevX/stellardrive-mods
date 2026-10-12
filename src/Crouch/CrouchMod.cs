@@ -1,7 +1,7 @@
 using Crouch;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(CrouchMod), "Crouch", "0.1.0", "mateu")]
+[assembly: MelonInfo(typeof(CrouchMod), "Crouch", "0.1.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Crouch

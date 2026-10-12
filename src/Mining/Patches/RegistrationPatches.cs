@@ -20,7 +20,10 @@ namespace Mining.Patches
             (ElectrolyzerPart.PartId, ElectrolyzerPart.GetOrCreatePart, () => ElectrolyzerPart.Part, 80),
             (Reactor.PartId, Reactor.GetOrCreatePart, () => Reactor.Part, 60),
             (WaterPump.PartId, WaterPump.GetOrCreatePart, () => WaterPump.Part, 81),
-            (BigFluidTank.PartId, BigFluidTank.GetOrCreatePart, () => BigFluidTank.Part, BigFluidTank.TankPartId),
+            (BigFluidTank.Variants[0].id, p => BigFluidTank.GetOrCreate(BigFluidTank.Variants[0].id, p), () => BigFluidTank.Get(BigFluidTank.Variants[0].id), BigFluidTank.TankPartId),
+            (BigFluidTank.Variants[1].id, p => BigFluidTank.GetOrCreate(BigFluidTank.Variants[1].id, p), () => BigFluidTank.Get(BigFluidTank.Variants[1].id), BigFluidTank.TankPartId),
+            (BigChest.Variants[0].id, p => BigChest.GetOrCreate(BigChest.Variants[0].id, p), () => BigChest.Get(BigChest.Variants[0].id), BigChest.ChestPartId),
+            (BigChest.Variants[1].id, p => BigChest.GetOrCreate(BigChest.Variants[1].id, p), () => BigChest.Get(BigChest.Variants[1].id), BigChest.ChestPartId),
             (BigDoors.Variants[0].id, p => BigDoors.GetOrCreate(BigDoors.Variants[0].id, p), () => BigDoors.Get(BigDoors.Variants[0].id), BigDoors.DoorPartId),
             (BigDoors.Variants[1].id, p => BigDoors.GetOrCreate(BigDoors.Variants[1].id, p), () => BigDoors.Get(BigDoors.Variants[1].id), BigDoors.DoorPartId),
             (BigDoors.Variants[2].id, p => BigDoors.GetOrCreate(BigDoors.Variants[2].id, p), () => BigDoors.Get(BigDoors.Variants[2].id), BigDoors.DoorPartId),
@@ -33,8 +36,12 @@ namespace Mining.Patches
             () => BigDoors.All,
             (Items.Model.ItemsConstants.IronItemId, 30), (112, 10));
 
+        internal static readonly ModResearch LargeStorageResearch = new ModResearch(BigChest.ResearchId, "Large Storage", new Vector2Int(2, 0), 17,
+            () => BigChest.All,
+            (Items.Model.ItemsConstants.IronItemId, 30), (112, 5));
+
         internal static readonly ModResearch LargeTanksResearch = new ModResearch(BigFluidTank.ResearchId, "Large Tanks", new Vector2Int(3, 3), 8,
-            () => new[] { BigFluidTank.Part },
+            () => BigFluidTank.All,
             (Items.Model.ItemsConstants.IronItemId, 40), (Items.Model.ItemsConstants.GlassItemId, 15));
 
         internal static readonly ModResearch HydrogenResearch = new ModResearch(201, "Hydrogen Propulsion", new Vector2Int(5, 4), Excavator.ResearchId,
@@ -71,6 +78,7 @@ namespace Mining.Patches
             JetpackResearch.Ensure();
             LargeDoorsResearch.Ensure();
             LargeTanksResearch.Ensure();
+            LargeStorageResearch.Ensure();
         }
     }
 

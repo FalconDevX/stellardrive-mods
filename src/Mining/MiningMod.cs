@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.6.1", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.7.0", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -32,6 +32,8 @@ namespace Mining
         internal static MelonPreferences_Entry<float> PumpVolume;
         internal static MelonPreferences_Entry<float> ReactorVolume;
         internal static MelonPreferences_Entry<float> DoorVolume;
+        internal static MelonPreferences_Entry<float> DetailDistance;
+        internal static MelonPreferences_Entry<bool> DetailShadows;
         internal static MelonPreferences_Entry<string> DevAutoLoadWorld;
         internal static MelonPreferences_Entry<bool> DevDump;
         internal static MelonPreferences_Entry<bool> DevQuitAfterDump;
@@ -62,6 +64,8 @@ namespace Mining
             PumpVolume = category.CreateEntry("PumpVolume", 0.7f, description: "Water pump and hose winch volume (0-1)");
             ReactorVolume = category.CreateEntry("ReactorVolume", 0.6f, description: "Running reactor volume (0-1)");
             DoorVolume = category.CreateEntry("DoorVolume", 0.8f, description: "Large door volume (0-1)");
+            DetailDistance = category.CreateEntry("DetailDistance", 30f, description: "Small ship details (cable plugs and cords, socket covers, small bits) are not drawn beyond this distance (m). 0 = always drawn");
+            DetailShadows = category.CreateEntry("DetailShadows", false, description: "Small ship details cast shadows (false = faster)");
             PumpHoseLength = category.CreateEntry("PumpHoseLength", 20f, description: "Pump hose length (m). All players should use the same value");
             JetpackSecondsPerWood = category.CreateEntry("JetpackSecondsPerWood", 20f, description: "Seconds of jetpack flight per 1 wood. Host only");
             JetpackAcceleration = category.CreateEntry("JetpackAcceleration", 6f, description: "Jetpack upward acceleration above gravity (m/s^2). All players must use the same value");
@@ -96,6 +100,7 @@ namespace Mining
             try
             {
                 Sites.MiningSiteVisuals.Update();
+                Diagnostics.DetailCuller.Update();
                 Keyboard kb = Keyboard.current;
                 if (kb != null && kb.nKey.wasPressedThisFrame && !Diagnostics.DevTools.IsTyping())
                 {
@@ -109,7 +114,7 @@ namespace Mining
                 {
                     ShowMessage(Sites.MiningSiteVisuals.DescribeNearest(Items.Model.ItemsConstants.GlassItemId, 5000f, "No glass deposits within 5 km."));
                 }
-                if (kb != null && kb.f9Key.wasPressedThisFrame)
+                if (kb != null && kb.f11Key.wasPressedThisFrame)
                 {
                     Diagnostics.FrameProfiler.Start();
                 }

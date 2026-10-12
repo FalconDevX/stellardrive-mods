@@ -142,6 +142,10 @@ namespace Mining.Content
                 StopSound();
                 return;
             }
+            if (_hasChannel && !Audio.DrillSound.IsAlive(_channel))
+            {
+                _hasChannel = false;
+            }
             if (!_hasChannel)
             {
                 _channel = Audio.DrillSound.Play(sound);

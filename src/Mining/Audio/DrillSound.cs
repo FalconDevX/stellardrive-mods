@@ -58,10 +58,13 @@ namespace Mining.Audio
             FMOD.System core = FMODUnity.RuntimeManager.CoreSystem;
             core.getMasterChannelGroup(out FMOD.ChannelGroup master);
             core.playSound(sound, master, true, out FMOD.Channel channel);
+            channel.setPriority(0);
             channel.setVolume(0f);
             channel.setPaused(false);
             return channel;
         }
+
+        internal static bool IsAlive(FMOD.Channel channel) => channel.isPlaying(out bool playing) == FMOD.RESULT.OK && playing;
 
         private static byte[] LoadOverride(out string source)
         {
