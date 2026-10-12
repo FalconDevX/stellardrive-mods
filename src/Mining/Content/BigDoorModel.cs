@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using Audio.Interface;
 using Core.Services;
 using Ships.Interface.Model.Parts;
@@ -9,8 +10,11 @@ using UnityEngine;
 namespace Mining.Content
 {
     // Własny model dużych drzwi, budowany w kodzie dla każdego rozmiaru (rama zawsze tej samej grubości, nie rozciągnięta).
-    // Kolory z palety modów (reactor_albedo.png, jak w lowpoly.py). Drzwi do 4 m szerokości: dwa skrzydła rozsuwane na
-    // boki; szersze: brama podnoszona do góry (jak w hangarze).
+    // Kolory z palety modów (reactor_albedo.png, jak w lowpoly.py). Trzy style:
+    //  - Slide (3x3, 4x4): dwa skrzydła rozsuwane na boki,
+    //  - Jaw (6x3): "szczęki" - górna połowa w górę, dolna w dół, zęby na styku,
+    //  - Blast (10x5): pancerne drzwi hangarowe - dwie ciężkie połowy na boki, żebra, wielkie pasy ostrzegawcze.
+    // Skrzydła są pocięte na wąskie paski: pasek, który wjeżdża w ramę, jest przycinany i znika (nic nie wystaje).
     internal static class BigDoorModel
     {
         private static readonly string[] Names =
@@ -19,106 +23,307 @@ namespace Mining.Content
         };
 
         internal const string ModelName = "BigDoorModel";
-        internal const float Frame = 0.2f;
-        internal const float Sill = 0.08f;
+        private const float Frame = 0.22f;
+        private const float Sill = 0.08f;
+        private const float Strip = 0.25f;
 
-        internal static bool IsLift(float width) => width > 4.5f;
+        private enum Style { Slide, Jaw, Blast }
 
-        internal static Transform Build(Transform root, Bounds b, Material material, MeshRenderer look)
+        private struct Box
+        {
+            public Vector3 C, S;
+            public string Color;
+            public Box(Vector3 c, Vector3 s, string color) { C = c; S = s; Color = color; }
+        }
+
+        internal static Transform Build(Transform parent, Bounds b, Material material, MeshRenderer look)
         {
             var model = new GameObject(ModelName).transform;
-            model.SetParent(root, false);
+            model.SetParent(parent, false);
             Vector3 min = b.min, max = b.max;
             float w = b.size.x, h = b.size.y, z = b.center.z;
             float depth = Mathf.Clamp(b.size.z, 0.25f, 0.35f); // grubość ściany (obrys drzwi z gry bywa na całe pole)
+            Style style = w >= 8f ? Style.Blast : w > h ? Style.Jaw : Style.Slide;
 
-            // rama: słupy, nadproże, próg z pasami, pomarańczowe narożniki
-            var frame = new MeshBuilder();
-            frame.Box(new Vector3(min.x + Frame / 2, (min.y + max.y) / 2, z), new Vector3(Frame, h, depth), "dark");
-            frame.Box(new Vector3(max.x - Frame / 2, (min.y + max.y) / 2, z), new Vector3(Frame, h, depth), "dark");
-            frame.Box(new Vector3((min.x + max.x) / 2, max.y - Frame / 2, z), new Vector3(w, Frame, depth), "dark");
-            frame.Box(new Vector3((min.x + max.x) / 2, min.y + Sill / 2, z), new Vector3(w - 2 * Frame, Sill, depth * 0.9f), "black");
-            foreach (float sx in new[] { min.x + Frame / 2, max.x - Frame / 2 })
-            {
-                foreach (float sy in new[] { max.y - Frame / 2, min.y + 0.15f })
-                {
-                    frame.Box(new Vector3(sx, sy, z), new Vector3(Frame + 0.04f, 0.3f, depth + 0.04f), "orange");
-                }
-                for (float y = min.y + 0.5f; y < max.y - 0.5f; y += 0.6f)
-                {
-                    frame.Box(new Vector3(sx, y, z), new Vector3(Frame + 0.02f, 0.04f, depth + 0.02f), "black"); // żebra słupów
-                }
-            }
-            for (float x = min.x + Frame; x < max.x - Frame - 0.01f; x += 0.3f)                                    // pasy na progu
-            {
-                float x1 = Mathf.Min(x + 0.15f, max.x - Frame);
-                foreach (float side in new[] { -1f, 1f })
-                {
-                    frame.Box(new Vector3((x + x1) / 2, min.y + Sill / 2, z + side * depth * 0.45f), new Vector3(x1 - x, Sill * 0.9f, 0.01f), "yellow");
-                }
-            }
-            frame.Box(new Vector3((min.x + max.x) / 2, max.y - Frame - 0.04f, z), new Vector3(w - 2 * Frame, 0.08f, depth * 0.7f), "grey"); // prowadnica
-            PartFactory.CreateRenderer("Frame", model, frame.ToMesh("BigDoorFrame"), material, look);
+            float ix0 = min.x + Frame, ix1 = max.x - Frame, iy0 = min.y + Sill, iy1 = max.y - Frame;
+            BuildFrame(model, material, look, min, max, z, depth, style, ix0, ix1);
 
-            float ix0 = min.x + Frame, ix1 = max.x - Frame, iy0 = min.y + Sill, iy1 = max.y - Frame - 0.08f;
-            float leafDepth = Mathf.Min(0.14f, depth * 0.5f);
-            if (IsLift(w))
+            float leaf = Mathf.Min(style == Style.Blast ? 0.2f : 0.14f, depth * 0.7f);
+            float mx = (ix0 + ix1) / 2, my = (iy0 + iy1) / 2;
+            switch (style)
             {
-                var panel = new MeshBuilder();
-                float pw = ix1 - ix0, ph = iy1 - iy0;
-                var c = new Vector3((ix0 + ix1) / 2, (iy0 + iy1) / 2, z);
-                panel.Box(c, new Vector3(pw, ph, leafDepth), "light");
-                for (float y = iy0 + 0.5f; y < iy1 - 0.1f; y += 0.5f)                                           // segmenty bramy
-                {
-                    panel.Box(new Vector3(c.x, y, z), new Vector3(pw, 0.04f, leafDepth + 0.02f), "grey");
-                }
-                float wy = iy1 - 0.45f;                                                                         // rząd okienek
-                for (float x = ix0 + 0.6f; x < ix1 - 0.5f; x += 1.2f)
-                {
-                    panel.Box(new Vector3(x, wy, z), new Vector3(0.6f, 0.22f, leafDepth + 0.03f), "screen");
-                }
-                for (float x = ix0; x < ix1 - 0.01f; x += 0.4f)                                                // pasy przy dolnej krawędzi
-                {
-                    float x1 = Mathf.Min(x + 0.2f, ix1);
-                    panel.Box(new Vector3((x + x1) / 2, iy0 + 0.12f, z), new Vector3(x1 - x, 0.18f, leafDepth + 0.025f), "yellow");
-                    float x2 = Mathf.Min(x1 + 0.2f, ix1);
-                    if (x2 > x1) panel.Box(new Vector3((x1 + x2) / 2, iy0 + 0.12f, z), new Vector3(x2 - x1, 0.18f, leafDepth + 0.025f), "black");
-                }
-                panel.Box(new Vector3(c.x, iy0 + 0.45f, z), new Vector3(0.8f, 0.08f, leafDepth + 0.08f), "dark"); // uchwyt
-                PartFactory.CreateRenderer("LeafUp", model, panel.ToMesh("BigDoorPanel"), material, look);
-            }
-            else
-            {
-                float half = (ix1 - ix0) / 2;
-                for (int side = 0; side < 2; side++)
-                {
-                    float x0 = side == 0 ? ix0 : ix0 + half, x1 = x0 + half;
-                    float edge = side == 0 ? x1 : x0;                    // krawędź przy środku drzwi
-                    float ph = iy1 - iy0;
-                    var leaf = new MeshBuilder();
-                    var c = new Vector3((x0 + x1) / 2, (iy0 + iy1) / 2, z);
-                    leaf.Box(c, new Vector3(half - 0.01f, ph, leafDepth), "light");
-                    for (float y = iy0 + 0.6f; y < iy1 - 0.2f; y += 0.9f)
-                    {
-                        leaf.Box(new Vector3(c.x, y, z), new Vector3(half - 0.01f, 0.03f, leafDepth + 0.02f), "grey");  // szwy
-                    }
-                    if (ph > 2.2f)
-                    {
-                        leaf.Box(new Vector3(c.x, iy1 - 0.6f, z), new Vector3(half * 0.5f, 0.4f, leafDepth + 0.03f), "screen"); // okienko
-                    }
-                    float sx = edge + (side == 0 ? -0.06f : 0.06f);
-                    for (float y = iy0; y < iy1 - 0.01f; y += 0.3f)                                            // pasy na krawędzi
-                    {
-                        float y1 = Mathf.Min(y + 0.15f, iy1);
-                        leaf.Box(new Vector3(sx, (y + y1) / 2, z), new Vector3(0.1f, y1 - y, leafDepth + 0.025f), "yellow");
-                    }
-                    float hx = edge + (side == 0 ? -0.25f : 0.25f);
-                    leaf.Box(new Vector3(hx, iy0 + Mathf.Min(1.1f, ph * 0.45f), z), new Vector3(0.06f, 0.5f, leafDepth + 0.1f), "dark"); // uchwyt
-                    leaf.Box(new Vector3(c.x, iy0 + 0.06f, z), new Vector3(half - 0.01f, 0.12f, leafDepth + 0.02f), "orange"); // listwa
-                    PartFactory.CreateRenderer(side == 0 ? "LeafL" : "LeafR", model, leaf.ToMesh("BigDoorLeaf"), material, look);
-                }
+                case Style.Slide:
+                    AddLeaf(model, material, look, SlideLeaf(ix0, mx, iy0, iy1, z, leaf, mx), 'x', -1, mx - ix0, ix0, ix1, ix0, mx);
+                    AddLeaf(model, material, look, SlideLeaf(mx, ix1, iy0, iy1, z, leaf, mx), 'x', 1, ix1 - mx, ix0, ix1, mx, ix1);
+                    break;
+                case Style.Blast:
+                    AddLeaf(model, material, look, BlastLeaf(ix0, mx, iy0, iy1, z, leaf, mx), 'x', -1, mx - ix0, ix0, ix1, ix0, mx);
+                    AddLeaf(model, material, look, BlastLeaf(mx, ix1, iy0, iy1, z, leaf, mx), 'x', 1, ix1 - mx, ix0, ix1, mx, ix1);
+                    break;
+                case Style.Jaw:
+                    AddLeaf(model, material, look, JawHalf(ix0, ix1, my, iy1, z, leaf, true), 'y', 1, iy1 - my + 0.12f, iy0, iy1, my - 0.12f, iy1);
+                    AddLeaf(model, material, look, JawHalf(ix0, ix1, iy0, my, z, leaf, false), 'y', -1, my - iy0 + 0.12f, iy0, iy1, iy0, my + 0.12f);
+                    break;
             }
             return model;
+        }
+
+        // --- rama: słupy z żebrami i nitami, nadproże z lampami, próg w pasy, panele sterowania, siłowniki ---
+        private static void BuildFrame(Transform model, Material material, MeshRenderer look, Vector3 min, Vector3 max, float z, float depth, Style style,
+            float ix0, float ix1)
+        {
+            float w = max.x - min.x, h = max.y - min.y, cx = (min.x + max.x) / 2, cy = (min.y + max.y) / 2;
+            var m = new MeshBuilder();
+            foreach (float sx in new[] { min.x + Frame / 2, max.x - Frame / 2 })
+            {
+                m.Box(new Vector3(sx, cy, z), new Vector3(Frame, h, depth), "dark");
+                m.Box(new Vector3(sx, cy, z), new Vector3(Frame * 0.5f, h - 0.3f, depth + 0.02f), "black");        // rowek w słupie
+                m.Box(new Vector3(sx, max.y - 0.18f, z), new Vector3(Frame + 0.06f, 0.36f, depth + 0.06f), "orange");
+                m.Box(new Vector3(sx, max.y - 0.18f, z), new Vector3(Frame + 0.07f, 0.06f, depth + 0.07f), "black");
+                m.Box(new Vector3(sx, min.y + 0.16f, z), new Vector3(Frame + 0.06f, 0.32f, depth + 0.06f), "orange");
+                for (float y = min.y + 0.55f; y < max.y - 0.5f; y += 0.5f)
+                {
+                    m.Box(new Vector3(sx, y, z), new Vector3(Frame + 0.02f, 0.05f, depth + 0.02f), "grey");          // żebra
+                    foreach (float side in new[] { -1f, 1f })
+                    {
+                        m.Box(new Vector3(sx, y + 0.25f, z + side * (depth / 2 + 0.012f)), new Vector3(0.04f, 0.04f, 0.02f), "steel"); // nity
+                    }
+                }
+            }
+            m.Box(new Vector3(cx, max.y - Frame / 2, z), new Vector3(w, Frame, depth), "dark");
+            m.Box(new Vector3(cx, max.y - Frame - 0.03f, z), new Vector3(w - 2 * Frame, 0.06f, depth * 0.8f), "grey"); // prowadnica
+            for (float x = min.x + 0.5f; x < max.x - 0.4f; x += 0.5f)
+            {
+                foreach (float side in new[] { -1f, 1f })
+                {
+                    m.Box(new Vector3(x, max.y - Frame / 2, z + side * (depth / 2 + 0.012f)), new Vector3(0.04f, 0.04f, 0.02f), "steel");
+                }
+            }
+            // lampy ostrzegawcze na nadprożu (po obu stronach ściany)
+            foreach (float lx in style == Style.Slide ? new[] { cx } : new[] { min.x + w * 0.25f, max.x - w * 0.25f })
+            {
+                foreach (float side in new[] { -1f, 1f })
+                {
+                    float lz = z + side * (depth / 2 + 0.05f);
+                    m.Box(new Vector3(lx, max.y - Frame / 2, lz), new Vector3(0.24f, 0.14f, 0.1f), "black");
+                    m.Box(new Vector3(lx, max.y - Frame / 2, lz + side * 0.04f), new Vector3(0.18f, 0.1f, 0.04f), "orange");
+                    m.Box(new Vector3(lx, max.y - Frame / 2, lz + side * 0.06f), new Vector3(0.1f, 0.06f, 0.02f), "yellow");
+                }
+            }
+            // próg: czarny z żółtymi pasami (po obu stronach)
+            m.Box(new Vector3(cx, min.y + Sill / 2, z), new Vector3(w - 2 * Frame, Sill, depth * 0.9f), "black");
+            for (float x = ix0; x < ix1 - 0.01f; x += 0.3f)
+            {
+                float x1 = Mathf.Min(x + 0.15f, ix1);
+                foreach (float side in new[] { -1f, 1f })
+                {
+                    m.Box(new Vector3((x + x1) / 2, min.y + Sill / 2, z + side * depth * 0.45f), new Vector3(x1 - x, Sill * 0.9f, 0.012f), "yellow");
+                }
+            }
+            // panele sterowania na prawym słupie (przód i tył): obudowa, ekran, przyciski
+            foreach (float side in new[] { -1f, 1f })
+            {
+                float pz = z + side * (depth / 2 + 0.04f);
+                float px = max.x - Frame / 2, py = min.y + Mathf.Min(1.3f, h * 0.45f);
+                m.Box(new Vector3(px, py, pz), new Vector3(Frame * 0.85f, 0.42f, 0.07f), "white");
+                m.Box(new Vector3(px, py + 0.09f, pz + side * 0.036f), new Vector3(Frame * 0.6f, 0.13f, 0.01f), "screen");
+                m.Box(new Vector3(px - 0.04f, py - 0.08f, pz + side * 0.04f), new Vector3(0.05f, 0.05f, 0.02f), "orange");
+                m.Box(new Vector3(px + 0.04f, py - 0.08f, pz + side * 0.04f), new Vector3(0.05f, 0.05f, 0.02f), "yellow");
+                m.Box(new Vector3(px, py - 0.16f, pz + side * 0.038f), new Vector3(Frame * 0.6f, 0.03f, 0.012f), "dark");
+            }
+            // siłowniki przy większych drzwiach (pionowe tłoki przy słupach, po obu stronach ściany)
+            if (style != Style.Slide)
+            {
+                foreach (float sx in new[] { min.x + Frame + 0.08f, max.x - Frame - 0.08f })
+                {
+                    foreach (float side in new[] { -1f, 1f })
+                    {
+                        float pz = z + side * (depth / 2 + 0.05f);
+                        m.Box(new Vector3(sx, max.y - Frame - 0.5f, pz), new Vector3(0.12f, 0.9f, 0.1f), "steel");
+                        m.Box(new Vector3(sx, max.y - Frame - 1.15f, pz), new Vector3(0.06f, 0.5f, 0.06f), "light");
+                        m.Box(new Vector3(sx, max.y - Frame - 0.06f, pz), new Vector3(0.16f, 0.1f, 0.12f), "orange");
+                    }
+                }
+            }
+            PartFactory.CreateRenderer("Frame", model, m.ToMesh("BigDoorFrame"), material, look);
+        }
+
+        // --- skrzydło rozsuwane (3x3, 4x4) ---
+        private static List<Box> SlideLeaf(float x0, float x1, float y0, float y1, float z, float d, float mid)
+        {
+            var list = new List<Box>();
+            float cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, wl = x1 - x0 - 0.01f, hl = y1 - y0;
+            bool left = x1 <= mid + 0.001f;
+            float edge = left ? x1 : x0, outer = left ? x0 : x1, inward = left ? -1f : 1f; // inward: od krawędzi środkowej w głąb skrzydła
+            list.Add(new Box(new Vector3(cx, cy, z), new Vector3(wl, hl, d), "light"));
+            foreach (float side in new[] { -1f, 1f })
+            {
+                float fz = z + side * (d / 2 + 0.006f);
+                // obramowanie skrzydła i szwy
+                list.Add(new Box(new Vector3(cx, y1 - 0.05f, fz), new Vector3(wl, 0.1f, 0.012f), "grey"));
+                list.Add(new Box(new Vector3(cx, y0 + 0.28f, fz), new Vector3(wl, 0.04f, 0.012f), "grey"));
+                list.Add(new Box(new Vector3(outer - inward * 0.05f, cy, fz), new Vector3(0.1f, hl, 0.012f), "grey"));
+                for (float y = y0 + 0.9f; y < y1 - 0.5f; y += 0.9f)
+                {
+                    list.Add(new Box(new Vector3(cx, y, fz), new Vector3(wl - 0.2f, 0.025f, 0.012f), "grey"));
+                }
+                // okno w ciemnej ramce
+                if (hl > 2.2f)
+                {
+                    float wy = y1 - 0.65f, ww = wl * 0.42f, wx = cx - inward * 0.05f;
+                    list.Add(new Box(new Vector3(wx, wy, fz), new Vector3(ww + 0.08f, 0.5f, 0.016f), "dark"));
+                    list.Add(new Box(new Vector3(wx, wy, fz + side * 0.004f), new Vector3(ww, 0.42f, 0.012f), "screen"));
+                }
+                // pasy ukośne przy krawędzi środkowej (schodkowo: żółte kostki na czarnym)
+                list.Add(new Box(new Vector3(edge + inward * 0.2f, cy, fz), new Vector3(0.3f, hl, 0.014f), "black"));
+                for (float y = y0; y < y1 - 0.05f; y += 0.1f)
+                {
+                    int step = Mathf.RoundToInt((y - y0) / 0.1f) % 6;
+                    if (step < 3)
+                    {
+                        float kx = edge + inward * (0.07f + step * 0.1f);
+                        list.Add(new Box(new Vector3(kx, y + 0.05f, fz + side * 0.003f), new Vector3(0.1f, 0.1f, 0.014f), "yellow"));
+                    }
+                }
+                // uchwyt we wnęce, tabliczka, nity
+                float hx = edge + inward * 0.5f, hy = y0 + Mathf.Min(1.1f, hl * 0.4f);
+                list.Add(new Box(new Vector3(hx, hy, fz), new Vector3(0.14f, 0.5f, 0.012f), "dark"));
+                list.Add(new Box(new Vector3(hx, hy, fz + side * 0.03f), new Vector3(0.04f, 0.4f, 0.05f), "steel"));
+                list.Add(new Box(new Vector3(cx - inward * 0.15f, y1 - 0.25f, fz), new Vector3(0.3f, 0.12f, 0.014f), "yellow"));
+                for (float x = Mathf.Min(x0, x1) + 0.15f; x < Mathf.Max(x0, x1) - 0.1f; x += 0.3f)
+                {
+                    list.Add(new Box(new Vector3(x, y0 + 0.15f, fz + side * 0.006f), new Vector3(0.035f, 0.035f, 0.016f), "steel"));
+                }
+            }
+            list.Add(new Box(new Vector3(cx, y0 + 0.12f, z), new Vector3(wl, 0.24f, d + 0.02f), "orange"));            // listwa dolna
+            list.Add(new Box(new Vector3(edge + inward * 0.015f, cy, z), new Vector3(0.03f, hl, d + 0.03f), "rubber"));  // uszczelka
+            return list;
+        }
+
+        // --- pancerna połowa drzwi hangarowych (10x5) ---
+        private static List<Box> BlastLeaf(float x0, float x1, float y0, float y1, float z, float d, float mid)
+        {
+            var list = new List<Box>();
+            float cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, wl = x1 - x0 - 0.01f, hl = y1 - y0;
+            bool left = x1 <= mid + 0.001f;
+            float edge = left ? x1 : x0, inward = left ? -1f : 1f;
+            list.Add(new Box(new Vector3(cx, cy, z), new Vector3(wl, hl, d), "grey"));
+            foreach (float side in new[] { -1f, 1f })
+            {
+                float fz = z + side * (d / 2 + 0.01f);
+                // pionowe żebra co 0.8 m z nitami
+                for (float x = Mathf.Min(x0, x1) + 0.4f; x < Mathf.Max(x0, x1) - 0.6f; x += 0.8f)
+                {
+                    list.Add(new Box(new Vector3(x, cy, fz), new Vector3(0.14f, hl - 0.2f, 0.06f), "dark"));
+                    for (float y = y0 + 0.3f; y < y1 - 0.2f; y += 0.6f)
+                    {
+                        list.Add(new Box(new Vector3(x, y, fz + side * 0.035f), new Vector3(0.05f, 0.05f, 0.02f), "steel"));
+                    }
+                }
+                // poziome pasy wzmocnień
+                foreach (float y in new[] { y0 + 0.5f, cy, y1 - 0.5f })
+                {
+                    list.Add(new Box(new Vector3(cx, y, fz + side * 0.02f), new Vector3(wl, 0.18f, 0.04f), "dark"));
+                }
+                // wielkie pasy ostrzegawcze przy krawędzi środkowej (schodkowo, żółte na czarnym)
+                const float band = 0.9f;
+                list.Add(new Box(new Vector3(edge + inward * band / 2, cy, fz + side * 0.03f), new Vector3(band, hl, 0.02f), "black"));
+                for (float y = y0; y < y1 - 0.1f; y += 0.15f)
+                {
+                    int step = Mathf.RoundToInt((y - y0) / 0.15f);
+                    for (int k = 0; k < 6; k++)
+                    {
+                        if ((k + step) % 6 < 3)
+                        {
+                            float kx = edge + inward * (0.075f + k * 0.15f);
+                            list.Add(new Box(new Vector3(kx, y + 0.075f, fz + side * 0.035f), new Vector3(0.15f, 0.15f, 0.02f), "yellow"));
+                        }
+                    }
+                }
+                // tabliczka z numerem hangaru i okienko inspekcyjne
+                list.Add(new Box(new Vector3(edge + inward * 1.8f, y1 - 0.9f, fz + side * 0.02f), new Vector3(0.9f, 0.5f, 0.03f), "orange"));
+                list.Add(new Box(new Vector3(edge + inward * 1.8f, y1 - 0.9f, fz + side * 0.03f), new Vector3(0.5f, 0.25f, 0.02f), "white"));
+                list.Add(new Box(new Vector3(edge + inward * 1.8f, cy - 0.2f, fz + side * 0.02f), new Vector3(0.7f, 0.3f, 0.03f), "black"));
+                list.Add(new Box(new Vector3(edge + inward * 1.8f, cy - 0.2f, fz + side * 0.03f), new Vector3(0.6f, 0.2f, 0.02f), "screen"));
+            }
+            list.Add(new Box(new Vector3(cx, y0 + 0.06f, z), new Vector3(wl, 0.12f, d + 0.04f), "rubber"));             // uszczelka dolna
+            list.Add(new Box(new Vector3(edge + inward * 0.02f, cy, z), new Vector3(0.04f, hl, d + 0.06f), "black"));    // krawędź styku
+            return list;
+        }
+
+        // --- połowa drzwi "szczęk" (6x3): zęby na styku zazębiają się ---
+        private static List<Box> JawHalf(float x0, float x1, float y0, float y1, float z, float d, bool top)
+        {
+            var list = new List<Box>();
+            float cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, wl = x1 - x0, hl = y1 - y0;
+            float edge = top ? y0 : y1, inward = top ? 1f : -1f;
+            list.Add(new Box(new Vector3(cx, cy, z), new Vector3(wl, hl - 0.01f, d), "light"));
+            // zęby: na górnej połowie co drugi, na dolnej - pozostałe (zachodzą na siebie 0.12 m)
+            int teeth = Mathf.Max(4, Mathf.RoundToInt(wl / 0.5f));
+            float tw = wl / teeth;
+            for (int i = 0; i < teeth; i++)
+            {
+                if ((i % 2 == 0) == top)
+                {
+                    float tx = x0 + tw * (i + 0.5f);
+                    list.Add(new Box(new Vector3(tx, edge - inward * 0.06f, z), new Vector3(tw - 0.02f, 0.12f, d), "yellow"));
+                    list.Add(new Box(new Vector3(tx, edge - inward * 0.11f, z), new Vector3(tw - 0.06f, 0.02f, d + 0.01f), "black"));
+                }
+            }
+            foreach (float side in new[] { -1f, 1f })
+            {
+                float fz = z + side * (d / 2 + 0.008f);
+                list.Add(new Box(new Vector3(cx, edge + inward * 0.2f, fz), new Vector3(wl, 0.16f, 0.014f), "black"));      // pas przy styku
+                for (float x = x0; x < x1 - 0.05f; x += 0.2f)
+                {
+                    list.Add(new Box(new Vector3(x + 0.05f, edge + inward * 0.2f, fz + side * 0.003f), new Vector3(0.1f, 0.16f, 0.014f), "yellow"));
+                }
+                for (float x = x0 + 0.5f; x < x1 - 0.3f; x += 1f)                                                         // pionowe żebra
+                {
+                    list.Add(new Box(new Vector3(x, cy + inward * 0.1f, fz), new Vector3(0.1f, hl - 0.4f, 0.03f), "grey"));
+                }
+                list.Add(new Box(new Vector3(cx, top ? y1 - 0.12f : y0 + 0.12f, fz), new Vector3(wl, 0.08f, 0.02f), "dark"));
+                if (top)
+                {
+                    for (float x = x0 + 1f; x < x1 - 0.8f; x += 2f)                                                       // okienka w górnej połowie
+                    {
+                        list.Add(new Box(new Vector3(x + 0.5f, cy + 0.15f, fz), new Vector3(0.6f, 0.3f, 0.016f), "dark"));
+                        list.Add(new Box(new Vector3(x + 0.5f, cy + 0.15f, fz + side * 0.004f), new Vector3(0.52f, 0.22f, 0.012f), "screen"));
+                    }
+                }
+                else
+                {
+                    list.Add(new Box(new Vector3(cx, cy - 0.1f, fz), new Vector3(0.6f, 0.2f, 0.016f), "orange"));            // tabliczka
+                }
+            }
+            return list;
+        }
+
+        // Skrzydło pocięte na paski wzdłuż osi ruchu; każdy pasek to osobny obiekt (nazwa niesie dane do przycinania).
+        private static void AddLeaf(Transform model, Material material, MeshRenderer look, List<Box> boxes, char axis, int dir, float distance,
+            float clipLo, float clipHi, float lo, float hi)
+        {
+            int count = Mathf.Max(1, Mathf.CeilToInt((hi - lo) / Strip));
+            float step = (hi - lo) / count;
+            for (int i = 0; i < count; i++)
+            {
+                float s0 = lo + i * step, s1 = s0 + step, sc = (s0 + s1) / 2;
+                var m = new MeshBuilder();
+                foreach (Box box in boxes)
+                {
+                    float b0 = (axis == 'x' ? box.C.x : box.C.y) - (axis == 'x' ? box.S.x : box.S.y) / 2;
+                    float b1 = b0 + (axis == 'x' ? box.S.x : box.S.y);
+                    float c0 = Mathf.Max(b0, s0), c1 = Mathf.Min(b1, s1);
+                    if (c1 - c0 < 0.0005f) continue;
+                    Vector3 c = box.C, s = box.S;
+                    if (axis == 'x') { c.x = (c0 + c1) / 2 - sc; s.x = c1 - c0; }
+                    else { c.y = (c0 + c1) / 2 - sc; s.y = c1 - c0; }
+                    m.Box(c, s, box.Color);
+                }
+                string name = string.Format(CultureInfo.InvariantCulture, "P|{0}|{1}|{2}|{3}|{4}|{5}", axis, dir, distance, clipLo, clipHi, step);
+                GameObject piece = PartFactory.CreateRenderer(name, model, m.ToMesh("BigDoorStrip"), material, look);
+                piece.transform.localPosition = axis == 'x' ? new Vector3(sc, 0, 0) : new Vector3(0, sc, 0);
+            }
         }
 
         private static Vector2 Uv(string color)
@@ -168,11 +373,22 @@ namespace Mining.Content
         }
     }
 
-    // Animacja skrzydeł: rozsuwanie na boki albo podnoszenie bramy; stan (otwarte/zamknięte) jak w drzwiach gry.
+    // Animacja: paski skrzydeł przesuwają się (na boki albo w górę/dół), a część, która wjechała w ramę, jest
+    // przycinana (pasek zwęża się do widocznego kawałka, a całkiem schowany - znika). Stan jak w drzwiach gry.
     internal class BigDoorVisuals : DefaultShipPartVisuals
     {
-        private const float Seconds = 1.4f;
-        private readonly List<(Transform leaf, Vector3 closed, Vector3 open)> _leaves = new List<(Transform, Vector3, Vector3)>();
+        private const float Seconds = 1.6f;
+
+        private struct Piece
+        {
+            public Transform T;
+            public Renderer R;
+            public bool AxisX;
+            public float Closed, Width, Distance, Lo, Hi;
+            public int Dir;
+        }
+
+        private readonly List<Piece> _pieces = new List<Piece>();
         private float _t;
         private float _target;
 
@@ -183,17 +399,26 @@ namespace Mining.Content
             {
                 return;
             }
-            foreach (Transform leaf in model)
+            foreach (Transform child in model)
             {
-                Bounds b = leaf.GetComponent<MeshFilter>()?.sharedMesh?.bounds ?? default;
-                Vector3 offset = leaf.name == "LeafL" ? Vector3.left * b.size.x * 0.96f
-                    : leaf.name == "LeafR" ? Vector3.right * b.size.x * 0.96f
-                    : leaf.name == "LeafUp" ? Vector3.up * b.size.y * 0.94f
-                    : Vector3.zero;
-                if (offset != Vector3.zero)
+                string[] p = child.name.Split('|');
+                if (p.Length != 7 || p[0] != "P")
                 {
-                    _leaves.Add((leaf, leaf.localPosition, leaf.localPosition + offset));
+                    continue;
                 }
+                var piece = new Piece
+                {
+                    T = child,
+                    R = child.GetComponent<Renderer>(),
+                    AxisX = p[1] == "x",
+                    Dir = int.Parse(p[2], CultureInfo.InvariantCulture),
+                    Distance = float.Parse(p[3], CultureInfo.InvariantCulture),
+                    Lo = float.Parse(p[4], CultureInfo.InvariantCulture),
+                    Hi = float.Parse(p[5], CultureInfo.InvariantCulture),
+                    Width = float.Parse(p[6], CultureInfo.InvariantCulture),
+                };
+                piece.Closed = piece.AxisX ? child.localPosition.x : child.localPosition.y;
+                _pieces.Add(piece);
             }
         }
 
@@ -225,10 +450,22 @@ namespace Mining.Content
 
         private void Apply()
         {
-            float k = Mathf.SmoothStep(0f, 1f, _t);
-            foreach (var (leaf, closed, open) in _leaves)
+            float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_t));
+            foreach (Piece p in _pieces)
             {
-                if (leaf != null) leaf.localPosition = Vector3.Lerp(closed, open, k);
+                if (p.T == null) continue;
+                float center = p.Closed + p.Dir * p.Distance * k;
+                float a = Mathf.Max(center - p.Width / 2, p.Lo), b = Mathf.Min(center + p.Width / 2, p.Hi);
+                bool visible = b - a > 0.002f;
+                if (p.R != null) p.R.enabled = visible;
+                if (!visible) continue;
+                Vector3 pos = p.T.localPosition, scale = p.T.localScale;
+                float mid = (a + b) / 2, s = (b - a) / p.Width;
+                // pasek ma środek w swoim punkcie; przycięty: przesuwamy środek do widocznej części i zwężamy
+                if (p.AxisX) { pos.x = mid; scale.x = s; }
+                else { pos.y = mid; scale.y = s; }
+                p.T.localPosition = pos;
+                p.T.localScale = scale;
             }
         }
     }
