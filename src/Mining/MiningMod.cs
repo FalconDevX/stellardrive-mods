@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.4.1", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.4.2", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -29,6 +29,7 @@ namespace Mining
         internal static MelonPreferences_Entry<float> ReactorSecondsPerUranium;
         internal static MelonPreferences_Entry<float> PumpRate;
         internal static MelonPreferences_Entry<float> PumpHoseLength;
+        internal static MelonPreferences_Entry<float> PumpVolume;
         internal static MelonPreferences_Entry<string> DevAutoLoadWorld;
         internal static MelonPreferences_Entry<bool> DevDump;
         internal static MelonPreferences_Entry<bool> DevQuitAfterDump;
@@ -56,6 +57,7 @@ namespace Mining
             ReactorPower = category.CreateEntry("ReactorPower", 20000f, description: "Moc reaktora (W). Generator na drewno daje 4000 W. Wystarczy u hosta");
             ReactorSecondsPerUranium = category.CreateEntry("ReactorSecondsPerUranium", 120f, description: "Na ile sekund pracy na pełnej mocy starcza 1 uran. Wystarczy u hosta");
             PumpRate = category.CreateEntry("PumpRate", 1f, description: "Ile wody na sekundę daje pompa przy pełnym zasilaniu. Wystarczy u hosta");
+            PumpVolume = category.CreateEntry("PumpVolume", 0.7f, description: "Głośność pompy wody i wyciągarki węża (0-1)");
             PumpHoseLength = category.CreateEntry("PumpHoseLength", 20f, description: "Długość węża pompy (m). Wszyscy gracze powinni mieć to samo");
             JetpackSecondsPerWood = category.CreateEntry("JetpackSecondsPerWood", 20f, description: "Ile sekund lotu jetpackiem daje 1 drewno. Wystarczy u hosta");
             JetpackAcceleration = category.CreateEntry("JetpackAcceleration", 6f, description: "Przyspieszenie jetpacka w górę ponad grawitację (m/s^2). Wszyscy gracze muszą mieć to samo");
