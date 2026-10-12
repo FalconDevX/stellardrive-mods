@@ -2,6 +2,6 @@
   <PropertyGroup>
     <AssemblyName>ShipSafety</AssemblyName>
     <RootNamespace>ShipSafety</RootNamespace>
-    <Version>0.4.0</Version>
+    <Version>0.4.1</Version>
   </PropertyGroup>
 </Project>

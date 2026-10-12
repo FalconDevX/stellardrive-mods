@@ -154,8 +154,10 @@ namespace Mining.Content
             var box = interactions.GetComponentInChildren<BoxCollider>(true);
             if (box != null)
             {
-                box.center = new Vector3(0f, 0.5f, 0f);
-                box.size = new Vector3(0.8f, 0.8f, 0.8f);
+                // musi wystawać poza kolizję części (inaczej promień trafia raz w nią, raz w bryłę i "F" miga):
+                // z przodu i u góry; boki i tył zostają wolne dla gniazd
+                box.center = new Vector3(0f, 0.47f, -0.035f);
+                box.size = new Vector3(0.86f, 0.96f, 0.97f);
             }
 
             SocketObject fluid = PartFactory.FindSocket(distiller, CableType.Fluid);
