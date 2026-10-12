@@ -18,8 +18,8 @@ namespace Mining.Server
 {
     // Reaktor ma stan generatora na drewno, więc obsługujemy tu oba (generator 1:1 jak w grze):
     //  - generator: drewno ze slotu, 4000 W,
-    //  - reaktor: uran ze slotu (1 sztuka na MiningMod.ReactorSecondsPerUranium s przy pełnej mocy) + woda z rury do chłodzenia,
-    //    MiningMod.ReactorPower W. Bez wody albo uranu nie produkuje.
+    //  - reaktor: uran ze slotu (1 sztuka na MiningMod.ReactorSecondsPerUranium s przy pełnej mocy) + woda z rury do chłodzenia
+    //    + sygnał włączenia (gniazdo 3, wartość > 0.5), MiningMod.ReactorPower W. Bez wody, uranu albo sygnału nie produkuje.
     [HarmonyPatch(typeof(PowerGeneratorUpdaters))]
     internal static class ReactorServer
     {
@@ -83,6 +83,10 @@ namespace Mining.Server
             float fuelPerSecond = reactor ? 1f / Mathf.Max(1f, MiningMod.ReactorSecondsPerUranium.Value) : WoodPerSecond;
             float need = deltaTime * fuelPerSecond;
             float factor = Mathf.Min(Fuel(state, reactor), need) / need;
+            if (reactor && !SwitchedOn(ship, part.Id))
+            {
+                return 0f;
+            }
             if (reactor)
             {
                 float waterNeed = WaterPerSecond * deltaTime;
@@ -99,6 +103,17 @@ namespace Mining.Server
                 return state.PartialItemConsumptionLevel;
             }
             return state.GetWoodAvailable();
+        }
+
+        private static bool SwitchedOn(IShipStateWrite ship, ushort partId)
+        {
+            if (!Reactor.HasSignalSocket)
+            {
+                return true;
+            }
+            var connections = ServiceLocator.GetService<ConnectionsServerTracker>();
+            var socket = new EntityPartSocket(ship.Id, partId, Reactor.SignalSocket);
+            return connections.TryGetSignalConnectionGroupWithSocket(socket, out _) && connections.GetSignalValue(socket) > 0.5f;
         }
 
         private static bool TryGetWater(IShipStateWrite ship, ushort partId, out FluidGroupServerState water)

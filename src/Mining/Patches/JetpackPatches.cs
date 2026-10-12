@@ -366,7 +366,7 @@ namespace Mining.Patches
                 {
                     _mesh = ModAssets.LoadMesh("jetpack.bin");
                     Material template = Resources.FindObjectsOfTypeAll<Material>().FirstOrDefault(m => m.shader != null && m.shader.name == "Custom/PlanetObject" && m.HasProperty("_Albedo"));
-                    _material = template != null ? PartFactory.CreateMaterial(template, ModAssets.LoadTexture("reactor_albedo.png"), "Jetpack") : null;
+                    _material = template != null ? PartFactory.CreateMaterial(template, ModAssets.LoadTexture("reactor_parts.png"), "Jetpack") : null;
                 }
                 if (_material == null)
                 {

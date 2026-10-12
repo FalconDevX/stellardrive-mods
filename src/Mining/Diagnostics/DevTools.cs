@@ -215,6 +215,14 @@ namespace Mining.Diagnostics
             {
                 yield return RunPumpTest();
             }
+            else if (HasArg("tank"))
+            {
+                yield return RunTankTest();
+            }
+            else if (HasArg("doors"))
+            {
+                yield return RunDoorsTest();
+            }
             ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, "screen.png"));
             if (HasArg("quit") || MiningMod.DevQuitAfterDump.Value)
             {
@@ -639,6 +647,191 @@ namespace Mining.Diagnostics
             UnityEngine.Object.Destroy(testCam.gameObject);
         }
 
+        // Duży zbiornik 4x4x4 obok zwykłego (oba napełnione do połowy wodą) przed kamerą: zdjęcia z trzech stron.
+        private static IEnumerator RunTankTest()
+        {
+            var log = Melon<MiningMod>.Logger;
+            Camera cam = Camera.main;
+            var transpose = Core.Services.ServiceLocator.GetService<WorldTracking.Interface.Services.IWorldTransposeClient>();
+            var visualSpace = WorldTracking.Interface.Values.ClientOrigin.LocalVisualSpace;
+            if (cam == null || transpose == null || visualSpace == null || Content.BigFluidTank.Part == null)
+            {
+                log.Msg($"[tank] brak kamery/przestrzeni/części (część: {(Content.BigFluidTank.Part != null ? "jest" : "BRAK")})");
+                yield break;
+            }
+            PartSettings small = new Ships.Interface.Services.PartSettingsProvider().GetAllPartSettings().FirstOrDefault(p => p.id == Content.BigFluidTank.TankPartId);
+            var physicsSpace = WorldTracking.Interface.Values.ClientOrigin.LocalPhysicsSpace;
+            Vector3 up = Core.Services.ServiceLocator.GetService<Players.Interface.Services.IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
+            Vector3 fwd = Vector3.ProjectOnPlane(cam.transform.forward, up).normalized;
+            if (fwd.sqrMagnitude < 0.5f) fwd = Vector3.ProjectOnPlane(cam.transform.up, up).normalized;
+            Vector3 right = Vector3.Cross(up, fwd);
+            var shipsServer = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>();
+            var shipsClient = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsClientTracker>();
+
+            uint Spawn(PartSettings part, Vector3 visualPos)
+            {
+                Vector3 pos = (Vector3)transpose.Position(visualSpace, physicsSpace, (Core.Values.Vector3Double)visualPos);
+                Quaternion rot = transpose.Rotation(visualSpace, physicsSpace, Quaternion.LookRotation(-fwd, up));
+                return Patches.ServerCreateShipPatch.CreateExcavatorShip(part,
+                    new WorldTracking.Interface.Model.WorldTransform { SpaceId = WorldTracking.Interface.Values.ClientOrigin.LocalPhysicsSpaceId, Position = pos, Rotation = rot });
+            }
+            Vector3 basePos = cam.transform.position + fwd * 12f + up * 1f;
+            uint bigId = Spawn(Content.BigFluidTank.Part, basePos);
+            uint smallId = small != null ? Spawn(small, basePos - right * 4f) : 0;
+            uint reactorId = Content.Reactor.Part != null ? Spawn(Content.Reactor.Part, basePos + right * 6f) : 0;
+            Ships.TrackedShipServer reactorShip = shipsServer.GetShip(reactorId);
+            Ships.TrackedShipServer big = shipsServer.GetShip(bigId), smallShip = shipsServer.GetShip(smallId);
+            log.Msg($"[tank] statki: duży {(big != null ? bigId.ToString() : "BRAK")}, mały {(smallShip != null ? smallId.ToString() : "BRAK")}");
+            if (big == null)
+            {
+                yield break;
+            }
+            yield return null;
+            ushort bigPart = big.StatefulParts.First().Id;
+            big.UpdatePartState(bigPart, new Ships.Interface.Model.Parts.State.FluidTankState().WithFluid(105, Content.BigFluidTank.Capacity * 0.5f, 0f));
+            if (smallShip != null)
+            {
+                smallShip.UpdatePartState(smallShip.StatefulParts.First().Id, new Ships.Interface.Model.Parts.State.FluidTankState().WithFluid(105, 50f, 0f));
+            }
+            if (reactorShip != null)
+            {
+                Ships.Interface.Model.Parts.StatefulPart rp = reactorShip.StatefulParts.First();
+                reactorShip.UpdatePartState(rp.Id, ((Ships.Interface.Model.Parts.State.WoodPowerGeneratorState)rp.State) with { NormalizedProductionLevel = 1f });
+            }
+            var holdBig = big.PhysicsState;
+            var holdSmall = smallShip != null ? smallShip.PhysicsState : holdBig;
+            var testCam = new GameObject("TankTestCam").AddComponent<Camera>();
+            testCam.CopyFrom(cam);
+            var data = testCam.gameObject.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            var mainData = cam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            if (mainData != null) data.renderPostProcessing = mainData.renderPostProcessing;
+
+            var holdReactor = reactorShip != null ? reactorShip.PhysicsState : holdBig;
+            for (int shot = 0; shot < 7; shot++)
+            {
+                for (int frame = 0; frame < (shot == 4 ? 240 : 90); frame++)
+                {
+                    if (reactorShip != null) reactorShip.SetPhysicsState(new Ships.Interface.Model.State.ShipPhysicsState(holdReactor.SpaceId, holdReactor.Position, holdReactor.Rotation, Vector3.zero));
+                    if (shot >= 4)
+                    {
+                        if (reactorShip != null && shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(reactorId, reactorShip.StatefulParts.First().Id), out var rv))
+                        {
+                            Transform rt = rv.GameObject.transform;
+                            var reactorLook = rv.GameObject.GetComponentInChildren<Content.ReactorVisuals>();
+                            if (reactorLook != null) Traverse.Create(reactorLook).Field("_target").SetValue(1f); // serwer bez uranu ustawia 0
+                            Vector3 rc = rt.position + rt.up * 0.8f;
+                            Vector3 ro = shot == 4 ? (-rt.forward * 3.2f + rt.right * 1.6f + rt.up * 1.2f) : shot == 5 ? (rt.forward * 3.2f - rt.right * 1.4f + rt.up * 1.0f) : (rt.up * 3.2f - rt.forward * 1.2f);
+                            testCam.transform.position = rc + ro;
+                            testCam.transform.rotation = Quaternion.LookRotation(rc - testCam.transform.position, rt.up);
+                            cam.enabled = false;
+                            Audio.LoopEmitter.ListenerOverride = testCam;
+                        }
+                        yield return null;
+                        continue;
+                    }
+                    big.SetPhysicsState(new Ships.Interface.Model.State.ShipPhysicsState(holdBig.SpaceId, holdBig.Position, holdBig.Rotation, Vector3.zero));
+                    if (smallShip != null) smallShip.SetPhysicsState(new Ships.Interface.Model.State.ShipPhysicsState(holdSmall.SpaceId, holdSmall.Position, holdSmall.Rotation, Vector3.zero));
+                    if (shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(bigId, bigPart), out var visual))
+                    {
+                        Transform t = visual.GameObject.transform;
+                        Vector3 center = t.TransformPoint(Content.BigFluidTank.Part.part.GetComponent<Ships.Interface.Model.Parts.ShipPartBounds>().center);
+                        Vector3 offset = shot == 0 ? (-t.forward * 9f - t.right * 3f + t.up * 1.5f)
+                            : shot == 1 ? (t.forward * 9f + t.right * 4f + t.up * 2f)
+                            : shot == 2 ? (-t.right * 9f + t.up * 6f)
+                            : (t.right * 9f - t.forward * 2f);
+                        testCam.transform.position = center + offset;
+                        testCam.transform.rotation = Quaternion.LookRotation(center - testCam.transform.position, t.up);
+                        cam.enabled = false;
+                        if (frame == 0 && shot == 0)
+                        {
+                            var sb = new System.Text.StringBuilder();
+                            DumpHierarchy(sb, t, 0);
+                            File.WriteAllText(Path.Combine(OutDir, "test_tank_visual.txt"), sb.ToString());
+                        }
+                    }
+                    yield return null;
+                }
+                ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, $"test_tank{shot}.png"));
+                yield return null;
+                yield return null;
+            }
+            log.Msg($"[tank] stan dużego: {big.StatefulParts.First().State}");
+            if (reactorShip != null) log.Msg($"[tank] stan reaktora: {reactorShip.StatefulParts.First().State}");
+            Audio.LoopEmitter.ListenerOverride = null;
+            cam.enabled = true;
+            UnityEngine.Object.Destroy(testCam.gameObject);
+        }
+
+        // Wybór dużych drzwi jak w menu budowania (czas tworzenia podglądu) i ich miniaturki (czy nic nie jest ucięte).
+        private static IEnumerator RunDoorsTest()
+        {
+            var log = Melon<MiningMod>.Logger;
+            var preview = UnityEngine.Object.FindObjectOfType<Tools.Build.PartPreview>(true);
+            var thumbs = Core.Services.ServiceLocator.GetService<Ships.Interface.Services.IPartThumbnailProvider>();
+            var select = AccessTools.Method(typeof(Tools.Build.PartPreview), "OnPartSelected");
+            var unselect = AccessTools.Method(typeof(Tools.Build.PartPreview), "OnPartUnselected");
+            log.Msg($"[doors] podgląd: {(preview != null ? "jest" : "BRAK")}, miniaturki: {(thumbs != null ? "są" : "BRAK")}");
+            foreach (PartSettings door in Content.BigDoors.All.Concat(new[] { new Ships.Interface.Services.PartSettingsProvider().GetPartSettingById(Content.BigDoors.DoorPartId) }))
+            {
+                if (door == null) continue;
+                for (int round = 0; round < 2; round++)
+                {
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+                    try
+                    {
+                        if (preview != null) select.Invoke(preview, new object[] { door.id });
+                    }
+                    catch (Exception e)
+                    {
+                        log.Msg($"[doors] {door.fullLabel}: wybór - błąd {e.InnerException?.Message ?? e.Message}");
+                    }
+                    double selectMs = sw.Elapsed.TotalMilliseconds;
+                    sw.Restart();
+                    Texture2D large = thumbs?.GetLargeThumbnail(door.id);
+                    double thumbMs = sw.Elapsed.TotalMilliseconds;
+                    int renderers = 0;
+                    if (preview != null)
+                    {
+                        var obj = Traverse.Create(preview).Field<GameObject>("_objectPreview").Value;
+                        renderers = obj != null ? obj.GetComponentsInChildren<Renderer>(true).Length : -1;
+                    }
+                    // to samo, co PartPreview.InitiatePreview: kopia wyglądu, obrys (QuickOutline), hologram
+                    var instancer = Core.Services.ServiceLocator.GetService<Ships.Interface.Services.IShipPartInstancer>();
+                    var hologram = Core.Services.ServiceLocator.GetService<Ships.Interface.Services.IShipHologramService>();
+                    Type outlineType = Type.GetType("Outline, QuickOutline");
+                    double instMs = -1, outlineMs = -1, holoMs = -1;
+                    if (instancer != null)
+                    {
+                        var holder = new GameObject("DoorsTestPreview");
+                        sw.Restart();
+                        GameObject inst = instancer.InstantiatePartPreview(door, holder.transform);
+                        instMs = sw.Elapsed.TotalMilliseconds;
+                        renderers = holder.GetComponentsInChildren<Renderer>(true).Length;
+                        sw.Restart();
+                        if (outlineType != null) holder.AddComponent(outlineType);
+                        outlineMs = sw.Elapsed.TotalMilliseconds;
+                        sw.Restart();
+                        hologram?.ChangeObjectStyleToHolographic(holder, true);
+                        hologram?.ChangeObjectStyleToHolographic(holder, false);
+                        holoMs = sw.Elapsed.TotalMilliseconds;
+                        UnityEngine.Object.Destroy(holder);
+                    }
+                    log.Msg($"[doors] {door.fullLabel} (runda {round + 1}): miniatura {thumbMs:0.0} ms, kopia wyglądu {instMs:0.0} ms, obrys {outlineMs:0.0} ms, hologram x2 {holoMs:0.0} ms, renderery {renderers}");
+                    if (round == 0 && large != null) SaveTexture(large, Path.Combine(OutDir, $"test_thumb_{door.id}.png"));
+                    yield return null;
+                    yield return null;
+                    try
+                    {
+                        if (preview != null) unselect.Invoke(preview, new object[] { door.id });
+                    }
+                    catch (Exception)
+                    {
+                    }
+                    yield return null;
+                }
+            }
+        }
+
         private static string Range(List<Vector2> list)
         {
             if (list.Count == 0) return "-";
@@ -671,7 +864,7 @@ namespace Mining.Diagnostics
                               $"features=[{string.Join(", ", ((System.Collections.IEnumerable)r.unlockedFeatures ?? new object[0]).Cast<object>().Select(f => f?.ToString()))}] guide=[{string.Join(",", r.unlockedGuideEntriesIds ?? new uint[0])}]");
             }
 
-            foreach (string label in new[] { "Storage Chest", "Electrolyzer", "Wood-Fired Generator", "Research Table", "Floor", "Ethanol Distiller" })
+            foreach (string label in new[] { "Storage Chest", "Electrolyzer", "Wood-Fired Generator", "Research Table", "Floor", "Ethanol Distiller", "Fluid Tank", "Large Fluid Tank" })
             {
                 PartSettings p = parts.FirstOrDefault(x => x.fullLabel == label);
                 if (p?.part == null)
@@ -680,6 +873,22 @@ namespace Mining.Diagnostics
                 }
                 sb.AppendLine($"== PREFAB {label} ==");
                 DumpHierarchy(sb, p.part.transform, 0);
+            }
+
+            sb.AppendLine("== HULL ==");
+            foreach (Ships.Visuals.ShipHullVisuals hull in UnityEngine.Object.FindObjectsOfType<Ships.Visuals.ShipHullVisuals>().Take(1))
+            {
+                foreach (Renderer r in hull.GetComponentsInChildren<Renderer>(true).Take(4))
+                {
+                    sb.AppendLine($"{r.name}: " + string.Join(" | ", r.sharedMaterials.Select(DescribeMaterial)));
+                    foreach (Material m in r.sharedMaterials)
+                    {
+                        if (m != null && m.HasProperty("_Albedo") && m.GetTexture("_Albedo") is Texture tex)
+                        {
+                            SaveTexture(tex, Path.Combine(OutDir, "hull_" + tex.name + ".png"));
+                        }
+                    }
+                }
             }
 
             sb.AppendLine("== PARTICLES ==");
@@ -734,6 +943,23 @@ namespace Mining.Diagnostics
             string path = Path.Combine(OutDir, "dump.txt");
             File.WriteAllText(path, sb.ToString());
             Melon<MiningMod>.Logger.Msg($"[dev] zrzut zapisany: {path}");
+        }
+
+        // Zapis tekstury gry (zwykle nieczytelnej z kodu) przez kopię na GPU.
+        private static void SaveTexture(Texture tex, string path)
+        {
+            var rt = RenderTexture.GetTemporary(tex.width, tex.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            Graphics.Blit(tex, rt);
+            RenderTexture previous = RenderTexture.active;
+            RenderTexture.active = rt;
+            var copy = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, false);
+            copy.ReadPixels(new Rect(0, 0, tex.width, tex.height), 0, 0);
+            copy.Apply();
+            RenderTexture.active = previous;
+            RenderTexture.ReleaseTemporary(rt);
+            var encode = Type.GetType("UnityEngine.ImageConversion, UnityEngine.ImageConversionModule")?.GetMethod("EncodeToPNG", new[] { typeof(Texture2D) });
+            if (encode != null) File.WriteAllBytes(path, (byte[])encode.Invoke(null, new object[] { copy }));
+            UnityEngine.Object.Destroy(copy);
         }
 
         private static IEnumerable<string> SafeCost(PartSettings p)

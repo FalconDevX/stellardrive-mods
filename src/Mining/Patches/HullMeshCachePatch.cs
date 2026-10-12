@@ -104,7 +104,8 @@ namespace Mining.Patches
         }
     }
 
-    // Dziennik przycięć: jeśli przebudowa kadłuba, kolizji albo pomieszczeń po zmianie statku trwa długo,
+    // Dziennik przycięć: jeśli przebudowa kadłuba, kolizji albo pomieszczeń po zmianie statku (albo wybór części
+    // do budowania) trwa długo,
     // zapisujemy to w logu MelonLoadera (max raz na sekundę na rodzaj) - wiadomo, co jeszcze przyspieszać.
     [HarmonyPatch]
     internal static class BuildSpikeLog
@@ -117,6 +118,11 @@ namespace Mining.Patches
             yield return AccessTools.Method(typeof(ShipHullVisuals), nameof(ShipHullVisuals.UpdateHull));
             yield return AccessTools.Method(typeof(ShipHullColliders), nameof(ShipHullColliders.UpdateColliders));
             yield return AccessTools.Method(typeof(ShipRoomsVoxelUpdater), nameof(ShipRoomsVoxelUpdater.UpdateRooms));
+            // wybór części w menu budowania (przycięcia przy dużych drzwiach)
+            yield return AccessTools.Method(typeof(Tools.Build.PartPreview), "OnPartSelected");
+            yield return AccessTools.Method(typeof(ShipPartInstancer), nameof(ShipPartInstancer.InstantiatePartPreview));
+            yield return AccessTools.Method(typeof(ShipPartsThumbnailRuntimeCache), nameof(ShipPartsThumbnailRuntimeCache.GetLargeThumbnail));
+            yield return AccessTools.Method(typeof(HolographicDisplayService), nameof(HolographicDisplayService.ChangeObjectStyleToHolographic));
         }
 
         private static void Prefix(out long __state) => __state = Stopwatch.GetTimestamp();

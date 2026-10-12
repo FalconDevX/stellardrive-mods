@@ -1,6 +1,6 @@
 # Model plecaka odrzutowego na kostium (kod brył w lowpoly.py): płyta na plecy, dwa zbiorniki paliwa, dysze u dołu.
 # Wymiary w metrach, układ Unity, środek płyty w 0,0,0, plecy gracza = +Z (plecak wystaje do tyłu).
-# Wynik: Assets/jetpack.bin (paleta jak reaktor: reactor_albedo.png).
+# Wynik: Assets/jetpack.bin (paleta jak reaktor: reactor_parts.png).
 # Użycie: python -I build_jetpack.py <folder Assets> [plik .obj do podglądu]
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -20,4 +20,4 @@ jp.box((0, 0.21, 0.13), (0.26, 0.04, 0.05), 'dark')                      # uchwy
 
 jp.write(os.path.join(OUT, 'jetpack.bin'))
 if PREVIEW:
-    write_preview_obj(PREVIEW, os.path.join(OUT, 'reactor_albedo.png'), ((jp, (0, 0, 0)),))
+    write_preview_obj(PREVIEW, os.path.join(OUT, 'reactor_parts.png'), ((jp, (0, 0, 0)),))

@@ -10,10 +10,10 @@ using UnityEngine;
 namespace Mining.Content
 {
     // Własny model dużych drzwi, budowany w kodzie dla każdego rozmiaru (rama zawsze tej samej grubości, nie rozciągnięta).
-    // Tekstura door_albedo.png w stylu gry (kontur, wytarte krawędzie, kreskowanie). Trzy style:
-    //  - Slide (3x3, 4x4): dwa skrzydła rozsuwane na boki,
+    // Tekstura door_albedo.png w stylu gry (kontur, wytarte krawędzie, kreskowanie), kolory jak płytki kadłuba. Trzy style:
+    //  - Slide (3x2, 3x3, 4x4): dwa skrzydła rozsuwane na boki,
     //  - Jaw (6x3): "szczęki" - górna połowa w górę, dolna w dół, zęby na styku,
-    //  - Blast (10x5): pancerne drzwi hangarowe - dwie ciężkie połowy na boki, żebra, wielkie pasy ostrzegawcze.
+    //  - Blast (10x5, 16x8): pancerne drzwi hangarowe - dwie ciężkie połowy na boki, żebra, wielkie pasy ostrzegawcze.
     // Skrzydła są pocięte na wąskie paski: pasek, który wjeżdża w ramę, jest przycinany i znika (nic nie wystaje).
     internal static class BigDoorModel
     {
@@ -21,6 +21,15 @@ namespace Mining.Content
         {
             "yellow", "yellow_dark", "dark", "grey", "light", "orange", "steel", "screen", "black", "rubber", "olive", "white", "cyan", "blue", "green", "red",
         };
+
+        // Wygląd jak płytki kadłuba gry: jasnoszare panele i szare elementy zamiast żółto-pomarańczowych; czarne szwy,
+        // lampki, ekrany i guma zostają.
+        private static readonly Dictionary<string, string> HullColors = new Dictionary<string, string>
+        {
+            { "yellow", "light" }, { "yellow_dark", "grey" }, { "orange", "steel" }, { "dark", "grey" }, { "olive", "grey" },
+        };
+
+        private static string HullStyle(string color) => HullColors.TryGetValue(color, out string c) ? c : color;
 
         internal const string ModelName = "BigDoorModel";
         private const float Frame = 0.22f;
@@ -43,7 +52,7 @@ namespace Mining.Content
             Vector3 min = b.min, max = b.max;
             float w = b.size.x, h = b.size.y, z = b.center.z;
             float depth = Mathf.Clamp(b.size.z, 0.25f, 0.35f); // grubość ściany (obrys drzwi z gry bywa na całe pole)
-            Style style = w >= 8f ? Style.Blast : w > h ? Style.Jaw : Style.Slide;
+            Style style = w >= 8f ? Style.Blast : w > h && h >= 3f ? Style.Jaw : Style.Slide;
 
             float ix0 = min.x + Frame, ix1 = max.x - Frame, iy0 = min.y + Sill, iy1 = max.y - Frame;
             BuildFrame(model, material, look, min, max, z, depth, style, ix0, ix1);
@@ -374,7 +383,7 @@ namespace Mining.Content
             // styku pasków nie rysował się kontur.
             public void Box(Vector3 center, Vector3 size, string color, Vector3 fullMin, Vector3 fullMax)
             {
-                int cell = System.Array.IndexOf(Names, color);
+                int cell = System.Array.IndexOf(Names, HullStyle(color));
                 Vector3 min = center - size * 0.5f, max = center + size * 0.5f;
                 for (int k = 0; k < 3; k++)
                 {
@@ -475,7 +484,12 @@ namespace Mining.Content
     // przycinana (pasek zwęża się do widocznego kawałka, a całkiem schowany - znika). Stan jak w drzwiach gry.
     internal class BigDoorVisuals : DefaultShipPartVisuals
     {
-        private const float Seconds = 1.6f;
+        // Ciężkie drzwi: czas ruchu rośnie z drogą skrzydła (3x2 ok. 2 s, 16x8 ok. 5 s), powolny rozruch i hamowanie,
+        // własne dźwięki (AssetSource/build_door_sounds.py) - im większe drzwi, tym niższe.
+        private float _seconds = 1.6f;
+        private float _pitch = 1f, _hear = 40f;
+        private bool _moving;
+        private readonly Audio.LoopEmitter _sound = new Audio.LoopEmitter("bigdoor", 45f, MiningMod.DoorVolume);
 
         private struct Piece
         {
@@ -518,6 +532,11 @@ namespace Mining.Content
                 piece.Closed = piece.AxisX ? child.localPosition.x : child.localPosition.y;
                 _pieces.Add(piece);
             }
+            float travel = 0f;
+            foreach (Piece p in _pieces) travel = Mathf.Max(travel, p.Distance);
+            _seconds = 1.2f + 0.5f * travel;
+            _pitch = Mathf.Clamp(1.1f - 0.045f * travel, 0.7f, 1.1f);
+            _hear = 35f + 4f * travel;
         }
 
         public override void SetNetworkState(IStatefulPartState state)
@@ -531,7 +550,7 @@ namespace Mining.Content
             bool wasOpen = ((IDoorState)change.PreviousState).IsOpen, open = ((IDoorState)change.NewState).IsOpen;
             if (wasOpen != open)
             {
-                ServiceLocator.GetService<IAudioPlayer>()?.PlayAudioEvent3D(open ? "Event:/Ships/DoorOpen" : "Event:/Ships/DoorClose", gameObject);
+                Audio.OneShot.Play("bigdoor_start", transform.position, _hear, MiningMod.DoorVolume.Value, _pitch);
             }
             _target = open ? 1f : 0f;
         }
@@ -540,15 +559,28 @@ namespace Mining.Content
         {
             if (Mathf.Approximately(_t, _target))
             {
+                if (_moving)
+                {
+                    _moving = false;
+                    _sound.Stop();
+                    Audio.OneShot.Play("bigdoor_stop", transform.position, _hear, MiningMod.DoorVolume.Value, _pitch);
+                }
                 return;
             }
-            _t = Mathf.MoveTowards(_t, _target, Time.deltaTime / Seconds);
+            _moving = true;
+            _t = Mathf.MoveTowards(_t, _target, Time.deltaTime / _seconds);
+            float edge = Mathf.Min(Mathf.Abs(_t - _target), 1f - Mathf.Abs(_t - _target)); // ciszej przy ruszaniu i hamowaniu
+            _sound.Update(transform.position, Mathf.Clamp01(0.35f + edge * 4f), _pitch);
             Apply();
         }
 
+        private void OnDisable() => _sound.Stop();
+
         private void Apply()
         {
-            float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_t));
+            // smootherstep: dłuższe ruszanie i hamowanie niż SmoothStep (bezwładność ciężkich skrzydeł)
+            float x = Mathf.Clamp01(_t);
+            float k = x * x * x * (x * (x * 6f - 15f) + 10f);
             foreach (Piece p in _pieces)
             {
                 if (p.T == null) continue;

@@ -1,8 +1,8 @@
-# Test w osobnej instancji gry (tylko dla twórcy moda): kopia świata, parametry startowe zamiast zmian w ustawieniach,
+﻿# Test w osobnej instancji gry (tylko dla twórcy moda): kopia świata, parametry startowe zamiast zmian w ustawieniach,
 # gra zamyka się sama po teście. Nie dotyka gry uruchomionej przez gracza.
-# Użycie: .\tools\dev-test.ps1 -Mode test|perf|jetpack [-World test_wszystko] [-TimeoutSec 300]
+# Użycie: .\tools\dev-test.ps1 -Mode test|perf|jetpack|pump|tank|doors [-World test_wszystko] [-TimeoutSec 300]
 param(
-    [ValidateSet("test", "perf", "jetpack")] [string]$Mode = "test",
+    [ValidateSet("test", "perf", "jetpack", "pump", "tank", "doors")] [string]$Mode = "test",
     [string]$World = "test_wszystko",
     [int]$TimeoutSec = 300,
     [string]$GameDir = "C:\Program Files (x86)\Steam\steamapps\common\StellarDrive Demo"

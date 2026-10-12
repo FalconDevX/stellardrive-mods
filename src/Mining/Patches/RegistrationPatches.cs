@@ -21,16 +21,24 @@ namespace Mining.Patches
             (ElectrolyzerPart.PartId, ElectrolyzerPart.GetOrCreatePart, () => ElectrolyzerPart.Part, 80), // obok destylatora
             (Reactor.PartId, Reactor.GetOrCreatePart, () => Reactor.Part, 60),                  // obok generatora na drewno
             (WaterPump.PartId, WaterPump.GetOrCreatePart, () => WaterPump.Part, 81),            // obok zaworu (wiersz rur i zbiorników)
+            (BigFluidTank.PartId, BigFluidTank.GetOrCreatePart, () => BigFluidTank.Part, BigFluidTank.TankPartId), // obok zbiornika z gry
             (BigDoors.Variants[0].id, p => BigDoors.GetOrCreate(BigDoors.Variants[0].id, p), () => BigDoors.Get(BigDoors.Variants[0].id), BigDoors.DoorPartId),
             (BigDoors.Variants[1].id, p => BigDoors.GetOrCreate(BigDoors.Variants[1].id, p), () => BigDoors.Get(BigDoors.Variants[1].id), BigDoors.DoorPartId),
             (BigDoors.Variants[2].id, p => BigDoors.GetOrCreate(BigDoors.Variants[2].id, p), () => BigDoors.Get(BigDoors.Variants[2].id), BigDoors.DoorPartId),
             (BigDoors.Variants[3].id, p => BigDoors.GetOrCreate(BigDoors.Variants[3].id, p), () => BigDoors.Get(BigDoors.Variants[3].id), BigDoors.DoorPartId),
+            (BigDoors.Variants[4].id, p => BigDoors.GetOrCreate(BigDoors.Variants[4].id, p), () => BigDoors.Get(BigDoors.Variants[4].id), BigDoors.DoorPartId),
+            (BigDoors.Variants[5].id, p => BigDoors.GetOrCreate(BigDoors.Variants[5].id, p), () => BigDoors.Get(BigDoors.Variants[5].id), BigDoors.DoorPartId),
         };
 
         // Duże drzwi za badaniem Doors (3,5), pod nim w drzewie.
         internal static readonly ModResearch LargeDoorsResearch = new ModResearch(BigDoors.ResearchId, "Large Doors", new Vector2Int(3, 6), 16,
             () => BigDoors.All,
             (Items.Model.ItemsConstants.IronItemId, 30), (112, 10));
+
+        // Duży zbiornik za badaniem Gas Handling (2,4), w którym jest zbiornik z gry.
+        internal static readonly ModResearch LargeTanksResearch = new ModResearch(BigFluidTank.ResearchId, "Large Tanks", new Vector2Int(3, 3), 8,
+            () => new[] { BigFluidTank.Part },
+            (Items.Model.ItemsConstants.IronItemId, 40), (Items.Model.ItemsConstants.GlassItemId, 15));
 
         // Napęd wodorowy za badaniem Mining (w tym samym rzędzie drzewa).
         internal static readonly ModResearch HydrogenResearch = new ModResearch(201, "Hydrogen Propulsion", new Vector2Int(5, 4), Excavator.ResearchId,
@@ -70,6 +78,7 @@ namespace Mining.Patches
             NuclearResearch.Ensure();
             JetpackResearch.Ensure();
             LargeDoorsResearch.Ensure();
+            LargeTanksResearch.Ensure();
         }
     }
 

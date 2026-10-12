@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.5.4", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.6.0", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -30,6 +30,8 @@ namespace Mining
         internal static MelonPreferences_Entry<float> PumpRate;
         internal static MelonPreferences_Entry<float> PumpHoseLength;
         internal static MelonPreferences_Entry<float> PumpVolume;
+        internal static MelonPreferences_Entry<float> ReactorVolume;
+        internal static MelonPreferences_Entry<float> DoorVolume;
         internal static MelonPreferences_Entry<string> DevAutoLoadWorld;
         internal static MelonPreferences_Entry<bool> DevDump;
         internal static MelonPreferences_Entry<bool> DevQuitAfterDump;
@@ -58,6 +60,8 @@ namespace Mining
             ReactorSecondsPerUranium = category.CreateEntry("ReactorSecondsPerUranium", 120f, description: "Na ile sekund pracy na pełnej mocy starcza 1 uran. Wystarczy u hosta");
             PumpRate = category.CreateEntry("PumpRate", 1f, description: "Ile wody na sekundę daje pompa przy pełnym zasilaniu. Wystarczy u hosta");
             PumpVolume = category.CreateEntry("PumpVolume", 0.7f, description: "Głośność pompy wody i wyciągarki węża (0-1)");
+            ReactorVolume = category.CreateEntry("ReactorVolume", 0.6f, description: "Głośność pracującego reaktora (0-1)");
+            DoorVolume = category.CreateEntry("DoorVolume", 0.8f, description: "Głośność dużych drzwi (0-1)");
             PumpHoseLength = category.CreateEntry("PumpHoseLength", 20f, description: "Długość węża pompy (m). Wszyscy gracze powinni mieć to samo");
             JetpackSecondsPerWood = category.CreateEntry("JetpackSecondsPerWood", 20f, description: "Ile sekund lotu jetpackiem daje 1 drewno. Wystarczy u hosta");
             JetpackAcceleration = category.CreateEntry("JetpackAcceleration", 6f, description: "Przyspieszenie jetpacka w górę ponad grawitację (m/s^2). Wszyscy gracze muszą mieć to samo");

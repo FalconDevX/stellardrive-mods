@@ -6,24 +6,42 @@ using UnityEngine;
 
 namespace Mining.Content
 {
-    // Okno rdzenia reaktora świeci na cyjan proporcjonalnie do produkcji prądu (stan generatora: NormalizedProductionLevel).
+    // Reaktor "żyje" przy pracy (poziom = NormalizedProductionLevel stanu generatora): szkło tub i ekrany świecą na cyjan
+    // i pulsują, rdzenie w tubach i wirnik na kopule rozkręcają się płynnie, buczenie i świst turbiny rosną z mocą.
     internal class ReactorVisuals : DefaultShipPartVisuals
     {
         private static readonly Color Cyan = new Color(0.3f, 0.9f, 1f);
-        private Material _core;
-        private float _target;
-        private float _glow = -1f;
+        private Material _body, _core;
+        private Transform[] _cores;
+        private Transform _rotor;
+        private float _target, _level;
+        private float _phase;
+        private readonly Audio.LoopEmitter _sound = new Audio.LoopEmitter("reactor", 30f, MiningMod.ReactorVolume);
 
         private void Awake()
         {
-            var renderer = transform.Find("Core")?.GetComponent<MeshRenderer>();
-            if (renderer != null)
+            var body = transform.Find("Body")?.GetComponent<MeshRenderer>();
+            if (body != null) _body = body.material; // własne kopie materiałów dla tego reaktora
+            _cores = new Transform[Reactor.CorePositions.Length];
+            Material core = null;
+            for (int i = 0; i < _cores.Length; i++)
             {
-                _core = renderer.material; // własna kopia materiału dla tego reaktora
+                _cores[i] = transform.Find("Core" + i);
+                var r = _cores[i] != null ? _cores[i].GetComponent<MeshRenderer>() : null;
+                if (r == null) continue;
+                if (core == null) core = r.material;
+                r.sharedMaterial = core;
             }
+            _core = core;
+            _rotor = transform.Find("Rotor");
+            _phase = Random.value * 10f;
         }
 
-        public override void SetNetworkState(IStatefulPartState state) => Read(state);
+        public override void SetNetworkState(IStatefulPartState state)
+        {
+            Read(state);
+            _level = _target;
+        }
 
         public override void ReactToNetworkStateChange(StatefulPartStateChangeEvent change) => Read(change.NewState);
 
@@ -34,26 +52,27 @@ namespace Mining.Content
 
         private void Update()
         {
-            if (_core == null)
+            // rozruch ok. 3 s, wygaszanie ok. 2 s
+            _level = Mathf.MoveTowards(_level, _target, Time.deltaTime / (_target > _level ? 3f : 2f));
+            float t = Time.time + _phase;
+            float pulse = 1f + 0.25f * Mathf.Sin(t * 2.2f) + 0.08f * Mathf.Sin(t * 13f);
+            if (_body != null) _body.SetColor("_EmissionColor", Cyan * (_level * 3.5f * pulse));
+            if (_core != null) _core.SetColor("_EmissionColor", Cyan * (0.05f + _level * 1.3f * pulse));
+            float spin = _level * Time.deltaTime;
+            foreach (Transform c in _cores)
             {
-                return;
+                if (c != null) c.Rotate(Vector3.up, 420f * spin, Space.Self);
             }
-            float glow = Mathf.MoveTowards(_glow < 0f ? _target : _glow, _target, Time.deltaTime * 0.8f);
-            if (Mathf.Approximately(glow, _glow))
-            {
-                return;
-            }
-            _glow = glow;
-            float pulse = 1f + 0.15f * Mathf.Sin(Time.time * 3f) * glow;
-            if (_core.HasProperty("_EmissionColor"))
-            {
-                _core.SetColor("_EmissionColor", Cyan * (0.15f + 2.2f * glow * pulse));
-                _core.EnableKeyword("_EMISSION");
-            }
+            if (_rotor != null) _rotor.Rotate(Vector3.up, -160f * spin, Space.Self);
+            _sound.Update(transform.position + transform.up * 0.8f, Mathf.SmoothStep(0f, 1f, _level), 0.75f + 0.3f * _level);
         }
+
+        private void OnDisable() => _sound.Stop();
 
         private void OnDestroy()
         {
+            _sound.Stop();
+            if (_body != null) Destroy(_body);
             if (_core != null) Destroy(_core);
         }
     }
