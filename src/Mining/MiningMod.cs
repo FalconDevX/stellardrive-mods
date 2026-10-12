@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.4.4", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.4.5", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -100,6 +100,10 @@ namespace Mining
                 if (kb != null && kb.uKey.wasPressedThisFrame && !Diagnostics.DevTools.IsTyping())
                 {
                     ShowMessage(Sites.MiningSiteVisuals.DescribeNearest(uraniumOnly: true));
+                }
+                if (kb != null && kb.kKey.wasPressedThisFrame && !Diagnostics.DevTools.IsTyping())
+                {
+                    ShowMessage(Sites.MiningSiteVisuals.DescribeNearest(Items.Model.ItemsConstants.GlassItemId, 5000f, "No glass deposits within 5 km."));
                 }
                 if (kb != null && kb.jKey.wasPressedThisFrame && !Diagnostics.DevTools.IsTyping() && Content.Jetpack.IsUnlocked())
                 {
