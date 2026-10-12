@@ -80,8 +80,8 @@ namespace Mining.Content
 
             // Okno paliwa otwiera się na przednim panelu (musi wystawać przed obrys reaktora).
             var box = root.transform.Find("Interactions").GetComponentInChildren<BoxCollider>(true);
-            box.center = new Vector3(0f, 0.95f, -0.85f);
-            box.size = new Vector3(1.0f, 1.0f, 0.3f);
+            box.center = new Vector3(0f, 0.95f, -1.0f);   // model sięga do z = -1.1, strefa do -1.17
+            box.size = new Vector3(1.0f, 1.0f, 0.34f);
 
             SocketObject power = PartFactory.FindSocket(generator, CableType.Power);
             SocketObject fluid = PartFactory.FindSocket(distiller, CableType.Fluid);
