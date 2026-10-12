@@ -20,7 +20,7 @@ namespace Mining.Patches
             (HydrogenThruster.PartId, HydrogenThruster.GetOrCreatePart, () => HydrogenThruster.Part, 19), // obok silnika chemicznego
             (ElectrolyzerPart.PartId, ElectrolyzerPart.GetOrCreatePart, () => ElectrolyzerPart.Part, 80), // obok destylatora
             (Reactor.PartId, Reactor.GetOrCreatePart, () => Reactor.Part, 60),                  // obok generatora na drewno
-            (WaterPump.PartId, WaterPump.GetOrCreatePart, () => WaterPump.Part, 80),            // obok destylatora (przy elektrolizerze)
+            (WaterPump.PartId, WaterPump.GetOrCreatePart, () => WaterPump.Part, 81),            // obok zaworu (wiersz rur i zbiorników)
             (BigDoors.Variants[0].id, p => BigDoors.GetOrCreate(BigDoors.Variants[0].id, p), () => BigDoors.Get(BigDoors.Variants[0].id), BigDoors.DoorPartId),
             (BigDoors.Variants[1].id, p => BigDoors.GetOrCreate(BigDoors.Variants[1].id, p), () => BigDoors.Get(BigDoors.Variants[1].id), BigDoors.DoorPartId),
             (BigDoors.Variants[2].id, p => BigDoors.GetOrCreate(BigDoors.Variants[2].id, p), () => BigDoors.Get(BigDoors.Variants[2].id), BigDoors.DoorPartId),
@@ -108,6 +108,8 @@ namespace Mining.Patches
     [HarmonyPatch(typeof(BuildMenu), "LoadTabPanel")]
     internal static class BuildMenuPatch
     {
+        private const int MaxPerRow = 8; // tyle mieści się w oknie menu budowania
+
         private static void Prefix(BuildMenuTabConfig[] ___tabsConfig)
         {
             if (___tabsConfig == null)
@@ -122,6 +124,12 @@ namespace Mining.Patches
                     continue;
                 }
                 BuildMenuTabConfig.BuildMenuRow row = rows.FirstOrDefault(r => r.parts.Any(p => p != null && p.id == menuNextTo)) ?? rows.LastOrDefault();
+                if (row != null && row.parts.Length >= MaxPerRow)
+                {
+                    // pełny wiersz wychodzi poza okno - w tej samej zakładce wiersz z miejscem
+                    var tab = ___tabsConfig.FirstOrDefault(t => t?.rows != null && t.rows.Contains(row));
+                    row = tab?.rows.Where(r => r?.parts != null && r.parts.Length < MaxPerRow).OrderBy(r => r.parts.Length).FirstOrDefault() ?? row;
+                }
                 if (row != null)
                 {
                     row.parts = row.parts.Concat(new[] { part }).ToArray();
