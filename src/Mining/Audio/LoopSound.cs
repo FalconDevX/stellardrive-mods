@@ -77,6 +77,8 @@ namespace Mining.Audio
         private FMOD.Channel _channel;
         private bool _playing;
 
+        internal static Camera ListenerOverride; // tylko testy twórcy moda (kamera testowa zamiast głównej)
+
         internal LoopEmitter(string name, float hearDistance)
         {
             _name = name;
@@ -85,7 +87,7 @@ namespace Mining.Audio
 
         internal void Update(Vector3 position, float level, float pitch)
         {
-            Camera cam = Camera.main;
+            Camera cam = ListenerOverride != null ? ListenerOverride : Camera.main;
             float distance = cam != null ? Vector3.Distance(cam.transform.position, position) : float.MaxValue;
             float attenuation = Mathf.Clamp01(1f - distance / _hearDistance);
             float volume = level * attenuation * attenuation * MiningMod.PumpVolume.Value;

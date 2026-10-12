@@ -585,6 +585,7 @@ namespace Mining.Diagnostics
             var data = testCam.gameObject.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
             var mainData = cam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
             if (mainData != null) data.renderPostProcessing = mainData.renderPostProcessing;
+            Audio.LoopEmitter.ListenerOverride = testCam;
 
             // 0: wąż zwinięty z bliska, 1: po opuszczeniu (z boku), 2: z daleka (wąż do wody), 3: z bliska z dymkiem E
             for (int shot = 0; shot < 4; shot++)
@@ -633,6 +634,7 @@ namespace Mining.Diagnostics
                     log.Msg($"[pump] zdjęcie {shot}: wąż {(pv != null ? Traverse.Create(pv).Field<float>("_extension").Value.ToString("0.00") + " m (cel " + Traverse.Create(pv).Field<float>("_target").Value.ToString("0.00") + ", w wodzie " + Traverse.Create(pv).Field<bool>("_inWater").Value + ")" : "brak wyglądu pompy")}");
                 }
             }
+            Audio.LoopEmitter.ListenerOverride = null;
             cam.enabled = true;
             UnityEngine.Object.Destroy(testCam.gameObject);
         }
