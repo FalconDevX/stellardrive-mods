@@ -810,6 +810,15 @@ namespace Mining.Diagnostics
             foreach (PartSettings door in Content.BigDoors.All.Concat(new[] { new Ships.Interface.Services.PartSettingsProvider().GetPartSettingById(Content.BigDoors.DoorPartId) }))
             {
                 if (door == null) continue;
+                var dynamic = door.part.GetComponentInChildren<Ships.Parts.Door.DoorDynamicColliders>(true);
+                GameObject leaf = dynamic != null ? Traverse.Create(dynamic).Field<GameObject>("doorCollider").Value : null;
+                log.Msg($"[doors] {door.fullLabel}: dynamic={(dynamic != null ? PathOf(dynamic.transform) : "-")} leaf={(leaf != null ? leaf.name : "-")} " +
+                        string.Join(" ", (dynamic != null ? dynamic.GetComponentsInChildren<BoxCollider>(true) : new BoxCollider[0]).Select(b =>
+                        {
+                            Vector3 c = door.part.transform.InverseTransformPoint(b.transform.TransformPoint(b.center));
+                            Vector3 s = Vector3.Scale(b.size, b.transform.lossyScale);
+                            return $"[{b.name} c={c} s={s}]";
+                        })));
                 for (int round = 0; round < 2; round++)
                 {
                     var sw = System.Diagnostics.Stopwatch.StartNew();

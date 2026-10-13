@@ -2,15 +2,17 @@ Shader "StellarDriveMods/StylizedWater"
 {
     Properties
     {
-        _ShallowColor ("Shallow", Color) = (0.42, 0.74, 0.68, 0.25)
-        _MidColor ("Mid", Color) = (0.16, 0.56, 0.64, 0.65)
-        _DeepColor ("Deep", Color) = (0.07, 0.33, 0.5, 0.9)
-        _MidDepth ("Mid depth (m)", Float) = 2.5
-        _DeepDepth ("Deep depth (m)", Float) = 9
+        _ShallowColor ("Shallow", Color) = (0.36, 0.66, 0.62, 0.5)
+        _MidColor ("Mid", Color) = (0.13, 0.47, 0.55, 0.84)
+        _DeepColor ("Deep", Color) = (0.05, 0.26, 0.38, 0.97)
+        _MidDepth ("Mid depth (m)", Float) = 1.3
+        _DeepDepth ("Deep depth (m)", Float) = 4.5
+        _WaveHeight ("Wave height (m)", Float) = 0.14
+        _WaveSpeed ("Wave speed", Float) = 1
         _CausticsTex ("Caustics", 2D) = "black" {}
         _CausticsScale ("Caustics scale (1/m)", Float) = 0.12
         _CausticsSpeed ("Caustics speed", Float) = 0.025
-        _CausticsStrength ("Caustics strength", Float) = 0.7
+        _CausticsStrength ("Caustics strength", Float) = 0.5
         _FoamTex ("Foam", 2D) = "black" {}
         _FoamScale ("Foam scale (1/m)", Float) = 0.18
         _FoamDistance ("Shore foam width (m)", Float) = 1.6
@@ -54,6 +56,7 @@ Shader "StellarDriveMods/StylizedWater"
                 float _CausticsScale, _CausticsSpeed, _CausticsStrength;
                 float _FoamScale, _FoamDistance;
                 float _NormalScale, _NormalStrength, _Smoothness, _UseSceneDepth, _Exposure;
+                float _WaveHeight, _WaveSpeed;
             CBUFFER_END
 
             struct Attributes
@@ -73,12 +76,33 @@ Shader "StellarDriveMods/StylizedWater"
                 float depth : TEXCOORD3;
                 float4 screenPos : TEXCOORD4;
                 float fog : TEXCOORD5;
+                float2 slope : TEXCOORD6;
             };
+
+            float3 Waves(float2 p, float t)
+            {
+                float3 r = 0;
+                float2 d[3] = { float2(0.8, 0.6), float2(-0.45, 0.89), float2(0.96, -0.28) };
+                float l[3] = { 16.0, 10.0, 6.5 };
+                float a[3] = { 0.55, 0.3, 0.15 };
+                [unroll] for (int k = 0; k < 3; k++)
+                {
+                    float w = 6.2831853 / l[k];
+                    float phase = dot(d[k], p) * w + t * sqrt(9.8 * w) * 0.7;
+                    r.x += a[k] * sin(phase);
+                    r.yz += a[k] * w * cos(phase) * d[k];
+                }
+                return r;
+            }
 
             Varyings vert(Attributes v)
             {
                 Varyings o;
-                VertexPositionInputs p = GetVertexPositionInputs(v.positionOS.xyz);
+                float fade = saturate(v.uv2.x / 3.0);
+                float3 wave = Waves(v.uv, _Time.y * _WaveSpeed) * _WaveHeight * fade;
+                float3 displaced = v.positionOS.xyz + normalize(v.normalOS) * wave.x;
+                VertexPositionInputs p = GetVertexPositionInputs(displaced);
+                o.slope = wave.yz;
                 o.positionCS = p.positionCS;
                 o.positionWS = p.positionWS;
                 o.normalWS = TransformObjectToWorldNormal(v.normalOS);
@@ -117,7 +141,7 @@ Shader "StellarDriveMods/StylizedWater"
                 float2 uvN2 = i.uv * _NormalScale * 1.7 + float2(-t * 0.009, t * 0.013);
                 float3 n1 = UnpackNormal(SAMPLE_TEXTURE2D(_NormalTex, sampler_NormalTex, uvN1));
                 float3 n2 = UnpackNormal(SAMPLE_TEXTURE2D(_NormalTex, sampler_NormalTex, uvN2));
-                float2 ripple = (n1.xy + n2.xy) * _NormalStrength;
+                float2 ripple = (n1.xy + n2.xy) * _NormalStrength - i.slope;
                 float3 tangent = normalize(cross(up, abs(up.y) < 0.9 ? float3(0, 1, 0) : float3(1, 0, 0)));
                 float3 bitangent = cross(up, tangent);
                 float3 normal = normalize(up + tangent * ripple.x + bitangent * ripple.y);

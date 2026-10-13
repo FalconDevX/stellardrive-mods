@@ -6,6 +6,7 @@ using MelonLoader;
 using Ships.Interface.Model.Parts;
 using Ships.Interface.Settings;
 using Ships.Parts.Common;
+using Ships.Parts.Door;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -24,6 +25,8 @@ namespace Mining.Content
             (213, "Hangar Door 10x5", 10, 5, 100),
             (216, "Hangar Door 16x8", 16, 8, 220),
             (217, "Wide Door 3x2", 3, 2, 12),
+            (223, "Hangar Door 24x8", 24, 8, 330),
+            (224, "Hangar Door 32x8", 32, 8, 440),
         };
 
         private static readonly Dictionary<ushort, PartSettings> Parts = new Dictionary<ushort, PartSettings>();
@@ -67,6 +70,7 @@ namespace Mining.Content
             GameObject root = Object.Instantiate(door.part, PartFactory.Holder);
             root.name = "MiningDoor" + v.width + "x" + v.height;
             Scale(root, v.width / door.size.x, v.height / door.size.y);
+            RebuildColliders(root);
             CoverInteraction(root);
             ReplaceLook(root, chest);
 
@@ -124,6 +128,57 @@ namespace Mining.Content
             }
         }
 
+        private static void RebuildColliders(GameObject root)
+        {
+            DoorDynamicColliders dynamic = root.GetComponentInChildren<DoorDynamicColliders>(true);
+            if (dynamic == null || dynamic.gameObject == root)
+            {
+                Melon<MiningMod>.Logger.Warning($"Door {root.name}: no separate dynamic colliders - collision unchanged");
+                return;
+            }
+            var fields = Traverse.Create(dynamic);
+            GameObject oldDoor = fields.Field<GameObject>("doorCollider").Value;
+            Collider sample = dynamic.GetComponentsInChildren<Collider>(true).FirstOrDefault();
+            int layer = sample != null ? sample.gameObject.layer : dynamic.gameObject.layer;
+            string tag = sample != null ? sample.tag : dynamic.tag;
+            foreach (Collider c in dynamic.GetComponents<Collider>())
+            {
+                Object.DestroyImmediate(c);
+            }
+            foreach (Transform child in dynamic.transform.Cast<Transform>().ToArray())
+            {
+                Object.DestroyImmediate(child.gameObject);
+            }
+
+            Bounds b = root.GetComponent<ShipPartBounds>().GetBounds();
+            float frame = BigDoorModel.Frame, depth = Mathf.Clamp(b.size.z, 0.25f, 0.35f), z = b.center.z;
+            GameObject frameObject = ColliderObject("Frame", dynamic.transform, layer, tag);
+            AddBox(root, frameObject, new Vector3(b.min.x + frame / 2, b.center.y, z), new Vector3(frame, b.size.y, depth));
+            AddBox(root, frameObject, new Vector3(b.max.x - frame / 2, b.center.y, z), new Vector3(frame, b.size.y, depth));
+            AddBox(root, frameObject, new Vector3(b.center.x, b.max.y - frame / 2, z), new Vector3(b.size.x, frame, depth));
+            GameObject leaf = ColliderObject("Door", dynamic.transform, layer, tag);
+            AddBox(root, leaf, new Vector3(b.center.x, (b.min.y + b.max.y - frame) / 2, z), new Vector3(b.size.x - 2 * frame, b.size.y - frame, depth));
+            leaf.SetActive(oldDoor == null || oldDoor.activeSelf);
+            fields.Field("doorCollider").SetValue(leaf);
+            fields.Field("colliders").SetValue(new[] { frameObject, leaf });
+        }
+
+        private static GameObject ColliderObject(string name, Transform parent, int layer, string tag)
+        {
+            var go = new GameObject(name) { layer = layer, tag = tag };
+            go.transform.SetParent(parent, false);
+            return go;
+        }
+
+        private static void AddBox(GameObject root, GameObject owner, Vector3 center, Vector3 size)
+        {
+            var box = owner.AddComponent<BoxCollider>();
+            Transform t = owner.transform;
+            box.center = t.InverseTransformPoint(root.transform.TransformPoint(center));
+            Vector3 local = t.InverseTransformVector(root.transform.TransformVector(size));
+            box.size = new Vector3(Mathf.Abs(local.x), Mathf.Abs(local.y), Mathf.Abs(local.z));
+        }
+
         private static void Scale(GameObject root, float sx, float sy)
         {
             var bounds = root.GetComponent<ShipPartBounds>();
@@ -135,8 +190,13 @@ namespace Mining.Content
             bounds.center = c1;
             bounds.bounds = b1;
 
+            DoorDynamicColliders dynamic = root.GetComponentInChildren<DoorDynamicColliders>(true);
             foreach (Transform unit in root.transform.Cast<Transform>().ToArray())
             {
+                if (dynamic != null && dynamic.transform.IsChildOf(unit))
+                {
+                    continue;
+                }
                 Vector3 offset = c1 - Vector3.Scale(s, c0) + Vector3.Scale(s - Vector3.one, unit.localPosition);
                 var scaled = new GameObject("Scaled").transform;
                 scaled.SetParent(unit, false);

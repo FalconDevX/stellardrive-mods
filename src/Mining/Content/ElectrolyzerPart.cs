@@ -51,16 +51,165 @@ namespace Mining.Content
             return _part;
         }
 
+        private const float Wall = 0.4f, HousingTop = 0.42f, SocketY = 0.2f, LabelY = 0.33f;
+        private static readonly Vector3 HydrogenSocketPos = new Vector3(-0.5f, SocketY, 0.12f);
+        private static readonly Vector3 OxygenSocketPos = new Vector3(0.5f, SocketY, 0.12f);
+        private static readonly Vector3 WaterSocketPos = new Vector3(0.18f, SocketY, 0.5f);
+        private static readonly Vector3 PowerSocketPos = new Vector3(-0.18f, SocketY, 0.5f);
+
+        private static Mesh BodyMesh()
+        {
+            var b = new MeshBuilder();
+            b.Box(new Vector3(0f, 0.04f, 0f), new Vector3(0.92f, 0.08f, 0.92f), "dark");
+            b.Box(new Vector3(0f, (0.08f + HousingTop) * 0.5f, 0f), new Vector3(Wall * 2f, HousingTop - 0.08f, Wall * 2f), "light");
+            b.Box(new Vector3(0f, HousingTop + 0.015f, 0f), new Vector3(Wall * 2f - 0.06f, 0.03f, Wall * 2f - 0.06f), "grey");
+
+            foreach (var (x, cap) in new[] { (-0.22f, "orange"), (0.22f, "cyan") })
+            {
+                b.Cylinder(new Vector3(x, HousingTop, 0.12f), new Vector3(x, HousingTop + 0.04f, 0.12f), 0.12f, "dark", 20);
+                b.Cylinder(new Vector3(x, HousingTop + 0.04f, 0.12f), new Vector3(x, 0.86f, 0.12f), 0.095f, "screen", 20);
+                b.Cylinder(new Vector3(x, 0.6f, 0.12f), new Vector3(x, 0.63f, 0.12f), 0.104f, cap, 20);
+                b.Cylinder(new Vector3(x, 0.86f, 0.12f), new Vector3(x, 0.92f, 0.12f), 0.11f, cap, 20);
+                b.Cylinder(new Vector3(x, 0.92f, 0.12f), new Vector3(x, 0.95f, 0.12f), 0.05f, "steel", 12);
+                float side = Mathf.Sign(x);
+                float px = side * 0.45f;
+                b.Cylinder(new Vector3(x, 0.935f, 0.12f), new Vector3(px, 0.935f, 0.12f), 0.03f, cap, 12);
+                b.Cylinder(new Vector3(px, 0.95f, 0.12f), new Vector3(px, SocketY + 0.09f, 0.12f), 0.03f, cap, 12);
+                b.Box(new Vector3(px, 0.62f, 0.12f), new Vector3(0.05f, 0.04f, 0.08f), "dark");
+            }
+            b.Cylinder(new Vector3(-0.22f, 0.5f, 0.12f), new Vector3(0.22f, 0.5f, 0.12f), 0.035f, "steel", 12);
+
+            b.Cylinder(new Vector3(0f, HousingTop, 0.24f), new Vector3(0f, 0.66f, 0.24f), 0.085f, "blue", 18);
+            b.Cylinder(new Vector3(0f, 0.66f, 0.24f), new Vector3(0f, 0.69f, 0.24f), 0.095f, "dark", 18);
+            b.Cylinder(new Vector3(0f, 0.55f, 0.24f), new Vector3(WaterSocketPos.x, 0.55f, 0.24f), 0.03f, "blue", 12);
+            b.Cylinder(new Vector3(WaterSocketPos.x, 0.55f, 0.24f), new Vector3(WaterSocketPos.x, 0.55f, 0.46f), 0.03f, "blue", 12);
+            b.Cylinder(new Vector3(WaterSocketPos.x, 0.55f, 0.46f), new Vector3(WaterSocketPos.x, SocketY + 0.09f, 0.46f), 0.03f, "blue", 12);
+
+            b.Box(new Vector3(PowerSocketPos.x, 0.5f, 0.26f), new Vector3(0.16f, 0.16f, 0.14f), "dark");
+            b.Box(new Vector3(PowerSocketPos.x, 0.56f, 0.26f), new Vector3(0.165f, 0.025f, 0.145f), "yellow");
+            b.Box(new Vector3(PowerSocketPos.x, 0.5f, 0.38f), new Vector3(0.05f, 0.05f, 0.12f), "yellow");
+            b.Box(new Vector3(PowerSocketPos.x, (0.5f + SocketY + 0.06f) * 0.5f, 0.43f), new Vector3(0.05f, 0.5f - SocketY - 0.06f, 0.05f), "yellow");
+
+            b.Box(new Vector3(0f, 0.53f, -0.27f), new Vector3(0.5f, 0.22f, 0.26f), "grey");
+            b.Box(new Vector3(0f, 0.645f, -0.27f), new Vector3(0.42f, 0.01f, 0.18f), "black");
+            b.Box(new Vector3(0f, 0.6f, -0.401f), new Vector3(0.3f, 0.06f, 0.01f), "white");
+            b.Box(new Vector3(0f, 0.25f, -0.402f), new Vector3(0.6f, 0.2f, 0.01f), "dark");
+
+            Plaque(b, new Vector3(-1f, 0f, 0f), new Vector3(-Wall, LabelY, HydrogenSocketPos.z), "orange", 1);
+            Plaque(b, new Vector3(1f, 0f, 0f), new Vector3(Wall, LabelY, OxygenSocketPos.z), "cyan", 1);
+            Plaque(b, new Vector3(0f, 0f, 1f), new Vector3(WaterSocketPos.x, LabelY, Wall), "blue", 0);
+            Plaque(b, new Vector3(0f, 0f, 1f), new Vector3(PowerSocketPos.x, LabelY, Wall), "yellow", -1);
+            return b.Build("ElectrolyzerBody");
+        }
+
+        private static void Plaque(MeshBuilder b, Vector3 normal, Vector3 center, string color, int flow)
+        {
+            Quaternion face = Quaternion.LookRotation(-normal, Vector3.up);
+            Vector3 right = face * Vector3.right;
+            b.Box(center + normal * 0.006f, Vector3.Scale(Abs(face * new Vector3(0.24f, 0.15f, 0.012f)), Vector3.one), color);
+            b.Box(center + normal * 0.008f, Vector3.Scale(Abs(face * new Vector3(0.2f, 0.11f, 0.012f)), Vector3.one), "black");
+            Vector3 arrowBase = center + right * 0.16f;
+            Arrow(b, arrowBase + normal * 0.01f, normal, flow, color);
+        }
+
+        private static Vector3 Abs(Vector3 v) => new Vector3(Mathf.Abs(v.x), Mathf.Abs(v.y), Mathf.Abs(v.z));
+
+        private static void Arrow(MeshBuilder b, Vector3 start, Vector3 normal, int flow, string color)
+        {
+            const float length = 0.12f;
+            Quaternion along = Quaternion.LookRotation(normal, Vector3.up);
+            b.Box(start + normal * (length * 0.5f), Abs(along * new Vector3(0.025f, 0.025f, length)), color);
+            if (flow >= 0)
+            {
+                Head(b, start + normal * length, normal, color);
+            }
+            if (flow <= 0)
+            {
+                Head(b, start, -normal, color);
+            }
+        }
+
+        private static void Head(MeshBuilder b, Vector3 tip, Vector3 direction, string color)
+        {
+            foreach (float s in new[] { -1f, 1f })
+            {
+                Quaternion rot = Quaternion.AngleAxis(s * 40f, Vector3.up) * Quaternion.LookRotation(direction, Vector3.up);
+                Vector3 back = rot * Vector3.back;
+                b.Box(tip + back * 0.03f, new Vector3(0.022f, 0.022f, 0.065f), color, rot);
+            }
+        }
+
+        private static Mesh LabelMesh()
+        {
+            var b = new MeshBuilder();
+            Glyph(b, 'H', new Vector3(-Wall - 0.016f, LabelY, HydrogenSocketPos.z), new Vector3(-1f, 0f, 0f));
+            Glyph(b, 'O', new Vector3(Wall + 0.016f, LabelY, OxygenSocketPos.z), new Vector3(1f, 0f, 0f));
+            Glyph(b, 'W', new Vector3(WaterSocketPos.x, LabelY, Wall + 0.016f), new Vector3(0f, 0f, 1f));
+            Glyph(b, 'Z', new Vector3(PowerSocketPos.x, LabelY, Wall + 0.016f), new Vector3(0f, 0f, 1f));
+            Glyph(b, 'I', new Vector3(0f, 0.6f, -0.408f), new Vector3(0f, 0f, -1f));
+            return b.Build("ElectrolyzerLabels");
+        }
+
+        private static void Glyph(MeshBuilder b, char c, Vector3 center, Vector3 normal)
+        {
+            const float h = 0.085f, w = 0.06f, s = 0.016f, d = 0.006f;
+            Quaternion face = Quaternion.LookRotation(-normal, Vector3.up);
+            void Bar(float x, float y, float sx, float sy, float angle = 0f)
+            {
+                Quaternion rot = face * Quaternion.Euler(0f, 0f, angle);
+                b.Box(center + face * new Vector3(x, y, 0f), new Vector3(sx, sy, d), rot);
+            }
+            switch (c)
+            {
+                case 'H':
+                    Bar(-w * 0.5f + s * 0.5f, 0f, s, h);
+                    Bar(w * 0.5f - s * 0.5f, 0f, s, h);
+                    Bar(0f, 0f, w, s);
+                    break;
+                case 'O':
+                    Bar(-w * 0.5f + s * 0.5f, 0f, s, h);
+                    Bar(w * 0.5f - s * 0.5f, 0f, s, h);
+                    Bar(0f, h * 0.5f - s * 0.5f, w, s);
+                    Bar(0f, -h * 0.5f + s * 0.5f, w, s);
+                    break;
+                case 'W':
+                    Bar(-w * 0.6f + s * 0.5f, 0f, s, h);
+                    Bar(w * 0.6f - s * 0.5f, 0f, s, h);
+                    Bar(0f, -h * 0.2f, s, h * 0.6f);
+                    Bar(0f, -h * 0.5f + s * 0.5f, w * 1.2f, s);
+                    break;
+                case 'Z':
+                    Bar(0.012f, h * 0.22f, s, h * 0.6f, -25f);
+                    Bar(0f, 0f, w * 0.8f, s);
+                    Bar(-0.012f, -h * 0.22f, s, h * 0.6f, -25f);
+                    break;
+                case 'I':
+                    for (int i = -1; i <= 1; i++)
+                    {
+                        Bar(i * 0.07f, 0f, 0.035f, 0.035f, 45f);
+                    }
+                    break;
+            }
+        }
+
+        private static Material Emissive(Material source, string name, Color color)
+        {
+            var m = new Material(source) { name = name };
+            m.SetTexture("_Albedo", Texture2D.whiteTexture);
+            m.SetTexture("_EmissionMap", Texture2D.whiteTexture);
+            m.SetColor("_EmissionColor", color);
+            m.EnableKeyword("_EMISSION");
+            return m;
+        }
+
         private static PartSettings Build(PartSettings chest, PartSettings generator, PartSettings distiller)
         {
             GameObject root = Object.Instantiate(chest.part, PartFactory.Holder);
             root.name = "Electrolyzer";
-            Mesh mesh = ModAssets.LoadMesh("electrolyzer.bin");
-            Texture2D albedo = ModAssets.LoadTexture("hydrogen_albedo.png");
 
             Transform visual = root.transform.Find("Visual");
             MeshRenderer look = visual.GetComponentInChildren<MeshRenderer>(true);
-            Material material = PartFactory.CreateMaterial(look.sharedMaterial, albedo, "Electrolyzer");
+            Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("door_albedo.png"), "Electrolyzer");
             var lookCopy = new GameObject("look").AddComponent<MeshRenderer>();
             lookCopy.gameObject.layer = look.gameObject.layer;
             lookCopy.shadowCastingMode = look.shadowCastingMode;
@@ -69,21 +218,24 @@ namespace Mining.Content
             {
                 Object.DestroyImmediate(child.gameObject);
             }
+            Mesh mesh = BodyMesh();
             PartFactory.CreateRenderer("Body", visual, mesh, material, lookCopy);
+            GameObject labels = PartFactory.CreateRenderer("Labels", visual, LabelMesh(), Emissive(material, "ElectrolyzerLabels", new Color(1.4f, 1.4f, 1.3f)), lookCopy);
+            labels.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             Object.DestroyImmediate(lookCopy.gameObject);
 
             PartFactory.SetBounds(root, mesh.bounds);
 
             var box = root.transform.Find("Interactions").GetComponentInChildren<BoxCollider>(true);
-            box.center = new Vector3(0f, 0.42f, -0.3f);
-            box.size = new Vector3(0.8f, 0.55f, 0.36f);
+            box.center = new Vector3(0f, 0.53f, -0.27f);
+            box.size = new Vector3(0.56f, 0.3f, 0.3f);
 
             SocketObject fluid = PartFactory.FindSocket(distiller, CableType.Fluid);
             SocketObject power = PartFactory.FindSocket(generator, CableType.Power);
-            PartFactory.CloneSocket(fluid, root.transform, OxygenSocket, new Vector3(0.5f, 0.25f, 0.16f), 270f);
-            PartFactory.CloneSocket(power, root.transform, PowerSocket, new Vector3(0.5f, 0.25f, -0.2f), 270f);
-            PartFactory.CloneSocket(fluid, root.transform, HydrogenSocket, new Vector3(-0.5f, 0.25f, 0.16f), 90f);
-            PartFactory.CloneSocket(fluid, root.transform, WaterSocket, new Vector3(-0.5f, 0.25f, -0.2f), 90f);
+            PartFactory.CloneSocket(fluid, root.transform, OxygenSocket, OxygenSocketPos, 270f);
+            PartFactory.CloneSocket(power, root.transform, PowerSocket, PowerSocketPos, 180f);
+            PartFactory.CloneSocket(fluid, root.transform, HydrogenSocket, HydrogenSocketPos, 90f);
+            PartFactory.CloneSocket(fluid, root.transform, WaterSocket, WaterSocketPos, 180f);
 
             var settings = ScriptableObject.CreateInstance<PartSettings>();
             settings.name = "MiningElectrolyzer";
@@ -92,8 +244,9 @@ namespace Mining.Content
             settings.fullLabel = "Electrolyzer";
             settings.internalStateClass = "ElectrolyzerState";
             settings.snappingStyle = SnappingStyle.PreciseOnFloor;
-            settings.description = "Splits ice (put it in the slot) into oxygen, hydrogen and water, or - without ice - water from a pipe into hydrogen and oxygen. Needs power. " +
-                                   "Sockets: right side - oxygen out, power; left side - hydrogen out, water (out with ice, in without ice).";
+            settings.description = "Splits ice (put it in the hopper on the front) into oxygen, hydrogen and water, or - without ice - water from a pipe into hydrogen and oxygen. " +
+                                   "Needs power. Outputs on the sides: hydrogen H (orange, left), oxygen O (blue, right). Inputs on the back: power (yellow bolt) and water W " +
+                                   "(navy - water in, or water out while splitting ice). The arrows show which way each socket flows.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
             settings.thumbnailRotation = Quaternion.Euler(0f, 150f, 0f);

@@ -18,8 +18,8 @@ namespace Water.Surface
     internal static class WaterSurface
     {
         private const ulong PlanetId = 4;
-        private const int Segments = 96;
-        private const int Rings = 56;
+        private const int Segments = 192;
+        private const int Rings = 90;
         private const float Rebuild = 300f;
         private const float MaxAltitude = 6000f;
 

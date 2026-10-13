@@ -22,8 +22,8 @@ namespace Mining.Server
     [HarmonyPatch(typeof(ShipThrustersUpdater))]
     internal static class HydrogenThrusterServer
     {
-        private const float HydrogenPerSecond = 0.03f;
-        private const float OxygenPerSecond = 0.03f;
+        private const float HydrogenPerSecond = 0.05f;
+        private const float OxygenPerSecond = 0.05f;
         internal const float OxygenBoost = 1.4f;
         private static bool _loggedError;
 

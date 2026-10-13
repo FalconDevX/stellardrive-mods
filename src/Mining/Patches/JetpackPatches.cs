@@ -127,6 +127,64 @@ namespace Mining.Patches
     }
 
     [HarmonyPatch(typeof(PlayerInventoryTransactions))]
+    internal static class JetpackShiftFuelPatch
+    {
+        [HarmonyPrefix]
+        [HarmonyPatch(nameof(PlayerInventoryTransactions.ShiftItem))]
+        private static bool Shift(PlayerInventoryTransactions __instance, ItemSlotId __0, PlayerNetworkState ____playerState, IItemSettingsProvider ____items) =>
+            !TryFuel(__instance, __0, ____playerState, ____items, false);
+
+        [HarmonyPrefix]
+        [HarmonyPatch(nameof(PlayerInventoryTransactions.ShiftSplitItem))]
+        private static bool ShiftSplit(PlayerInventoryTransactions __instance, ItemSlotId __0, PlayerNetworkState ____playerState, IItemSettingsProvider ____items) =>
+            !TryFuel(__instance, __0, ____playerState, ____items, true);
+
+        private static bool TryFuel(PlayerInventoryTransactions inventory, ItemSlotId source, PlayerNetworkState state, IItemSettingsProvider items, bool split)
+        {
+            try
+            {
+                if (!Jetpack.IsUnlocked() || state == null || state.ServerState.Type == PlayerStateType.InteractingWithChest)
+                {
+                    return false;
+                }
+                if (source.Type != InventoryType.MainInventory && source.Type != InventoryType.ToolBar)
+                {
+                    return false;
+                }
+                var fuel = new ItemSlotId { Type = InventoryType.MainInventory, SlotId = Jetpack.FuelSlot };
+                if (source.Type == fuel.Type && source.SlotId == fuel.SlotId)
+                {
+                    return false;
+                }
+                ItemDrop moving = inventory.GetItemAtSlot(source);
+                if (moving.Quantity == 0 || moving.ItemId != Jetpack.FuelItem)
+                {
+                    return false;
+                }
+                ItemDrop current = inventory.GetItemAtSlot(fuel);
+                if (current.Quantity > 0 && (current.ItemId != Jetpack.FuelItem || current.Quantity >= items.GetItemSettingsById(Jetpack.FuelItem).maxStackSize))
+                {
+                    return false;
+                }
+                if (split)
+                {
+                    inventory.MoveSplitItem(source, fuel);
+                }
+                else
+                {
+                    inventory.MoveItem(source, fuel);
+                }
+                return true;
+            }
+            catch (Exception e)
+            {
+                Melon<MiningMod>.Logger.Warning($"Jetpack shift to fuel slot: {e.Message}");
+                return false;
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(PlayerInventoryTransactions))]
     internal static class JetpackMoveItemPatch
     {
         [HarmonyPrefix]

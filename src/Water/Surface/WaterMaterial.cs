@@ -29,6 +29,15 @@ namespace Water.Surface
             return m;
         }
 
+        internal static Material CreateSimple(Color color)
+        {
+            var m = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "WaterInside" };
+            MakeTransparent(m);
+            m.SetColor("_BaseColor", color);
+            m.SetFloat("_Smoothness", 0.9f);
+            return m;
+        }
+
         private static Material TryStylized()
         {
             try

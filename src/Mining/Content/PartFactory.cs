@@ -4,11 +4,14 @@ using System.Linq;
 using HarmonyLib;
 using Items.Model;
 using MelonLoader;
+using Players.Interface.Model;
 using Research.Interface.Model;
 using Research.Interface.Values;
 using Ships.Interface.Model.Parts;
 using Ships.Interface.Model.Parts.Common;
+using Ships.Interface.Model.Parts.StateTypes;
 using Ships.Interface.Settings;
+using Ships.Parts.Common;
 using Ships.Parts.Common.Gauge;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -146,6 +149,31 @@ namespace Mining.Content
             }
         }
 
+        internal static Transform RemoveInteract(GameObject root)
+        {
+            Transform interactions = root.transform.Find("Interactions");
+            foreach (DefaultShipPartInteractions i in interactions.GetComponentsInChildren<DefaultShipPartInteractions>(true))
+            {
+                GameObject go = i.gameObject;
+                Object.DestroyImmediate(i);
+                go.AddComponent<DefaultShipPartInteractions>();
+            }
+            foreach (PartInteraction original in interactions.GetComponentsInChildren<PartInteraction>(true).ToArray())
+            {
+                GameObject go = original.gameObject;
+                var fields = Traverse.Create(original);
+                bool active = fields.Field<bool>("isActive").Value;
+                float distance = fields.Field<float>("detectionDistance").Value;
+                List<PartInteractionConfig> configs = fields.Field<List<PartInteractionConfig>>("interactions").Value;
+                Object.DestroyImmediate(original);
+                var copy = Traverse.Create(go.AddComponent<NoInteractPartInteraction>());
+                copy.Field("isActive").SetValue(active);
+                copy.Field("detectionDistance").SetValue(distance);
+                copy.Field("interactions").SetValue((configs ?? new List<PartInteractionConfig>()).Where(c => c.type != InteractionType.Interact).ToList());
+            }
+            return interactions;
+        }
+
         internal static ItemInstance CreateItemInstance(uint itemId, int quantity)
         {
             ItemSettings item = Resources.FindObjectsOfTypeAll<ItemSettings>().FirstOrDefault(i => i.id == itemId)
@@ -164,6 +192,11 @@ namespace Mining.Content
         {
             Traverse.Create(settings).Field("buildingCost").SetValue(cost.Select(c => CreateItemInstance(c.item, c.quantity)).Where(i => i != null).ToList());
         }
+    }
+
+    internal class NoInteractPartInteraction : PartInteraction
+    {
+        public override IReadOnlyCollection<PartInteractionConfig> Interactions => base.Interactions.Where(c => c.type != InteractionType.Interact).ToList();
     }
 
     internal sealed class ModResearch

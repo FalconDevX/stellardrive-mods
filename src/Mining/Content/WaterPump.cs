@@ -270,7 +270,9 @@ namespace Mining.Content
         private float _extension, _target, _nextProbe;
         private bool _inWater, _snap;
         private Vector3 _downDir = Vector3.down;
-        private float _pumpLevel, _winchLevel;
+        private float _pumpLevel, _winchLevel, _bubbleCarry;
+        private UnityEngine.VFX.VisualEffect _gas;
+        private bool _gasPlaying;
         private readonly Audio.LoopEmitter _winchSound = new Audio.LoopEmitter("pump_winch", 30f);
         private readonly Audio.LoopEmitter _pumpSound = new Audio.LoopEmitter("pump", 35f);
 
@@ -333,6 +335,36 @@ namespace Mining.Content
             Vector3 position = transform.TransformPoint(new Vector3(0f, 0.4f, 0f));
             _winchSound.Update(position, _winchLevel * 0.8f, _target > _extension ? 0.95f : 1.08f);
             _pumpSound.Update(position, _pumpLevel, 0.6f + 0.4f * _pumpLevel);
+            UpdateBubbles();
+        }
+
+        private void UpdateBubbles()
+        {
+            bool active = _pumpLevel > 0.05f && _inWater;
+            Vector3 intake = _nozzle.position + _downDir * WaterPump.NozzleDepth;
+            Vector3 surface = intake - _downDir * WaterPump.Immersion;
+            if (active)
+            {
+                PumpFx.Emit(intake, surface, -_downDir, _pumpLevel, Time.deltaTime, ref _bubbleCarry);
+            }
+            if (_gas == null && active)
+            {
+                _gas = PumpFx.CreateGas(_nozzle);
+            }
+            if (_gas == null)
+            {
+                return;
+            }
+            _gas.transform.SetPositionAndRotation(intake, Quaternion.FromToRotation(Vector3.up, -_downDir));
+            if (active != _gasPlaying)
+            {
+                _gasPlaying = active;
+                if (active) _gas.Play(); else _gas.Stop();
+            }
+            if (active && _gas.HasFloat("OutputRate"))
+            {
+                _gas.SetFloat("OutputRate", 0.6f * _pumpLevel);
+            }
         }
 
         private void OnDisable()

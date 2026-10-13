@@ -20,6 +20,8 @@ namespace Mining.Patches
             (ElectrolyzerPart.PartId, ElectrolyzerPart.GetOrCreatePart, () => ElectrolyzerPart.Part, 80),
             (Reactor.PartId, Reactor.GetOrCreatePart, () => Reactor.Part, 60),
             (WaterPump.PartId, WaterPump.GetOrCreatePart, () => WaterPump.Part, 81),
+            (LaserCannon.PartId, LaserCannon.GetOrCreatePart, () => LaserCannon.Part, 19),
+            (Pontoon.PartId, Pontoon.GetOrCreatePart, () => Pontoon.Part, 19),
             (BigFluidTank.Variants[0].id, p => BigFluidTank.GetOrCreate(BigFluidTank.Variants[0].id, p), () => BigFluidTank.Get(BigFluidTank.Variants[0].id), BigFluidTank.TankPartId),
             (BigFluidTank.Variants[1].id, p => BigFluidTank.GetOrCreate(BigFluidTank.Variants[1].id, p), () => BigFluidTank.Get(BigFluidTank.Variants[1].id), BigFluidTank.TankPartId),
             (BigChest.Variants[0].id, p => BigChest.GetOrCreate(BigChest.Variants[0].id, p), () => BigChest.Get(BigChest.Variants[0].id), BigChest.ChestPartId),
@@ -30,6 +32,8 @@ namespace Mining.Patches
             (BigDoors.Variants[3].id, p => BigDoors.GetOrCreate(BigDoors.Variants[3].id, p), () => BigDoors.Get(BigDoors.Variants[3].id), BigDoors.DoorPartId),
             (BigDoors.Variants[4].id, p => BigDoors.GetOrCreate(BigDoors.Variants[4].id, p), () => BigDoors.Get(BigDoors.Variants[4].id), BigDoors.DoorPartId),
             (BigDoors.Variants[5].id, p => BigDoors.GetOrCreate(BigDoors.Variants[5].id, p), () => BigDoors.Get(BigDoors.Variants[5].id), BigDoors.DoorPartId),
+            (BigDoors.Variants[6].id, p => BigDoors.GetOrCreate(BigDoors.Variants[6].id, p), () => BigDoors.Get(BigDoors.Variants[6].id), BigDoors.DoorPartId),
+            (BigDoors.Variants[7].id, p => BigDoors.GetOrCreate(BigDoors.Variants[7].id, p), () => BigDoors.Get(BigDoors.Variants[7].id), BigDoors.DoorPartId),
         };
 
         internal static readonly ModResearch LargeDoorsResearch = new ModResearch(BigDoors.ResearchId, "Large Doors", new Vector2Int(3, 6), 16,
@@ -51,6 +55,14 @@ namespace Mining.Patches
         internal static readonly ModResearch MechanicsResearch = new ModResearch(RotorUnlock.ResearchId, "Mechanics", new Vector2Int(4, 5), 16,
             () => new[] { RotorUnlock.Rotor },
             (Items.Model.ItemsConstants.IronItemId, 20), (112, 10));
+
+        internal static readonly ModResearch LaserResearch = new ModResearch(LaserCannon.ResearchId, "Laser Weapons", new Vector2Int(6, 5), 201,
+            () => new[] { LaserCannon.Part },
+            (Items.Model.ItemsConstants.IronItemId, 30), (112, 15), (Items.Model.ItemsConstants.GlassItemId, 20));
+
+        internal static readonly ModResearch PontoonResearch = new ModResearch(Pontoon.ResearchId, "Pontoons", new Vector2Int(6, 1), 12,
+            () => new[] { Pontoon.Part },
+            (Items.Model.ItemsConstants.IronItemId, 20), (Items.Model.ItemsConstants.WoodItemId, 30));
 
         internal static readonly ModResearch NuclearResearch = new ModResearch(204, "Nuclear Power", new Vector2Int(6, 4), 201,
             () => new[] { Reactor.Part },
@@ -75,6 +87,8 @@ namespace Mining.Patches
             HydrogenResearch.Ensure();
             MechanicsResearch.Ensure();
             NuclearResearch.Ensure();
+            LaserResearch.Ensure();
+            PontoonResearch.Ensure();
             JetpackResearch.Ensure();
             LargeDoorsResearch.Ensure();
             LargeTanksResearch.Ensure();
@@ -91,6 +105,10 @@ namespace Mining.Patches
         private static void Postfix(PartSettingsProvider __instance)
         {
             Dictionary<ushort, PartSettings> dict = DictRef(__instance);
+            if (dict != null)
+            {
+                PilotSeatTriggers.Extend(dict.Values);
+            }
             if (dict == null || ModParts.All.All(p => dict.ContainsKey(p.id)))
             {
                 return;

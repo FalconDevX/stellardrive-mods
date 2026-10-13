@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.7.1", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.8.0", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -29,6 +29,7 @@ namespace Mining
         internal static MelonPreferences_Entry<float> ReactorSecondsPerUranium;
         internal static MelonPreferences_Entry<float> PumpRate;
         internal static MelonPreferences_Entry<float> PumpHoseLength;
+        internal static MelonPreferences_Entry<float> LaserVolume;
         internal static MelonPreferences_Entry<float> PumpVolume;
         internal static MelonPreferences_Entry<float> ReactorVolume;
         internal static MelonPreferences_Entry<float> DoorVolume;
@@ -70,7 +71,9 @@ namespace Mining
             DetailShadows = category.CreateEntry("DetailShadows", false, description: "Small ship details cast shadows (false = faster)");
             FastShipBounds = category.CreateEntry("FastShipBounds", true, description: "Remember ship hull bounds until the hull changes instead of scanning every hull voxel twice per frame");
             FastCableVisuals = category.CreateEntry("FastCableVisuals", true, description: "Rebuild the pipe flow graph for cable animations every 4th frame and signal cable glow every 3rd frame");
-            PumpHoseLength = category.CreateEntry("PumpHoseLength", 20f, description: "Pump hose length (m). All players should use the same value");
+            PumpHoseLength = category.CreateEntry("PumpHoseLength", 30f, description: "Pump hose length (m). All players should use the same value");
+            if (Mathf.Approximately(PumpHoseLength.Value, 20f)) PumpHoseLength.Value = 30f;
+            LaserVolume = category.CreateEntry("LaserVolume", 0.7f, description: "Laser cannon volume (0-1)");
             JetpackSecondsPerWood = category.CreateEntry("JetpackSecondsPerWood", 20f, description: "Seconds of jetpack flight per 1 wood. Host only");
             JetpackAcceleration = category.CreateEntry("JetpackAcceleration", 6f, description: "Jetpack upward acceleration above gravity (m/s^2). All players must use the same value");
             JetpackMaxSpeed = category.CreateEntry("JetpackMaxSpeed", 7f, description: "Maximum jetpack climb speed (m/s). All players must use the same value");

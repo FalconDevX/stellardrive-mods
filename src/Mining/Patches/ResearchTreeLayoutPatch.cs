@@ -30,13 +30,13 @@ namespace Mining.Patches
         private static readonly Dictionary<ushort, (int column, int row)> Layout = new Dictionary<ushort, (int, int)>
         {
             { 1, (0, 0) }, { 15, (3, 0) }, { 4, (4, 0) }, { 5, (5, 0) },
-            { 12, (2, 1) }, { 11, (3, 1) }, { 21, (4, 1) }, { 22, (5, 1) },
+            { 12, (2, 1) }, { 11, (3, 1) }, { 21, (4, 1) }, { 22, (5, 1) }, { 210, (6, 1) },
             { 2, (1, 2) }, { 20, (3, 2) }, { 201, (5, 2) }, { 204, (6, 2) }, { 10, (2, 2) },
             { 8, (2, 3) }, { 207, (3, 3) }, { 200, (4, 3) },
             { 6, (1, 4) }, { 18, (2, 4) }, { 16, (3, 4) }, { 206, (4, 4) }, { 203, (5, 4) },
             { 7, (2, 5) },
             { 17, (1, 6) }, { 208, (2, 6) },
-            { 14, (2, 7) }, { 205, (3, 7) },
+            { 14, (2, 7) }, { 205, (3, 7) }, { 209, (4, 7) },
         };
 
         private static void Postfix(RectTransform ___buttonsContainer, List<ResearchSelectButton> ____buttons)

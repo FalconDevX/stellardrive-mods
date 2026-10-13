@@ -52,6 +52,64 @@ namespace Mining.Content
             return _part;
         }
 
+        private const float ShellGap = 0.01f, ShellDepth = 0.12f, SocketHole = 0.24f;
+
+        private static void BuildInteractionShell(BoxCollider first, Bounds b)
+        {
+            float x0 = b.min.x - ShellGap, x1 = b.max.x + ShellGap, z0 = b.min.z - ShellGap, z1 = b.max.z + ShellGap;
+            float y0 = b.min.y, y1 = b.max.y + ShellGap;
+            float ox0 = x0 - ShellDepth, ox1 = x1 + ShellDepth, oz0 = z0 - ShellDepth, oz1 = z1 + ShellDepth;
+            var boxes = new List<(Vector3 min, Vector3 max)>
+            {
+                (new Vector3(ox0, y0, oz0), new Vector3(ox1, y1, z0)),
+                (new Vector3(ox0, y1, oz0), new Vector3(ox1, y1 + ShellDepth, oz1)),
+            };
+            foreach (var (a0, a1, c0, c1) in Holes(z0, z1, y0, y1, new[] { new Vector2(-0.6f, 0.5f) }))
+            {
+                boxes.Add((new Vector3(ox0, c0, a0), new Vector3(x0, c1, a1)));
+            }
+            foreach (var (a0, a1, c0, c1) in Holes(z0, z1, y0, y1, new[] { new Vector2(0.55f, 0.5f) }))
+            {
+                boxes.Add((new Vector3(x1, c0, a0), new Vector3(ox1, c1, a1)));
+            }
+            foreach (var (a0, a1, c0, c1) in Holes(ox0, ox1, y0, y1, new[] { new Vector2(0.75f, 0.5f), new Vector2(-0.75f, 0.22f) }))
+            {
+                boxes.Add((new Vector3(a0, c0, z1), new Vector3(a1, c1, oz1)));
+            }
+            for (int i = 0; i < boxes.Count; i++)
+            {
+                BoxCollider collider = i == 0 ? first : first.gameObject.AddComponent<BoxCollider>();
+                collider.isTrigger = first.isTrigger;
+                collider.center = (boxes[i].min + boxes[i].max) * 0.5f;
+                collider.size = boxes[i].max - boxes[i].min;
+            }
+        }
+
+        private static List<(float a0, float a1, float c0, float c1)> Holes(float a0, float a1, float c0, float c1, Vector2[] sockets)
+        {
+            var rects = new List<(float a0, float a1, float c0, float c1)> { (a0, a1, c0, c1) };
+            foreach (Vector2 socket in sockets)
+            {
+                float h0 = socket.x - SocketHole, h1 = socket.x + SocketHole, v0 = socket.y - SocketHole, v1 = socket.y + SocketHole;
+                var next = new List<(float a0, float a1, float c0, float c1)>();
+                foreach (var r in rects)
+                {
+                    if (h1 <= r.a0 || h0 >= r.a1 || v1 <= r.c0 || v0 >= r.c1)
+                    {
+                        next.Add(r);
+                        continue;
+                    }
+                    float ih0 = Mathf.Max(h0, r.a0), ih1 = Mathf.Min(h1, r.a1), iv0 = Mathf.Max(v0, r.c0), iv1 = Mathf.Min(v1, r.c1);
+                    if (ih0 > r.a0) next.Add((r.a0, ih0, r.c0, r.c1));
+                    if (ih1 < r.a1) next.Add((ih1, r.a1, r.c0, r.c1));
+                    if (iv0 > r.c0) next.Add((ih0, ih1, r.c0, iv0));
+                    if (iv1 < r.c1) next.Add((ih0, ih1, iv1, r.c1));
+                }
+                rects = next;
+            }
+            return rects;
+        }
+
         private static PartSettings Build(PartSettings chest, PartSettings generator, PartSettings distiller)
         {
             GameObject root = Object.Instantiate(chest.part, PartFactory.Holder);
@@ -94,8 +152,12 @@ namespace Mining.Content
             PartFactory.SetBounds(root, body.bounds);
 
             var box = root.transform.Find("Interactions").GetComponentInChildren<BoxCollider>(true);
-            box.center = new Vector3(0f, 0.75f, -1.0f);
-            box.size = new Vector3(1.0f, 0.9f, 0.3f);
+            var interaction = box.GetComponent<PartInteraction>();
+            if (interaction != null)
+            {
+                HarmonyLib.Traverse.Create(interaction).Field("detectionDistance").SetValue(3f);
+            }
+            BuildInteractionShell(box, body.bounds);
 
             SocketObject power = PartFactory.FindSocket(generator, CableType.Power);
             SocketObject fluid = PartFactory.FindSocket(distiller, CableType.Fluid);

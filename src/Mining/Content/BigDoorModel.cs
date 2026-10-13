@@ -24,7 +24,7 @@ namespace Mining.Content
         private static string HullStyle(string color) => HullColors.TryGetValue(color, out string c) ? c : color;
 
         internal const string ModelName = "BigDoorModel";
-        private const float Frame = 0.22f;
+        internal const float Frame = 0.22f;
         private const float Sill = 0.08f;
         private const float Strip = 0.25f;
 
