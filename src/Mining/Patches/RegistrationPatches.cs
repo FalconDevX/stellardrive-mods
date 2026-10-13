@@ -22,6 +22,9 @@ namespace Mining.Patches
             (WaterPump.PartId, WaterPump.GetOrCreatePart, () => WaterPump.Part, 81),
             (LaserCannon.PartId, LaserCannon.GetOrCreatePart, () => LaserCannon.Part, 19),
             (Pontoon.PartId, Pontoon.GetOrCreatePart, () => Pontoon.Part, 19),
+            (InfoPanels.Variants[0].Id, p => InfoPanels.GetOrCreate(InfoPanels.Variants[0].Id, p), () => InfoPanels.Get(InfoPanels.Variants[0].Id), 0),
+            (InfoPanels.Variants[1].Id, p => InfoPanels.GetOrCreate(InfoPanels.Variants[1].Id, p), () => InfoPanels.Get(InfoPanels.Variants[1].Id), 0),
+            (InfoPanels.Variants[2].Id, p => InfoPanels.GetOrCreate(InfoPanels.Variants[2].Id, p), () => InfoPanels.Get(InfoPanels.Variants[2].Id), 0),
             (BigFluidTank.Variants[0].id, p => BigFluidTank.GetOrCreate(BigFluidTank.Variants[0].id, p), () => BigFluidTank.Get(BigFluidTank.Variants[0].id), BigFluidTank.TankPartId),
             (BigFluidTank.Variants[1].id, p => BigFluidTank.GetOrCreate(BigFluidTank.Variants[1].id, p), () => BigFluidTank.Get(BigFluidTank.Variants[1].id), BigFluidTank.TankPartId),
             (BigChest.Variants[0].id, p => BigChest.GetOrCreate(BigChest.Variants[0].id, p), () => BigChest.Get(BigChest.Variants[0].id), BigChest.ChestPartId),
@@ -64,6 +67,10 @@ namespace Mining.Patches
             () => new[] { Pontoon.Part },
             (Items.Model.ItemsConstants.IronItemId, 20), (Items.Model.ItemsConstants.WoodItemId, 30));
 
+        internal static readonly ModResearch InfoPanelsResearch = new ModResearch(InfoPanels.ResearchId, "Info Panels", new Vector2Int(6, 0), 5,
+            () => InfoPanels.All.ToArray(),
+            (Items.Model.ItemsConstants.IronItemId, 15), (112, 10), (Items.Model.ItemsConstants.GlassItemId, 10));
+
         internal static readonly ModResearch NuclearResearch = new ModResearch(204, "Nuclear Power", new Vector2Int(6, 4), 201,
             () => new[] { Reactor.Part },
             (Items.Model.ItemsConstants.IronItemId, 40), (112, 20), (Uranium.ItemId, 10));
@@ -76,7 +83,8 @@ namespace Mining.Patches
         {
             foreach (var mod in All)
             {
-                yield return (mod.get(), mod.menuNextTo);
+                PartSettings part = mod.get();
+                yield return (part, InfoPanels.Is(part) && InfoPanels.DisplayPartId != 0 ? InfoPanels.DisplayPartId : mod.menuNextTo);
             }
             yield return (RotorUnlock.Rotor, RotorUnlock.MenuNextTo);
         }
@@ -89,6 +97,7 @@ namespace Mining.Patches
             NuclearResearch.Ensure();
             LaserResearch.Ensure();
             PontoonResearch.Ensure();
+            InfoPanelsResearch.Ensure();
             JetpackResearch.Ensure();
             LargeDoorsResearch.Ensure();
             LargeTanksResearch.Ensure();

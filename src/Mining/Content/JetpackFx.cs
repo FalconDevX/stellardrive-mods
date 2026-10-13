@@ -146,6 +146,16 @@ namespace Mining.Content
             {
                 _hasChannel = false;
             }
+            if (_hasChannel && (_channel.isVirtual(out bool isVirtual) != FMOD.RESULT.OK || isVirtual))
+            {
+                _channel.stop();
+                _hasChannel = false;
+                Melon<MiningMod>.Logger.Msg("Jetpack sound: channel went virtual, restarting");
+            }
+            if (_hasChannel && _channel.getPaused(out bool paused) == FMOD.RESULT.OK && paused)
+            {
+                _channel.setPaused(false);
+            }
             if (!_hasChannel)
             {
                 _channel = Audio.DrillSound.Play(sound);

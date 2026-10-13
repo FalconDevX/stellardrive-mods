@@ -18,7 +18,7 @@ namespace Mining.Content
         internal const ushort ResearchId = 210;
         internal const float FloatY = 0.62f, FloatRadius = 0.38f, FloatHalfLength = 1.15f;
         internal const byte OxygenSocket = 0;
-        internal const float OxygenToInflate = 5f, InflateSeconds = 6f;
+        internal const float OxygenToInflate = 2f, InflateSeconds = 6f;
 
         private const ushort ChestPartId = 30;
         private static PartSettings _part;
@@ -59,13 +59,8 @@ namespace Mining.Content
                 b.Box(new Vector3(0f, 0.17f, z), new Vector3(0.14f, 0.2f, 0.14f), "steel");
                 b.Box(new Vector3(0f, 0.27f, z), new Vector3(0.34f, 0.06f, 0.24f), "grey");
             }
-            foreach (float s in new[] { -1f, 1f })
-            {
-                float z = s * FloatHalfLength;
-                b.Cylinder(new Vector3(0f, FloatY, z + s * 0.1f), new Vector3(0f, FloatY, z + s * 0.2f), 0.2f, "yellow_dark", 20);
-                b.Box(new Vector3(0f, (FloatY + 0.3f) * 0.5f, z + s * 0.15f), new Vector3(0.08f, FloatY - 0.3f, 0.08f), "steel");
-            }
-            b.Cylinder(new Vector3(0f, FloatY, FloatHalfLength + 0.2f), new Vector3(0f, FloatY, FloatHalfLength + 0.26f), 0.09f, "steel", 16);
+            b.Cylinder(new Vector3(0f, 0.1f, 0.84f), new Vector3(0f, 0.1f, 0.66f), 0.035f, "orange", 12);
+            b.Box(new Vector3(0f, 0.04f, 0.855f), new Vector3(0.2f, 0.06f, 0.02f), "steel");
             return b.Build("PontoonBody");
         }
 
@@ -77,6 +72,7 @@ namespace Mining.Content
             {
                 float z = s * FloatHalfLength;
                 b.Cylinder(new Vector3(0f, 0f, z), new Vector3(0f, 0f, z + s * 0.1f), 0.31f, "yellow", 24);
+                b.Cylinder(new Vector3(0f, 0f, z + s * 0.1f), new Vector3(0f, 0f, z + s * 0.18f), 0.2f, "yellow_dark", 20);
                 b.Cylinder(new Vector3(0f, 0f, s * 0.75f), new Vector3(0f, 0f, s * 0.85f), FloatRadius + 0.012f, "dark", 24);
             }
             b.Box(Vector3.zero, new Vector3(FloatRadius * 2f + 0.03f, 0.05f, 1.2f), "black");
@@ -123,7 +119,7 @@ namespace Mining.Content
             SocketObject gas = Resources.FindObjectsOfTypeAll<SocketObject>().FirstOrDefault(x => x.Type == CableType.Fluid && x.visualObject != null && x.interactive != null);
             if (gas != null)
             {
-                PartFactory.CloneSocket(gas, root.transform, OxygenSocket, new Vector3(0f, FloatY, FloatHalfLength + 0.3f), 180f);
+                PartFactory.CloneSocket(gas, root.transform, OxygenSocket, new Vector3(0f, 0.04f, 0.88f), 180f);
             }
             else
             {
@@ -138,7 +134,7 @@ namespace Mining.Content
             settings.internalStateClass = "DoorState";
             settings.snappingStyle = chest.snappingStyle;
             settings.description = $"Inflatable float landing gear: attach it under the ship (mount plate against the floor). It comes deflated - " +
-                                   $"pipe oxygen into the inlet on its end and it takes {OxygenToInflate:0} oxygen and inflates over {InflateSeconds:0} s. " +
+                                   $"pipe oxygen into the inlet at the end of its mount plate and it takes {OxygenToInflate:0} oxygen and inflates over {InflateSeconds:0} s. " +
                                    $"Inflated, in a lake each pontoon holds up about 2000 kg (Water mod setting PontoonLift), so with enough of them the ship floats " +
                                    $"on the surface and can sail. Deflated pontoons do not float. Spread them out (e.g. one at each corner) to keep the ship level. " +
                                    $"On land they work as skids. Needs the Water mod.";

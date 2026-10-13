@@ -350,7 +350,14 @@ namespace Mining.Patches
             }
             ISpace space = ____spaces.GetSpace(__0.SpaceId);
             bool onPlanet = space is PlanetSurfaceSpace || space is ShipRelativeSpace;
-            bool flying = unlocked && onPlanet && ____state.PressedKeys.Up && !__0.IsOnGround && ____state.ClientState.Type == PlayerStateType.Walking;
+            bool wants = unlocked && ____state.PressedKeys.Up && !__0.IsOnGround;
+            bool fuel = !wants || HasLocalFuel();
+            bool flying = wants && onPlanet && fuel && Jetpack.Enabled && ____state.ClientState.Type == PlayerStateType.Walking;
+            if (wants)
+            {
+                Diagnose(flying ? "flying" : !fuel ? "no wood in the fuel slot" : !Jetpack.Enabled ? "turned off with J" : !onPlanet ? $"not on a planet ({space?.GetType().Name})" :
+                    $"player state {____state.ClientState.Type}", !fuel);
+            }
             var audio = ServiceLocator.GetService<IAudioPlayer>();
             if (unlocked)
             {
@@ -377,6 +384,30 @@ namespace Mining.Patches
                 ___rightHipRcs?.Stop();
             }
             return true;
+        }
+
+        private static string _lastReason;
+        private static float _lastMessage = -100f;
+
+        private static bool HasLocalFuel()
+        {
+            var inventory = ServiceLocator.GetService<Players.Interface.Services.IPlayerMainInventoryProvider>();
+            InventorySlot slot = inventory != null ? inventory.GetSlot(Jetpack.FuelSlot) : default;
+            return slot.HasItem && slot.ItemId == Jetpack.FuelItem && slot.Quantity > 0;
+        }
+
+        private static void Diagnose(string reason, bool noFuel)
+        {
+            if (reason != _lastReason)
+            {
+                _lastReason = reason;
+                Melon<MiningMod>.Logger.Msg($"Jetpack: {reason}");
+            }
+            if (noFuel && Time.time - _lastMessage > 4f)
+            {
+                _lastMessage = Time.time;
+                MiningMod.ShowMessage("Jetpack: no wood", 2f);
+            }
         }
 
         private static void Flame(ParticleSystem vfx, Quaternion rotation)
