@@ -141,6 +141,17 @@ namespace ShipSafety.Patches
             return new Guest { Colliders = go, Hull = hull, Ship = guest };
         }
 
+        internal static void SetActive(bool active)
+        {
+            foreach (Guest entry in Guests.Values)
+            {
+                if (entry.Colliders != null && entry.Colliders.activeSelf != active)
+                {
+                    entry.Colliders.SetActive(active);
+                }
+            }
+        }
+
         private static void Remove((bool, uint, uint) key)
         {
             Guest entry = Guests[key];
@@ -181,5 +192,13 @@ namespace ShipSafety.Patches
                 GuestShipColliders.Update(false, ship, ____ships.Ships);
             }
         }
+    }
+
+    [HarmonyPatch(typeof(Ships.Services.ShipRepositioningUpdater), "CheckPhysicalPlacement")]
+    internal static class GuestCollidersRepositionPatch
+    {
+        private static void Prefix() => GuestShipColliders.SetActive(false);
+
+        private static void Finalizer() => GuestShipColliders.SetActive(true);
     }
 }

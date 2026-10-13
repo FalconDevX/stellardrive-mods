@@ -146,6 +146,25 @@ Shader "StellarDriveMods/StylizedWater"
                 float3 bitangent = cross(up, tangent);
                 float3 normal = normalize(up + tangent * ripple.x + bitangent * ripple.y);
 
+                if (!front)
+                {
+                    Light sunBelow = GetMainLight();
+                    half3 ambientBelow = SampleSH(up);
+                    float3 below = normalize(-up + tangent * ripple.x * 1.6 + bitangent * ripple.y * 1.6);
+                    float facing = saturate(dot(viewDir, below));
+                    float window = smoothstep(0.6, 0.74, facing);
+                    half3 sky = _FresnelColor.rgb * (sunBelow.color * 0.75 + ambientBelow * 0.9);
+                    half3 depths = _DeepColor.rgb * (sunBelow.color * 0.35 + ambientBelow * 0.5) * 0.7;
+                    float shimmer = pow(saturate(1 - abs(ripple.x + ripple.y) * 2.5), 6);
+                    float edgeGlow = exp(-pow((facing - 0.67) * 18, 2));
+                    half4 under;
+                    under.rgb = lerp(depths, sky, window) + sky * (shimmer * 0.25 * window + edgeGlow * 0.18);
+                    under.a = lerp(0.97, 0.86, window);
+                    under.rgb *= _Exposure;
+                    under.rgb = MixFog(under.rgb, i.fog);
+                    return under;
+                }
+
                 half4 col = lerp(_ShallowColor, _MidColor, saturate(depth / _MidDepth));
                 col = lerp(col, _DeepColor, saturate((depth - _MidDepth) / max(_DeepDepth - _MidDepth, 0.01)));
 
@@ -174,10 +193,6 @@ Shader "StellarDriveMods/StylizedWater"
                 col.rgb = lerp(col.rgb, _FoamColor.rgb * (sun.color * 0.6 + ambient * 0.6), foam);
                 col.a = max(col.a, foam);
 
-                if (!front)
-                {
-                    col.a *= 0.6;
-                }
                 col.rgb *= _Exposure;
                 col.rgb = MixFog(col.rgb, i.fog);
                 return col;

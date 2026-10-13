@@ -31,24 +31,6 @@ def write(name, x, peak=0.8):
         w.writeframes(data.tobytes())
     print(name, f'{len(x) / RATE:.1f} s')
 
-def winch():
-    seconds = 2.0
-    n = int(RATE * seconds)
-    t = np.arange(n) / RATE
-    motor = tone(t, 160.0, 10, 1.1) * 0.45
-    gear = np.sin(2 * np.pi * 1120.0 * t) * 0.12 + np.sin(2 * np.pi * 2240.5 * t) * 0.05
-    gear *= 0.7 + 0.3 * np.sin(2 * np.pi * 4.0 * t)
-    clicks = np.zeros(n)
-    period = RATE / 22.0
-    click = band_noise(int(RATE * 0.012), 1800, 6000) * np.exp(-np.linspace(0, 6, int(RATE * 0.012)))
-    for k in range(44):
-        start = int(k * period)
-        idx = (start + np.arange(len(click))) % n
-        clicks[idx] += click * (0.8 + 0.4 * rng.random())
-    hiss = band_noise(n, 600, 3000) * (0.6 + 0.4 * np.sin(2 * np.pi * 1.0 * t) ** 2) * 0.25
-    x = soft_clip(motor * 1.4) * 0.6 + gear + clicks * 0.35 + hiss
-    write('pump_winch_loop.wav', x, 0.75)
-
 def pump():
     seconds = 3.0
     n = int(RATE * seconds)
@@ -71,5 +53,4 @@ def pump():
     write('pump_loop.wav', x, 0.75)
 
 if __name__ == '__main__':
-    winch()
     pump()

@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.9.4", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.9.6", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -66,7 +66,7 @@ namespace Mining
             ReactorPower = category.CreateEntry("ReactorPower", 20000f, description: "Reactor power (W). The wood generator gives 4000 W. Host only");
             ReactorSecondsPerUranium = category.CreateEntry("ReactorSecondsPerUranium", 120f, description: "Seconds of full-power operation per 1 uranium. Host only");
             PumpRate = category.CreateEntry("PumpRate", 1f, description: "Water per second pumped at full power. Host only");
-            PumpVolume = category.CreateEntry("PumpVolume", 0.7f, description: "Water pump and hose winch volume (0-1)");
+            PumpVolume = category.CreateEntry("PumpVolume", 0.7f, description: "Water pump volume (0-1)");
             ReactorVolume = category.CreateEntry("ReactorVolume", 0.6f, description: "Running reactor volume (0-1)");
             ElectrolyzerVolume = category.CreateEntry("ElectrolyzerVolume", 0.25f, description: "Electrolyzer volume while working (0-1)");
             DoorVolume = category.CreateEntry("DoorVolume", 0.8f, description: "Large door volume (0-1)");

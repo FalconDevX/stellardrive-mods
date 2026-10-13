@@ -46,6 +46,7 @@ namespace Water.Surface
             if (!(ClientOrigin.LocalVisualSpace is PlanetSurfaceSpace space) || space.PlanetId != PlanetId || cam == null)
             {
                 if (_object != null) _object.SetActive(false);
+                if (cam != null) Effects.UnderwaterView.Update(cam, -1f);
                 return;
             }
             var transpose = ServiceLocator.GetService<IWorldTransposeClient>();
@@ -67,6 +68,7 @@ namespace Water.Surface
             _object.SetActive(altitude < MaxAltitude);
             if (altitude >= MaxAltitude)
             {
+                Effects.UnderwaterView.Update(cam, -1f);
                 return;
             }
             Vector3 under = camPlanet.normalized * _radius;
@@ -78,6 +80,7 @@ namespace Water.Surface
             }
             UpdateExposure(transpose.Rotation(planetSpace, ClientOrigin.LocalVisualSpace, Quaternion.identity) * camPlanet.normalized);
             UpdateUnderwater(altitude < UnderwaterAltitude);
+            Effects.UnderwaterView.Update(cam, UnderwaterAltitude - altitude);
             _object.transform.position = (Vector3)transpose.Position(planetSpace, ClientOrigin.LocalVisualSpace, (Vector3Double)_anchor);
             _object.transform.rotation = transpose.Rotation(planetSpace, ClientOrigin.LocalVisualSpace, Quaternion.identity);
         }
@@ -100,6 +103,8 @@ namespace Water.Surface
 
         private static Light _sun;
         private static float _exposure = -1f;
+
+        internal static float Exposure => _exposure < 0f ? 1f : _exposure;
         private static float _nextSunSearch;
 
         private static void UpdateExposure(Vector3 upVisual)

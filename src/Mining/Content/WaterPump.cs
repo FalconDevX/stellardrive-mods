@@ -25,7 +25,7 @@ namespace Mining.Content
     internal static class WaterPump
     {
         internal const ushort PartId = 214;
-        internal const byte PowerSocket = 0, SignalSocket = 1, OutSocketA = 3, OutSocketB = 4;
+        internal const byte PowerSocket = 0, SignalSocket = 1, OutSocketB = 2, OutSocketA = 3;
 
         internal const float FanY = 0.835f;
         internal const float NozzleTop = 0.36f;
@@ -287,10 +287,9 @@ namespace Mining.Content
         private float _extension, _target, _nextProbe;
         private bool _inWater, _snap;
         private Vector3 _downDir = Vector3.down;
-        private float _pumpLevel, _winchLevel, _bubbleCarry;
+        private float _pumpLevel, _bubbleCarry;
         private UnityEngine.VFX.VisualEffect _gas;
         private bool _gasPlaying;
-        private readonly Audio.LoopEmitter _winchSound = new Audio.LoopEmitter("pump_winch", 30f);
         private readonly Audio.LoopEmitter _pumpSound = new Audio.LoopEmitter("pump", 35f);
 
         private void Awake()
@@ -347,10 +346,7 @@ namespace Mining.Content
             {
                 _fan.Rotate(Vector3.up, 540f * _pumpLevel * Time.deltaTime, Space.Self);
             }
-            bool moving = Mathf.Abs(_extension - _target) > 0.01f;
-            _winchLevel = Mathf.MoveTowards(_winchLevel, moving ? 1f : 0f, Time.deltaTime / 0.15f);
             Vector3 position = transform.TransformPoint(new Vector3(0f, 0.4f, 0f));
-            _winchSound.Update(position, _winchLevel * 0.8f, _target > _extension ? 0.95f : 1.08f);
             _pumpSound.Update(position, _pumpLevel, 0.6f + 0.4f * _pumpLevel);
             UpdateBubbles();
         }
@@ -386,7 +382,6 @@ namespace Mining.Content
 
         private void OnDisable()
         {
-            _winchSound.Stop();
             _pumpSound.Stop();
         }
 

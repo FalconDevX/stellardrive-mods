@@ -137,7 +137,7 @@ namespace Water.Effects
             {
                 var (point, speed) = PlayerSplashes.Dequeue();
                 Vector3Double surface = point.Normalized * sea;
-                Splash(ToVisual(surface), toVisual * (Vector3)point.Normalized, Vector3.zero, speed, 0.6f, 0.45f, camPos);
+                PlayerSplash(surface, ToVisual(surface), toVisual * (Vector3)point.Normalized, speed, camPos);
             }
 
             foreach (TrackedShipClient ship in tracker.VisuallyLoadedShip)
@@ -552,6 +552,23 @@ namespace Water.Effects
                 Emit(_mist, p, v, Random.Range(2f, 6f) * Mathf.Sqrt(radius / 3f + 0.5f), Random.Range(2.5f, 5.5f), MistColor);
             }
             SplashSound.PlayImpact(hit, power, camPos);
+            float near = (hit - camPos).magnitude;
+            float reach = 6f + 10f * Mathf.Sqrt(power);
+            if (near < reach)
+            {
+                LensDroplets.Splash(Mathf.Clamp01(power) * (1f - near / reach));
+            }
+        }
+
+        private static void PlayerSplash(Vector3Double surface, Vector3 hit, Vector3 up, float speed, Vector3 camPos)
+        {
+            float k = Mathf.Clamp01((speed - 3f) / 22f);
+            float radius = Mathf.Lerp(0.35f, 1.2f, k);
+            Splash(hit, up, Vector3.zero, speed, radius, Mathf.Lerp(0.25f, 1.2f, k * k + 0.3f * k), camPos);
+            if (speed > 7f)
+            {
+                QueueAnimation(surface, speed * Mathf.Lerp(0.5f, 0.9f, k), radius * 0.8f);
+            }
         }
 
         private static void Wake(ref float carry, Vector3 hit, Vector3 up, Vector3 horizontal, float speed, float radius, float dt)
