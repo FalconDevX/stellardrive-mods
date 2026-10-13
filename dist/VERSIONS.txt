@@ -1,13 +1,13 @@
 ﻿Resource Tweaks 0.3.2
 Crouch 0.1.2
 Flora 0.4.0
-Pick Block 0.3.0
+Pick Block 0.3.1
 Shared Piloting 0.1.1
 Ship Safety 0.5.3
 Velocity Indicator 0.1.0
 Warp Unlock 0.1.2
 Planet Unlock 0.1.1
-Mining 0.9.11
+Mining 0.9.12
 Drop Items 0.1.0
 FPS Counter 0.1.0
 Water 0.4.1

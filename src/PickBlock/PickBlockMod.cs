@@ -2,7 +2,7 @@
 using UnityEngine;
 using PickBlock;
 
-[assembly: MelonInfo(typeof(PickBlockMod), "Pick Block", "0.3.0", "mateu")]
+[assembly: MelonInfo(typeof(PickBlockMod), "Pick Block", "0.3.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace PickBlock
@@ -28,11 +28,11 @@ namespace PickBlock
             HoldDelay = category.CreateEntry("HoldDelay", 0.25f, description: "Seconds of holding before placing further parts starts");
             HoldRepeat = category.CreateEntry("HoldRepeat", 0.12f, description: "Minimum interval between parts while holding (s)");
             AreaBuild = category.CreateEntry("AreaBuild", true,
-                description: "Scroll with the build tool on a floor or wall part changes the size of the square that one click builds (Shift + scroll rotates as before)");
+                description: "Ctrl + scroll with the build tool on a floor or wall part changes the size of the square that one click builds");
             AreaMaxSize = category.CreateEntry("AreaMaxSize", 9, description: "Largest square side for area building (odd number)");
             category.SaveToFile(false);
 
-            LoggerInstance.Msg("Build tool: middle mouse on a part = build the same part; hold left mouse = keep building; scroll on floors and walls = area size.");
+            LoggerInstance.Msg("Build tool: middle mouse on a part = build the same part; hold left mouse = keep building; Ctrl + scroll on floors and walls = area size.");
         }
 
         public override void OnGUI()

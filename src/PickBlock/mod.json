@@ -2,6 +2,6 @@
   "id": "stellardrive-pickblock",
   "name": "Pick Block",
   "author": "mateu",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "With the build tool: the middle mouse button on a part selects it for building (like Minecraft). Holding the left button keeps building."
 }

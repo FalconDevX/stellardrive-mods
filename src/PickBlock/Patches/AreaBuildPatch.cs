@@ -19,6 +19,9 @@ namespace PickBlock.Patches
         private static readonly AccessTools.FieldRef<BuildToolLocalClient, PartPreview> PreviewRef =
             AccessTools.FieldRefAccess<BuildToolLocalClient, PartPreview>("_partPreview");
 
+        private const float PlayerHeight = 1.8f;
+        private const float PlayerClearance = 0.95f;
+
         private static int _size = 1;
         private static bool _active;
         private static LineRenderer _outline;
@@ -30,11 +33,11 @@ namespace PickBlock.Patches
         [HarmonyPatch(nameof(BuildToolLocalClient.ExecuteScrollAction))]
         private static bool Scroll(BuildToolLocalClient __instance, float scroll)
         {
-            if (!PickBlockMod.AreaBuild.Value || Keyboard.current == null || Keyboard.current.shiftKey.isPressed)
+            if (!PickBlockMod.AreaBuild.Value || Keyboard.current == null || !Keyboard.current.ctrlKey.isPressed)
             {
                 return true;
             }
-            if (!TryGetHull(PreviewRef(__instance)?.GetPlacement(), out _, out _))
+            if (!TryGetHull(Placement(__instance), out _, out _))
             {
                 return true;
             }
@@ -56,8 +59,14 @@ namespace PickBlock.Patches
             {
                 return true;
             }
+            Quaternion ship = snappedPlacement.Rotation * Quaternion.Inverse(hull.Rotation);
+            Camera cam = Camera.main;
             foreach (Vector3Int offset in Offsets(hull.Position.Type))
             {
+                if (cam != null && HitsPlayer(snappedPlacement.Position + ship * (Vector3)offset, cam.transform.position, ship * Vector3.up))
+                {
+                    continue;
+                }
                 var placement = new HullPartPlacement(new HullPartPosition(hull.Coord + offset, hull.Position.Type), hull.ForwardOrientation, hull.UpOrientation);
                 service.PlaceHullPart(new PlaceHullPartNetworkRequest
                 {
@@ -73,7 +82,7 @@ namespace PickBlock.Patches
         [HarmonyPatch(nameof(BuildToolLocalClient.UpdateChecks))]
         private static void Update(BuildToolLocalClient __instance)
         {
-            PreviewPlacement placement = PreviewRef(__instance)?.GetPlacement();
+            PreviewPlacement placement = Placement(__instance);
             _active = PickBlockMod.AreaBuild.Value && TryGetHull(placement, out _, out _);
             if (!_active || _size <= 1)
             {
@@ -103,6 +112,18 @@ namespace PickBlock.Patches
             Hide();
         }
 
+        private static PreviewPlacement Placement(BuildToolLocalClient tool)
+        {
+            try
+            {
+                return PreviewRef(tool)?.GetPlacement();
+            }
+            catch (System.NullReferenceException)
+            {
+                return null;
+            }
+        }
+
         private static bool TryGetHull(PreviewPlacement placement, out HullPartPlacement hull, out VoxelPartType type)
         {
             hull = default;
@@ -114,6 +135,14 @@ namespace PickBlock.Patches
             hull = snapped.HullPartPlacement.Value;
             type = hull.Position.Type;
             return type != VoxelPartType.Interior;
+        }
+
+        private static bool HitsPlayer(Vector3 cell, Vector3 head, Vector3 up)
+        {
+            Vector3 feet = head - up * PlayerHeight;
+            Vector3 along = head - feet;
+            float t = Mathf.Clamp01(Vector3.Dot(cell - feet, along) / along.sqrMagnitude);
+            return (cell - (feet + along * t)).magnitude < PlayerClearance;
         }
 
         private static void Axes(VoxelPartType type, out Vector3Int a, out Vector3Int b)

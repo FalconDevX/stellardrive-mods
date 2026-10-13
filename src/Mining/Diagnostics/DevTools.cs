@@ -219,6 +219,10 @@ namespace Mining.Diagnostics
             {
                 yield return RunDoorsTest();
             }
+            else if (HasArg("seat"))
+            {
+                yield return RunSeatTest();
+            }
             ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, "screen.png"));
             if (HasArg("quit") || MiningMod.DevQuitAfterDump.Value)
             {
@@ -797,6 +801,40 @@ namespace Mining.Diagnostics
             Audio.LoopEmitter.ListenerOverride = null;
             cam.enabled = true;
             UnityEngine.Object.Destroy(testCam.gameObject);
+        }
+
+        private static IEnumerator RunSeatTest()
+        {
+            var log = Melon<MiningMod>.Logger;
+            PartSettings seat = new Ships.Interface.Services.PartSettingsProvider().GetPartSettingById(29);
+            if (seat?.part == null)
+            {
+                log.Msg("[seat] part 29 missing");
+                yield break;
+            }
+            foreach (var s in seat.part.GetComponentsInChildren<Ships.Interface.Model.Parts.Common.SocketObject>(true))
+            {
+                log.Msg($"[seat] prefab socket {s.Id} {s.Type} active={s.gameObject.activeInHierarchy} at {seat.part.transform.InverseTransformPoint(s.transform.position)} " +
+                        $"visual={(s.visualObject != null ? PathOf(s.visualObject.transform) + " active=" + s.visualObject.activeSelf : "-")} interactive={(s.interactive != null ? s.interactive.name : "-")}");
+            }
+            var instancer = Core.Services.ServiceLocator.GetService<Ships.Interface.Services.IShipPartInstancer>();
+            if (instancer != null)
+            {
+                var holder = new GameObject("SeatTestPreview");
+                GameObject inst = instancer.InstantiatePartPreview(seat, holder.transform);
+                foreach (Renderer r in holder.GetComponentsInChildren<Renderer>(true))
+                {
+                    log.Msg($"[seat] preview renderer {PathOf(r.transform)} enabled={r.enabled} active={r.gameObject.activeInHierarchy} at {holder.transform.InverseTransformPoint(r.bounds.center)}");
+                }
+                UnityEngine.Object.Destroy(holder);
+            }
+            var thumbs = Core.Services.ServiceLocator.GetService<Ships.Interface.Services.IPartThumbnailProvider>();
+            Texture2D large = thumbs?.GetLargeThumbnail(seat.id);
+            yield return null;
+            yield return null;
+            large = thumbs?.GetLargeThumbnail(seat.id) ?? large;
+            if (large != null) SaveTexture(large, Path.Combine(OutDir, "test_thumb_seat.png"));
+            yield return new WaitForSeconds(1f);
         }
 
         private static IEnumerator RunDoorsTest()
