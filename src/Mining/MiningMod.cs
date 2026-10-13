@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.9.2", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.9.4", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -33,6 +33,7 @@ namespace Mining
         internal static MelonPreferences_Entry<float> LaserVolume;
         internal static MelonPreferences_Entry<float> PumpVolume;
         internal static MelonPreferences_Entry<float> ReactorVolume;
+        internal static MelonPreferences_Entry<float> ElectrolyzerVolume;
         internal static MelonPreferences_Entry<float> DoorVolume;
         internal static MelonPreferences_Entry<float> DetailDistance;
         internal static MelonPreferences_Entry<bool> DetailShadows;
@@ -67,6 +68,7 @@ namespace Mining
             PumpRate = category.CreateEntry("PumpRate", 1f, description: "Water per second pumped at full power. Host only");
             PumpVolume = category.CreateEntry("PumpVolume", 0.7f, description: "Water pump and hose winch volume (0-1)");
             ReactorVolume = category.CreateEntry("ReactorVolume", 0.6f, description: "Running reactor volume (0-1)");
+            ElectrolyzerVolume = category.CreateEntry("ElectrolyzerVolume", 0.25f, description: "Electrolyzer volume while working (0-1)");
             DoorVolume = category.CreateEntry("DoorVolume", 0.8f, description: "Large door volume (0-1)");
             DetailDistance = category.CreateEntry("DetailDistance", 30f, description: "Small ship details (cable plugs and cords, socket covers, small bits) are not drawn beyond this distance (m). 0 = always drawn");
             DetailShadows = category.CreateEntry("DetailShadows", false, description: "Small ship details cast shadows (false = faster)");

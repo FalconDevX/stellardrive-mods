@@ -173,6 +173,11 @@ namespace Mining.Content
             {
                 Object.DestroyImmediate(child.gameObject);
             }
+            foreach (DefaultShipPartVisuals v in root.GetComponentsInChildren<DefaultShipPartVisuals>(true))
+            {
+                Object.DestroyImmediate(v);
+            }
+            visual.gameObject.AddComponent<ElectrolyzerSoundVisuals>();
             Mesh mesh = BodyMesh();
             PartFactory.CreateRenderer("Body", visual, mesh, material, lookCopy);
             GameObject labels = PartFactory.CreateRenderer("Labels", visual, LabelMesh(), Emissive(material, "ElectrolyzerLabels", new Color(1.4f, 1.4f, 1.3f)), lookCopy);

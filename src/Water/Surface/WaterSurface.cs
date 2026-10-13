@@ -77,6 +77,7 @@ namespace Water.Surface
                 BuildMesh(_anchor, Mathf.Max(500f, WaterMod.SurfaceRadius.Value));
             }
             UpdateExposure(transpose.Rotation(planetSpace, ClientOrigin.LocalVisualSpace, Quaternion.identity) * camPlanet.normalized);
+            UpdateUnderwater(altitude < UnderwaterAltitude);
             _object.transform.position = (Vector3)transpose.Position(planetSpace, ClientOrigin.LocalVisualSpace, (Vector3Double)_anchor);
             _object.transform.rotation = transpose.Rotation(planetSpace, ClientOrigin.LocalVisualSpace, Quaternion.identity);
         }
@@ -121,6 +122,28 @@ namespace Water.Surface
             }
             _exposure = _exposure < 0f ? target : Mathf.MoveTowards(_exposure, target, Time.deltaTime * 0.5f);
             Material.SetFloat("_Exposure", _exposure);
+        }
+
+        private const float UnderwaterAltitude = -0.2f;
+        private static float _surfaceFoam = -1f;
+        private static bool _underwater;
+
+        private static void UpdateUnderwater(bool underwater)
+        {
+            if (Material == null || !Material.HasProperty("_FoamDistance"))
+            {
+                return;
+            }
+            if (_surfaceFoam < 0f)
+            {
+                _surfaceFoam = Material.GetFloat("_FoamDistance");
+            }
+            if (underwater == _underwater)
+            {
+                return;
+            }
+            _underwater = underwater;
+            Material.SetFloat("_FoamDistance", underwater ? 0.0001f : _surfaceFoam);
         }
 
         private static Camera _depthCam;

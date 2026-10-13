@@ -47,7 +47,7 @@ namespace Mining.Server
                 var connections = ServiceLocator.GetService<ConnectionsServerTracker>();
                 foreach (StatefulPart part in Pumps(__instance))
                 {
-                    if (Plan(__instance, connections, part, 0f, out _, out _, out _, out _) &&
+                    if (Plan(__instance, connections, part, 0f, out _, out _, out _) &&
                         power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, part.Id, WaterPump.PowerSocket), out PowerGroupServerState group))
                     {
                         group.TotalPowerNeeded += deltaTime * PowerWatts;
@@ -101,7 +101,7 @@ namespace Mining.Server
                         rt.OutOfReach = 0f;
                     }
 
-                    bool planned = Plan(__instance, connections, part, rt.Deployed, out bool fromLake, out FluidGroupServerState input,
+                    bool planned = Plan(__instance, connections, part, rt.Deployed, out bool fromLake,
                         out FluidGroupServerState outA, out FluidGroupServerState outB);
                     PowerGroupServerState group = null;
                     if (!planned)
@@ -109,7 +109,7 @@ namespace Mining.Server
                         status = outA == null && outB == null ? "no room in the output pipes" :
                                  state.IsOpen && water && reach && needed <= limit ? "lowering the hose" :
                                  state.IsOpen && water && reach ? "hose too short to reach the water" :
-                                 state.IsOpen ? "no water under the hose" : "hose up, no water on the input";
+                                 state.IsOpen ? "no water under the hose" : "hose up";
                     }
                     else if (!power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, part.Id, WaterPump.PowerSocket), out group))
                     {
@@ -122,31 +122,23 @@ namespace Mining.Server
                     else
                     {
                         float amount = Mathf.Max(0f, MiningMod.PumpRate.Value) * group.NormalizedConsumerRate * deltaTime;
-                        if (!fromLake)
-                        {
-                            amount = Mathf.Min(amount, input.Available);
-                        }
-                        float moved = Deliver(outA, outB, amount);
-                        if (!fromLake && moved > 0f)
-                        {
-                            input.RemoveFluid(moved);
-                        }
-                        status = fromLake ? "pumping from the lake" : "pumping from the input pipe";
+                        Deliver(outA, outB, amount);
+                        status = "pumping from the lake";
                     }
                     if (rt.Status != status)
                     {
                         rt.Status = status;
-                        Melon<MiningMod>.Logger.Msg($"Water Pump (ship {key.Item1}, part {key.Item2}): {status}");
+                        Melon<MiningMod>.Logger.Msg($"Water Pump (ship {key.Item1}, part {key.Item2}): {status}" +
+                                                    (reach ? $" (hose needs {needed:0.0} m of {limit:0.0} m, water {water})" : " (no planet under the pump)"));
                     }
                 }
             });
         }
 
         private static bool Plan(TrackedShipServer ship, ConnectionsServerTracker connections, StatefulPart part, float deployed,
-            out bool fromLake, out FluidGroupServerState input, out FluidGroupServerState outA, out FluidGroupServerState outB)
+            out bool fromLake, out FluidGroupServerState outA, out FluidGroupServerState outB)
         {
             fromLake = false;
-            input = null;
             outA = Output(ship, connections, part.Id, WaterPump.OutSocketA);
             outB = Output(ship, connections, part.Id, WaterPump.OutSocketB);
             if (ReferenceEquals(outA, outB))
@@ -163,17 +155,7 @@ namespace Mining.Server
             {
                 fromLake = deployed <= 0f ? RuntimeDeployed(ship, part) >= needed / WaterPump.HoseSpeed : deployed >= needed / WaterPump.HoseSpeed;
             }
-            if (fromLake)
-            {
-                return true;
-            }
-            if (connections.TryGetFluidGroupCacheFromSocket(new EntityPartSocket(ship.Id, part.Id, WaterPump.InSocket), out FluidGroupServerState group) &&
-                group.FluidItemId == HydrogenThruster.WaterItemId && group.Available > 0.001f && !ReferenceEquals(group, outA) && !ReferenceEquals(group, outB))
-            {
-                input = group;
-                return true;
-            }
-            return false;
+            return fromLake;
         }
 
         private static float RuntimeDeployed(TrackedShipServer ship, StatefulPart part) =>

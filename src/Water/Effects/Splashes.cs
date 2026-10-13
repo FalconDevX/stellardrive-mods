@@ -51,6 +51,7 @@ namespace Water.Effects
 
         private const float MaxDistance = 700f;
         private const float FloodRise = 0.06f, FloodDrain = 0.14f;
+        private const float RestingSpeed = 0.6f;
         private static readonly Color DropColor = new Color(0.86f, 0.95f, 1f, 0.9f);
         private static readonly Color SprayColor = new Color(0.93f, 0.97f, 1f, 0.75f);
         private static readonly Color MistColor = new Color(0.92f, 0.96f, 1f, 0.22f);
@@ -213,7 +214,7 @@ namespace Water.Effects
                     Hear(level, hit, camPos, cam, ref wake, ref wakePan);
                 }
                 float topDepth = -(float)(water.HullCenter.Magnitude - sea) - water.Height * 0.5f;
-                if (f > 0.5f && vUp < -0.3f && topDepth < 12f)
+                if (f > 0.5f && vUp < -0.5f && velocity.magnitude > RestingSpeed && topDepth < 12f)
                 {
                     Bubbles(entry, hit, up, water.Radius, Mathf.Clamp01(-vUp / 3f) * Mathf.Clamp01(1f - topDepth / 12f), dt);
                 }
@@ -318,7 +319,7 @@ namespace Water.Effects
                 entry.FloodPlane.SetActive(false);
             }
 
-            if (outside > entry.Flood + 0.02f)
+            if (outside > entry.Flood + 0.02f && (outside < 0.98f || velocity.magnitude > RestingSpeed))
             {
                 SetGravity(up);
                 float strength = Mathf.Clamp01((outside - entry.Flood) * 4f);

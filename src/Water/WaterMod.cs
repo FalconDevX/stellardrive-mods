@@ -3,7 +3,7 @@ using MelonLoader;
 using UnityEngine;
 using Water;
 
-[assembly: MelonInfo(typeof(WaterMod), "Water", "0.3.1", "mateu")]
+[assembly: MelonInfo(typeof(WaterMod), "Water", "0.3.2", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Water
@@ -21,6 +21,7 @@ namespace Water
         internal static MelonPreferences_Entry<bool> Splashes;
         internal static MelonPreferences_Entry<float> SplashVolume;
         internal static MelonPreferences_Entry<bool> Swimming;
+        internal static MelonPreferences_Entry<float> UnderwaterAirSeconds;
         internal static MelonPreferences_Entry<string> LakeBedTexture;
 
         public override void OnInitializeMelon()
@@ -43,6 +44,7 @@ namespace Water
             SplashVolume = category.CreateEntry("SplashVolume", 0.8f, description: "Splash and wake volume (0-1)");
             LakeBedTexture = category.CreateEntry("LakeBedTexture", "auto",
                 description: "Lake bottom texture: auto (wet sand of the planet), off (game texture), or part of a texture name from the log");
+            UnderwaterAirSeconds = category.CreateEntry("UnderwaterAirSeconds", 30f, description: "Seconds a full oxygen tank lasts with the head under water; then the player starts drowning (0 = off). Host only");
             Swimming = category.CreateEntry("Swimming", true,
                 description: "Players swim in lakes: WASD swims where you look, Space up, Shift faster. All players should use the same value");
             category.SaveToFile(false);

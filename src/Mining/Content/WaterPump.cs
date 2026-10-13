@@ -25,7 +25,7 @@ namespace Mining.Content
     internal static class WaterPump
     {
         internal const ushort PartId = 214;
-        internal const byte PowerSocket = 0, SignalSocket = 1, InSocket = 2, OutSocketA = 3, OutSocketB = 4;
+        internal const byte PowerSocket = 0, SignalSocket = 1, OutSocketA = 3, OutSocketB = 4;
 
         internal const float FanY = 0.835f;
         internal const float NozzleTop = 0.36f;
@@ -43,6 +43,8 @@ namespace Mining.Content
         internal static PartSettings Part => _part;
 
         internal static bool Is(PartSettings settings) => settings != null && settings.id == PartId;
+
+        private const float ProbeSpread = 2.5f;
 
         internal static float HoseNeeded(float above, bool water) => above + NozzleTop - NozzleDepth + (water ? Immersion : 0f);
 
@@ -76,9 +78,25 @@ namespace Mining.Content
             Vector3 dir = planetPos.normalized;
             float ground = tracked.PointsProvider.GetElevationAtPoint(dir);
             float radius = tracked.Planet.Radius;
-            water = planetId == LakePlanetId && ground - radius < SeaLevel + 0.15f;
+            water = planetId == LakePlanetId && (ground - radius < SeaLevel + 0.15f || LakeAround(tracked, dir, radius));
             above = planetPos.magnitude - (water ? radius + SeaLevel : ground);
             return true;
+        }
+
+        private static bool LakeAround(Planets.Network.TrackedPlanet tracked, Vector3 dir, float radius)
+        {
+            Vector3 side = Vector3.Cross(dir, Mathf.Abs(dir.y) < 0.9f ? Vector3.up : Vector3.right).normalized;
+            Vector3 forward = Vector3.Cross(dir, side);
+            float step = ProbeSpread / (radius + SeaLevel);
+            int wet = 0;
+            foreach (Vector3 offset in new[] { side, -side, forward, -forward })
+            {
+                if (tracked.PointsProvider.GetElevationAtPoint((dir + offset * step).normalized) - radius < SeaLevel + 0.15f)
+                {
+                    wet++;
+                }
+            }
+            return wet >= 2;
         }
 
         internal static PartSettings GetOrCreatePart(IEnumerable<PartSettings> gameParts)
@@ -168,7 +186,6 @@ namespace Mining.Content
             SocketObject power = PartFactory.FindSocket(generator, CableType.Power);
             const float y = 0.3f;
             PartFactory.CloneSocket(power, root.transform, PowerSocket, new Vector3(0.15f, y, 0.5f), 180f);
-            PartFactory.CloneSocket(fluid, root.transform, InSocket, new Vector3(-0.5f, y, 0f), 90f);
             PartFactory.CloneSocket(fluid, root.transform, OutSocketA, new Vector3(0.5f, y, -0.2f), 270f);
             PartFactory.CloneSocket(fluid, root.transform, OutSocketB, new Vector3(0.5f, y, 0.2f), 270f);
             SocketObject signalSource = Resources.FindObjectsOfTypeAll<SocketObject>().FirstOrDefault(s => s.Type == CableType.Signal && s.visualObject != null && s.interactive != null);
@@ -190,8 +207,8 @@ namespace Mining.Content
             settings.snappingStyle = SnappingStyle.PreciseOnFloor;
             settings.description = "Pumps water from lakes into pipes. Press F to lower the hose over a lake on Otrera b " +
                                    $"(hose {MiningMod.PumpHoseLength.Value:0} m), or connect a signal: its value sets the hose length (1 = full, 0 = up). " +
-                                   "Also pushes water from a pipe on the input. Needs power. " +
-                                   "Sockets: left - water in, right - two water outputs, back - power and signal.";
+                                   "Needs power. " +
+                                   "Sockets: right - two water outputs, back - power and signal.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
             settings.thumbnailRotation = Quaternion.Euler(0f, 150f, 0f);
