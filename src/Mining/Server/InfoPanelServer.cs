@@ -29,7 +29,7 @@ namespace Mining.Server
                     foreach (ushort id in ShipPartIndex.Get(__instance, variant.Id))
                     {
                         power = power ?? ServiceLocator.GetService<PowerServerTracker>();
-                        if (power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, id, InfoPanels.PowerSocket), out PowerGroupServerState group))
+                        if (power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, id, variant.PowerSocket), out PowerGroupServerState group))
                         {
                             group.TotalPowerNeeded += deltaTime * variant.Watts;
                         }
@@ -58,7 +58,7 @@ namespace Mining.Server
                             continue;
                         }
                         power = power ?? ServiceLocator.GetService<PowerServerTracker>();
-                        Update(__instance, power, part);
+                        Update(__instance, power, part, variant);
                     }
                 }
             }
@@ -68,9 +68,9 @@ namespace Mining.Server
             }
         }
 
-        private static void Update(TrackedShipServer ship, PowerServerTracker power, StatefulPart part)
+        private static void Update(TrackedShipServer ship, PowerServerTracker power, StatefulPart part, InfoPanels.Variant variant)
         {
-            bool powered = power.TryGetGroupFromSocket(new EntityPartSocket(ship.Id, part.Id, InfoPanels.PowerSocket), out PowerGroupServerState group) &&
+            bool powered = power.TryGetGroupFromSocket(new EntityPartSocket(ship.Id, part.Id, variant.PowerSocket), out PowerGroupServerState group) &&
                            group.NormalizedConsumerRate >= 0.5f;
             var state = (DoorState)part.State;
             if (state.IsOpen != powered)

@@ -21,7 +21,7 @@ namespace Mining.Server
             foreach (StatefulPart part in ____ship.GetAllStatefulParts<RotorState>())
             {
                 var state = (RotorState)part.State;
-                float targetDegrees = TestTargetDegrees ?? (float)____connections.GetSignalValue(new EntityPartSocket(____ship.Id, part.Id, 0));
+                float targetDegrees = TestTargetDegrees ?? ToDegrees((float)____connections.GetSignalValue(new EntityPartSocket(____ship.Id, part.Id, 0)));
                 float target = Mathf.Repeat(targetDegrees, 360f) * Mathf.Deg2Rad;
                 float delta = Mathf.Repeat(target - state.Angle, Mathf.PI * 2f);
                 if (delta > Mathf.PI)
@@ -53,5 +53,7 @@ namespace Mining.Server
             }
             return false;
         }
+
+        private static float ToDegrees(float signal) => Mathf.Abs(signal) <= 1f ? signal * MiningMod.RotorLeverAngle.Value : signal;
     }
 }

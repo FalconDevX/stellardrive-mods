@@ -24,10 +24,8 @@ namespace Mining.Server
     {
         private const float HydrogenPerSecond = 0.05f;
         private const float OxygenPerSecond = 0.05f;
-        internal const float OxygenBoost = 1.4f;
         private static bool _loggedError;
 
-        internal static readonly HashSet<(uint ship, ushort part)> Boosted = new HashSet<(uint, ushort)>();
         private static readonly Dictionary<(uint ship, ushort part), string> Status = new Dictionary<(uint, ushort), string>();
 
         [HarmonyPostfix]
@@ -88,34 +86,32 @@ namespace Mining.Server
                         continue;
                     }
                     float rate = 0f;
-                    bool boosted = false;
                     string status = "no hydrogen";
                     if (TryGetFluids(____ship, ____connections, part.Id, out var hydrogen, out var oxygen))
                     {
                         bool cabled = power.TryGetGroupFromSocket(new EntityPartSocket(____ship.Id, part.Id, HydrogenThruster.PowerSocket), out PowerGroupServerState group);
                         float powerRate = cabled ? group.NormalizedConsumerRate : 0f;
-                        status = !cabled ? "no power cable" : powerRate <= 0f ? "no power" : null;
-                        float oxygenRate = oxygen?.EffectiveConsumptionRate ?? 0f;
-                        rate = Mathf.Min(hydrogen.EffectiveConsumptionRate, powerRate);
+                        status = oxygen == null ? "no oxygen" : !cabled ? "no power cable" : powerRate <= 0f ? "no power" : null;
+                        if (oxygen != null)
+                        {
+                            rate = Mathf.Min(Mathf.Min(hydrogen.EffectiveConsumptionRate, oxygen.EffectiveConsumptionRate), powerRate);
+                        }
                         if (rate > 0f)
                         {
                             hydrogen.RemoveFluid(rate * HydrogenPerSecond * deltaTime);
-                            float oxygenUsed = Mathf.Min(rate, oxygenRate);
-                            if (oxygenUsed > 0f)
-                            {
-                                oxygen.RemoveFluid(oxygenUsed * OxygenPerSecond * deltaTime);
-                            }
-                            boosted = oxygenUsed > 0f;
+                            oxygen.RemoveFluid(rate * OxygenPerSecond * deltaTime);
+                        }
+                        if (status == null && rate <= 0f)
+                        {
+                            status = hydrogen.EffectiveConsumptionRate <= 0f ? "hydrogen pipe empty" : "oxygen pipe empty";
                         }
                     }
-                    if (status == null) status = rate > 0f ? (boosted ? "running with oxygen afterburner" : "running") : "hydrogen pipe empty";
+                    if (status == null) status = "running";
                     if (!Status.TryGetValue((____ship.Id, part.Id), out string previous) || previous != status)
                     {
                         Status[(____ship.Id, part.Id)] = status;
                         Melon<MiningMod>.Logger.Msg($"Hydrogen Thruster (ship {____ship.Id}, part {part.Id}): {status}");
                     }
-                    if (boosted) Boosted.Add((____ship.Id, part.Id));
-                    else Boosted.Remove((____ship.Id, part.Id));
                     ____ship.UpdatePartState(part.Id, (ThrusterState)part.State with { ThrusterStrength = rate });
                 }
                 done = true;
@@ -171,12 +167,7 @@ namespace Mining.Server
             {
                 if (HydrogenThruster.Is(part.Settings))
                 {
-                    float total = extra;
-                    if (HydrogenThrusterServer.Boosted.Contains((stateRead.Id, part.Id)))
-                    {
-                        total += (HydrogenThrusterServer.OxygenBoost - 1f) * MiningMod.HydrogenThrustMultiplier.Value * ChemicalThrust;
-                    }
-                    __result += -part.Placement.UpOrientation.GetVector3() * (((ThrusterState)part.State).ThrusterStrength * total);
+                    __result += -part.Placement.UpOrientation.GetVector3() * (((ThrusterState)part.State).ThrusterStrength * extra);
                 }
             }
         }

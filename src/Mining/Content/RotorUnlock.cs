@@ -23,8 +23,8 @@ namespace Mining.Content
                     if (_rotor != null)
                     {
                         PartFactory.SetCost(_rotor, (Items.Model.ItemsConstants.IronItemId, 8), (112, 4));
-                        _rotor.description = "Rotates everything built on its plate to the angle (in degrees, -180 to 180) given by the signal on its socket - " +
-                                             "e.g. type the angle into a Constant and connect it. Placed on a wall it works as a hinge.";
+                        _rotor.description = "Rotates everything built on its plate to the angle given by the signal on its socket. A lever works directly: 0 = start, 1 = 90 degrees. " +
+                                             "Bigger signals are degrees (-180 to 180), e.g. type 45 into a Constant. Placed on a wall it works as a hinge.";
                         Melon<MiningMod>.Logger.Msg("Rotor: costs 8 iron + 4 copper, signal in degrees");
                         StretchBase(_rotor);
                     }

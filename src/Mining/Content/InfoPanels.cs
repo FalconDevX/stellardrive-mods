@@ -20,7 +20,6 @@ namespace Mining.Content
     internal static class InfoPanels
     {
         internal const ushort ResearchId = 211;
-        internal const byte PowerSocket = 4;
         internal const int MaxLines = 4;
         internal static readonly char[] Letters = { 'A', 'B', 'C', 'D' };
 
@@ -32,6 +31,8 @@ namespace Mining.Content
             public int Lines;
             public float Watts;
             public int Iron, Copper, Glass;
+
+            public byte PowerSocket => (byte)Lines;
         }
 
         internal static readonly Variant[] Variants =
@@ -243,7 +244,7 @@ namespace Mining.Content
                 }
                 else
                 {
-                    socket = PartFactory.CloneSocket(PartFactory.FindSocket(generator, CableType.Power), socketParent, PowerSocket, socketBase, 0f);
+                    socket = PartFactory.CloneSocket(PartFactory.FindSocket(generator, CableType.Power), socketParent, v.PowerSocket, socketBase, 0f);
                 }
                 socket.transform.localPosition = socketBase + along * offset;
                 socket.transform.localRotation = socketRot;

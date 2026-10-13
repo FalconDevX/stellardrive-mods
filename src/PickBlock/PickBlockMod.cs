@@ -1,7 +1,8 @@
 ﻿using MelonLoader;
+using UnityEngine;
 using PickBlock;
 
-[assembly: MelonInfo(typeof(PickBlockMod), "Pick Block", "0.2.1", "mateu")]
+[assembly: MelonInfo(typeof(PickBlockMod), "Pick Block", "0.3.0", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace PickBlock
@@ -13,6 +14,8 @@ namespace PickBlock
         internal static MelonPreferences_Entry<bool> HoldToBuild;
         internal static MelonPreferences_Entry<float> HoldDelay;
         internal static MelonPreferences_Entry<float> HoldRepeat;
+        internal static MelonPreferences_Entry<bool> AreaBuild;
+        internal static MelonPreferences_Entry<int> AreaMaxSize;
 
         public override void OnInitializeMelon()
         {
@@ -24,9 +27,28 @@ namespace PickBlock
                 description: "Holding the left button with the build tool places the part in every new free spot (like Minecraft)");
             HoldDelay = category.CreateEntry("HoldDelay", 0.25f, description: "Seconds of holding before placing further parts starts");
             HoldRepeat = category.CreateEntry("HoldRepeat", 0.12f, description: "Minimum interval between parts while holding (s)");
+            AreaBuild = category.CreateEntry("AreaBuild", true,
+                description: "Scroll with the build tool on a floor or wall part changes the size of the square that one click builds (Shift + scroll rotates as before)");
+            AreaMaxSize = category.CreateEntry("AreaMaxSize", 9, description: "Largest square side for area building (odd number)");
             category.SaveToFile(false);
 
-            LoggerInstance.Msg("Build tool: middle mouse on a part = build the same part; hold left mouse = keep building.");
+            LoggerInstance.Msg("Build tool: middle mouse on a part = build the same part; hold left mouse = keep building; scroll on floors and walls = area size.");
+        }
+
+        public override void OnGUI()
+        {
+            if (!Patches.AreaBuildPatch.Showing)
+            {
+                return;
+            }
+            string text = $"{Patches.AreaBuildPatch.Size} x {Patches.AreaBuildPatch.Size}";
+            var style = new GUIStyle(GUI.skin.label) { fontSize = 18, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+            var rect = new Rect(Screen.width * 0.5f - 60f, Screen.height * 0.5f + 28f, 120f, 26f);
+            GUI.color = new Color(0f, 0f, 0f, 0.6f);
+            GUI.Label(new Rect(rect.x + 1f, rect.y + 1f, rect.width, rect.height), text, style);
+            GUI.color = new Color(0.55f, 0.9f, 1f, 1f);
+            GUI.Label(rect, text, style);
+            GUI.color = Color.white;
         }
     }
 }

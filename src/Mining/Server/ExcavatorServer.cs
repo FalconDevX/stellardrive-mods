@@ -41,8 +41,6 @@ namespace Mining.Server
             Status.Clear();
         }
 
-        internal static bool TryGetStatus(uint shipId, ushort partId, out string status) => Status.TryGetValue((shipId, partId), out status);
-
         private static void SetStatus((uint ship, ushort part) key, string status)
         {
             if (!Status.TryGetValue(key, out string previous) || previous != status)

@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.9.7", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.9.11", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -20,6 +20,7 @@ namespace Mining
         internal static MelonPreferences_Entry<float> DrillVolume;
         internal static MelonPreferences_Entry<float> HydrogenThrustMultiplier;
         internal static MelonPreferences_Entry<float> RotorSpeed;
+        internal static MelonPreferences_Entry<float> RotorLeverAngle;
         internal static MelonPreferences_Entry<float> JetpackSecondsPerWood;
         internal static MelonPreferences_Entry<float> JetpackAcceleration;
         internal static MelonPreferences_Entry<float> JetpackMaxSpeed;
@@ -84,6 +85,7 @@ namespace Mining
             category.DeleteEntry("JetpackVolume");
             JetpackVolume = category.CreateEntry("JetpackFireVolume", 0.45f, description: "Jetpack flame volume (0-1)");
             FastRooms = category.CreateEntry("FastRooms", true, description: "Fast room/oxygen recalculation after a ship change (less lag while building). false = like the game. Computed by the host");
+            RotorLeverAngle = category.CreateEntry("RotorLeverAngle", 90f, description: "Rotor angle for a signal of 1, e.g. from a lever (degrees). Signals between -1 and 1 are multiplied by it, bigger signals are degrees. Host only");
             RotorSpeed = category.CreateEntry("RotorSpeed", 90f, description: "Rotor turning speed (degrees per second). Host only");
             HydrogenThrustMultiplier = category.CreateEntry("HydrogenThrustMultiplier", 1.8f, description: "How many times stronger the hydrogen thruster is than the chemical one. Host only");
             DevAutoLoadWorld = category.CreateEntry("DevAutoLoadWorld", "",
@@ -155,11 +157,6 @@ namespace Mining
             if (Event.current.type != EventType.Repaint)
             {
                 return;
-            }
-            if (Patches.StorageMenuPatch.TryGetOpenExcavator(out uint shipId, out ushort partId) && Server.ExcavatorServer.TryGetStatus(shipId, partId, out string status) &&
-                !status.StartsWith("working"))
-            {
-                DrawLabel("Excavator: " + status, Screen.height * 0.1f);
             }
             if (_message == null || Time.unscaledTime > _messageUntil)
             {

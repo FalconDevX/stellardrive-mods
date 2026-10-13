@@ -7,6 +7,8 @@ using Managers.Server;
 using MelonLoader;
 using Ships;
 using Ships.Grid.Model;
+using Ships.Interface.Model;
+using Ships.Interface.Model.Sync;
 using Ships.Physics.Collision;
 using Ships.Values;
 using UnityEngine;
@@ -23,6 +25,9 @@ namespace ShipSafety.Patches
             public ShipHullColliders Hull;
             public TrackedShip Ship;
             public int Frame;
+            public IHullPartCreationSync[] HullSyncs;
+            public IStatefulPartCreationSync[] CreationSyncs;
+            public IStatefulPartStateSync[] StateSyncs;
         }
 
         private static readonly AccessTools.FieldRef<TrackedShip, ShipPrefabs> PrefabsRef = AccessTools.FieldRefAccess<TrackedShip, ShipPrefabs>("Prefabs");
@@ -86,6 +91,10 @@ namespace ShipSafety.Patches
                     var key = (server, host.Id, guest.Id);
                     if (!Guests.TryGetValue(key, out Guest entry) || entry.Colliders == null)
                     {
+                        if (entry != null)
+                        {
+                            Unhook(entry);
+                        }
                         entry = Create(guest);
                         if (entry == null)
                         {
@@ -151,10 +160,40 @@ namespace ShipSafety.Patches
             }
             GameObject go = Object.Instantiate(prefabs.shipColliders);
             go.name = $"ship {guest.Id} colliders (resting on another ship)";
+            var entry = new Guest
+            {
+                Colliders = go,
+                Ship = guest,
+                HullSyncs = go.GetComponents<IHullPartCreationSync>(),
+                CreationSyncs = go.GetComponents<IStatefulPartCreationSync>(),
+                StateSyncs = go.GetComponents<IStatefulPartStateSync>(),
+            };
             guest.State.HookPartListeners(go);
-            var hull = go.GetComponent<ShipHullColliders>();
-            hull?.UpdateColliders();
-            return new Guest { Colliders = go, Hull = hull, Ship = guest };
+            entry.Hull = go.GetComponent<ShipHullColliders>();
+            entry.Hull?.UpdateColliders();
+            return entry;
+        }
+
+        private static void Unhook(Guest entry)
+        {
+            ShipState state = entry.Ship?.State;
+            if (state == null)
+            {
+                return;
+            }
+            try
+            {
+                foreach (IHullPartCreationSync sync in entry.HullSyncs ?? Array.Empty<IHullPartCreationSync>()) state.UnhookHullCreationSync(sync);
+                foreach (IStatefulPartCreationSync sync in entry.CreationSyncs ?? Array.Empty<IStatefulPartCreationSync>()) state.UnhookPartCreationSync(sync);
+                foreach (IStatefulPartStateSync sync in entry.StateSyncs ?? Array.Empty<IStatefulPartStateSync>()) state.UnhookPartStateSync(sync);
+            }
+            catch (Exception e)
+            {
+                Melon<ShipSafetyMod>.Logger.Warning($"Could not detach guest colliders of ship {entry.Ship.Id}: {e.Message}");
+            }
+            entry.HullSyncs = null;
+            entry.CreationSyncs = null;
+            entry.StateSyncs = null;
         }
 
         internal static void SetActive(bool active)
@@ -172,15 +211,9 @@ namespace ShipSafety.Patches
         {
             Guest entry = Guests[key];
             Guests.Remove(key);
+            Unhook(entry);
             if (entry.Colliders != null)
             {
-                try
-                {
-                    entry.Ship.State.UnhookPartListeners(entry.Colliders);
-                }
-                catch (Exception)
-                {
-                }
                 Object.Destroy(entry.Colliders);
             }
         }

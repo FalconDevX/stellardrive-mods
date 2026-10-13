@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
+using MelonLoader;
 using Mining.Content;
+using Ships.Interface.Model.Parts.Common;
 using Ships.Interface.Services;
 using Ships.Interface.Settings;
 using UI.BuildMenu;
@@ -132,9 +134,27 @@ namespace Mining.Patches
                 if (part != null)
                 {
                     dict[part.id] = part;
+                    CheckSockets(part);
                 }
             }
             ModParts.EnsureResearch();
+        }
+
+        private static void CheckSockets(PartSettings part)
+        {
+            if (part.part == null)
+            {
+                return;
+            }
+            List<byte> ids = part.part.GetComponentsInChildren<SocketObject>(true).Select(s => s.Id).OrderBy(id => id).ToList();
+            for (int i = 0; i < ids.Count; i++)
+            {
+                if (ids[i] != i)
+                {
+                    Melon<MiningMod>.Logger.Error($"Part '{part.fullLabel}' (id {part.id}) has socket ids {string.Join(", ", ids)} - they must be 0..{ids.Count - 1}, the game cannot build it");
+                    return;
+                }
+            }
         }
     }
 
