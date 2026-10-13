@@ -154,7 +154,7 @@ namespace Mining.Content
             Camera cam = Camera.main;
             float distance = cam != null ? Vector3.Distance(cam.transform.position, transform.position) : float.MaxValue;
             float attenuation = Mathf.Clamp01(1f - distance / MaxHearDistance);
-            float volume = _speed * attenuation * attenuation * MiningMod.DrillVolume.Value;
+            float volume = _speed * attenuation * attenuation * MiningMod.DrillVolume.Value * 0.35f;
 
             if (volume <= 0.001f)
             {
@@ -175,7 +175,7 @@ namespace Mining.Content
                 _hasChannel = true;
             }
             _channel.setVolume(volume);
-            _channel.setPitch(0.55f + 0.45f * _speed);
+            _channel.setPitch(0.4f + 0.3f * _speed);
             if (cam != null)
             {
                 Vector3 local = cam.transform.InverseTransformPoint(transform.position);

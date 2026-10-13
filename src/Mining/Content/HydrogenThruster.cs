@@ -90,7 +90,11 @@ namespace Mining.Content
                 PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("hydrogen_albedo.png"), "HydrogenThrusterMounts"), look);
 
             Vector3 nozzleWorld = root.transform.TransformPoint(NozzleTop);
-            if (flame != null) flame.transform.position = nozzleWorld;
+            if (flame != null)
+            {
+                flame.transform.position = nozzleWorld;
+                TintFlame(flame.gameObject);
+            }
             if (sound != null) sound.transform.position = nozzleWorld;
 
             PartFactory.SetBounds(root, mesh.bounds);
@@ -132,6 +136,82 @@ namespace Mining.Content
             settings.fuelDurationPerUnit = chemical.fuelDurationPerUnit;
             PartFactory.SetCost(settings, (Items.Model.ItemsConstants.IronItemId, 20), (112, 10), (Items.Model.ItemsConstants.GlassItemId, 5));
             return settings;
+        }
+
+        private static readonly Color FlameColor = new Color(0.62f, 0.82f, 1f);
+
+        private static Color Tint(Color c)
+        {
+            float brightness = Mathf.Max(c.r, c.g, c.b);
+            return new Color(FlameColor.r * brightness, FlameColor.g * brightness, FlameColor.b * brightness, c.a);
+        }
+
+        private static Gradient Tint(Gradient g)
+        {
+            return new Gradient
+            {
+                mode = g.mode,
+                colorKeys = g.colorKeys.Select(k => new GradientColorKey(Tint(k.color), k.time)).ToArray(),
+                alphaKeys = g.alphaKeys
+            };
+        }
+
+        private static ParticleSystem.MinMaxGradient Tint(ParticleSystem.MinMaxGradient g)
+        {
+            switch (g.mode)
+            {
+                case ParticleSystemGradientMode.Color:
+                    return new ParticleSystem.MinMaxGradient(Tint(g.color));
+                case ParticleSystemGradientMode.TwoColors:
+                    return new ParticleSystem.MinMaxGradient(Tint(g.colorMin), Tint(g.colorMax));
+                case ParticleSystemGradientMode.TwoGradients:
+                    return new ParticleSystem.MinMaxGradient(Tint(g.gradientMin), Tint(g.gradientMax));
+                default:
+                    return new ParticleSystem.MinMaxGradient(Tint(g.gradient)) { mode = g.mode };
+            }
+        }
+
+        private static void TintFlame(GameObject flame)
+        {
+            foreach (ParticleSystem ps in flame.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                ParticleSystem.MainModule main = ps.main;
+                main.startColor = Tint(main.startColor);
+                ParticleSystem.ColorOverLifetimeModule overLifetime = ps.colorOverLifetime;
+                if (overLifetime.enabled)
+                {
+                    overLifetime.color = Tint(overLifetime.color);
+                }
+                ParticleSystem.ColorBySpeedModule bySpeed = ps.colorBySpeed;
+                if (bySpeed.enabled)
+                {
+                    bySpeed.color = Tint(bySpeed.color);
+                }
+                var renderer = ps.GetComponent<ParticleSystemRenderer>();
+                if (renderer != null && renderer.sharedMaterial != null)
+                {
+                    var material = new Material(renderer.sharedMaterial) { name = "HydrogenFlame" };
+                    foreach (string property in new[] { "_Color", "_BaseColor", "_TintColor", "_EmissionColor" })
+                    {
+                        if (material.HasProperty(property))
+                        {
+                            Color c = material.GetColor(property);
+                            Color tinted = Tint(c);
+                            if (property == "_EmissionColor")
+                            {
+                                float scale = Mathf.Max(c.r, c.g, c.b, 1e-4f);
+                                tinted = new Color(FlameColor.r * scale, FlameColor.g * scale, FlameColor.b * scale, c.a);
+                            }
+                            material.SetColor(property, tinted);
+                        }
+                    }
+                    renderer.sharedMaterial = material;
+                }
+            }
+            foreach (Light light in flame.GetComponentsInChildren<Light>(true))
+            {
+                light.color = FlameColor;
+            }
         }
     }
 }

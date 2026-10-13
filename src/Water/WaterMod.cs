@@ -3,7 +3,7 @@ using MelonLoader;
 using UnityEngine;
 using Water;
 
-[assembly: MelonInfo(typeof(WaterMod), "Water", "0.3.0", "mateu")]
+[assembly: MelonInfo(typeof(WaterMod), "Water", "0.3.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Water
@@ -42,7 +42,7 @@ namespace Water
             Splashes = category.CreateEntry("Splashes", true, description: "Splashes, spray and sound when ships hit or move through water");
             SplashVolume = category.CreateEntry("SplashVolume", 0.8f, description: "Splash and wake volume (0-1)");
             LakeBedTexture = category.CreateEntry("LakeBedTexture", "auto",
-                description: "Lake bottom texture: auto (picks a muddy texture from another planet), off (game texture), or part of a texture name from the log");
+                description: "Lake bottom texture: auto (wet sand of the planet), off (game texture), or part of a texture name from the log");
             Swimming = category.CreateEntry("Swimming", true,
                 description: "Players swim in lakes: WASD swims where you look, Space up, Shift faster. All players should use the same value");
             category.SaveToFile(false);

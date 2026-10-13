@@ -80,15 +80,21 @@ namespace Water.Terrain
                 return;
             }
 
-            bool fromOtherPlanet = TryPick(materials, choice, out TerrainMaterialConfig source);
-            if (!fromOtherPlanet)
+            TerrainMaterialConfig sand = OwnSand(materials, choice);
+            bool fromOtherPlanet = false;
+            TerrainMaterialConfig source = sand;
+            if (sand == null)
             {
-                source = materials[0];
+                fromOtherPlanet = TryPick(materials, choice, out source);
+                if (!fromOtherPlanet)
+                {
+                    source = materials[0];
+                }
             }
             var bed = new TerrainMaterialConfig
             {
                 albedoTexture = source.albedoTexture,
-                albedoColor = fromOtherPlanet ? new Color(0.82f, 0.86f, 0.78f) : new Color(0.6f, 0.68f, 0.58f),
+                albedoColor = sand != null ? sand.albedoColor * new Color(0.82f, 0.8f, 0.76f, 1f) : fromOtherPlanet ? new Color(0.82f, 0.86f, 0.78f) : new Color(0.6f, 0.68f, 0.58f),
                 normalMap = source.normalMap,
                 roughnessTexture = source.roughnessTexture,
                 tile = source.tile,
@@ -99,7 +105,13 @@ namespace Water.Terrain
             last.outputId = BedStepId;
             var bedStep = new ColorElevationStep { inputId = BedStepId, outputId = 100, bellowThreshold = SeaLevel - 0.6f, smoothness = 0.8f, materialIndex = index };
             config.colorElevationSteps = (config.colorElevationSteps ?? new ColorElevationStep[0]).Concat(new[] { bedStep }).ToArray();
-            log.Msg($"Lake bed: material {index} = {source.albedoTexture?.name}" + (fromOtherPlanet ? " (from another planet)" : " (tinted copy)"));
+            log.Msg($"Lake bed: material {index} = {source.albedoTexture?.name}" + (sand != null ? " (wet sand)" : fromOtherPlanet ? " (from another planet)" : " (tinted copy)"));
+        }
+
+        private static TerrainMaterialConfig OwnSand(TerrainMaterialConfig[] materials, string choice)
+        {
+            string word = string.IsNullOrEmpty(choice) || choice.Equals("auto", StringComparison.OrdinalIgnoreCase) ? "sand" : choice;
+            return materials.FirstOrDefault(m => m?.albedoTexture != null && m.albedoTexture.name.IndexOf(word, StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
         private static List<TerrainGenerationStep> AllSteps(TerrainConfig c)

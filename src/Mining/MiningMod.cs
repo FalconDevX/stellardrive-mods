@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.9.0", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.9.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -29,6 +29,7 @@ namespace Mining
         internal static MelonPreferences_Entry<float> ReactorSecondsPerUranium;
         internal static MelonPreferences_Entry<float> PumpRate;
         internal static MelonPreferences_Entry<float> PumpHoseLength;
+        internal static MelonPreferences_Entry<float> PontoonLeakPerMinute;
         internal static MelonPreferences_Entry<float> LaserVolume;
         internal static MelonPreferences_Entry<float> PumpVolume;
         internal static MelonPreferences_Entry<float> ReactorVolume;
@@ -71,6 +72,7 @@ namespace Mining
             DetailShadows = category.CreateEntry("DetailShadows", false, description: "Small ship details cast shadows (false = faster)");
             FastShipBounds = category.CreateEntry("FastShipBounds", true, description: "Remember ship hull bounds until the hull changes instead of scanning every hull voxel twice per frame");
             FastCableVisuals = category.CreateEntry("FastCableVisuals", true, description: "Rebuild the pipe flow graph for cable animations every 4th frame and signal cable glow every 3rd frame");
+            PontoonLeakPerMinute = category.CreateEntry("PontoonLeakPerMinute", 4f, description: "Oxygen leaking out of an inflated pontoon per minute (it holds 2); without an oxygen supply it deflates when empty");
             PumpHoseLength = category.CreateEntry("PumpHoseLength", 30f, description: "Pump hose length (m). All players should use the same value");
             if (Mathf.Approximately(PumpHoseLength.Value, 20f)) PumpHoseLength.Value = 30f;
             LaserVolume = category.CreateEntry("LaserVolume", 0.7f, description: "Laser cannon volume (0-1)");

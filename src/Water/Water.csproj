@@ -2,7 +2,7 @@
   <PropertyGroup>
     <AssemblyName>Water</AssemblyName>
     <RootNamespace>Water</RootNamespace>
-    <Version>0.3.0</Version>
+    <Version>0.3.1</Version>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\water.bundle" LogicalName="Water.water.bundle" />

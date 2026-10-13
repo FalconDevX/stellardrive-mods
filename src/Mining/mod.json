@@ -2,6 +2,6 @@
   "id": "stellardrive-mining",
   "name": "Mining",
   "author": "mateu",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Deposits on planets (flat fields of ore rocks) and an excavator unlocked by the Mining research: it stands on a deposit, takes power and mines ore by itself (4 stacks of 100). Key N: direction to the nearest deposit. Both players need the mod."
 }

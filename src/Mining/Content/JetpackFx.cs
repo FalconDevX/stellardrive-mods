@@ -27,6 +27,18 @@ namespace Mining.Content
         internal bool Flying;
         internal Vector3 Up = Vector3.up;
 
+        private sealed class NozzleFlame
+        {
+            public Transform Root;
+            public ParticleSystem Core, Flame, Smoke;
+            public Light Glow;
+            public bool Playing;
+        }
+
+        private readonly NozzleFlame[] _nozzles = new NozzleFlame[2];
+        private static Material _additive;
+        private static bool _additiveTried;
+
         internal static JetpackFx For(Component effects)
         {
             var fx = effects.GetComponent<JetpackFx>();
@@ -56,14 +68,172 @@ namespace Mining.Content
             }
         }
 
+        internal bool UpdateNozzles(Transform left, Transform right, Quaternion bodyRotation)
+        {
+            bool ok = UpdateNozzle(0, left, bodyRotation);
+            ok &= UpdateNozzle(1, right, bodyRotation);
+            return ok;
+        }
+
+        private bool UpdateNozzle(int index, Transform nozzle, Quaternion bodyRotation)
+        {
+            if (nozzle == null)
+            {
+                return true;
+            }
+            NozzleFlame flame = _nozzles[index] ?? (_nozzles[index] = CreateNozzleFlame(index));
+            if (flame.Core == null)
+            {
+                return false;
+            }
+            flame.Root.SetPositionAndRotation(nozzle.position, bodyRotation * Quaternion.LookRotation(Vector3.down));
+            return true;
+        }
+
+        private NozzleFlame CreateNozzleFlame(int index)
+        {
+            var flame = new NozzleFlame { Root = new GameObject($"JetpackFlame{index}").transform };
+            flame.Root.SetParent(transform, false);
+            Material additive = AdditiveMaterial();
+            flame.Core = CreateEffect("Core", (0.05f, 0.09f), (0.1f, 0.16f), (10f, 13f), 140f, 2.5f, 0.015f, 0.35f, flame.Root, 120, additive, ParticleSystemSimulationSpace.Local);
+            flame.Flame = CreateEffect("Flame", (0.12f, 0.22f), (0.14f, 0.26f), (6f, 9f), 110f, 7f, 0.03f, 1.8f, flame.Root, 120, additive, ParticleSystemSimulationSpace.World);
+            flame.Smoke = CreateEffect("Smoke", (0.6f, 1.1f), (0.2f, 0.35f), (2.5f, 4f), 22f, 12f, 0.05f, 3.5f, flame.Root, 60, null, ParticleSystemSimulationSpace.World);
+            if (flame.Core == null)
+            {
+                return flame;
+            }
+            Colorize(flame.Core,
+                new[] { new GradientColorKey(new Color(0.75f, 0.85f, 1f), 0f), new GradientColorKey(new Color(1f, 0.95f, 0.75f), 0.4f), new GradientColorKey(new Color(1f, 0.7f, 0.3f), 1f) },
+                new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0.8f, 0.6f), new GradientAlphaKey(0f, 1f) });
+            Colorize(flame.Flame,
+                new[] { new GradientColorKey(new Color(1f, 0.85f, 0.45f), 0f), new GradientColorKey(new Color(1f, 0.45f, 0.08f), 0.35f), new GradientColorKey(new Color(0.5f, 0.1f, 0.03f), 1f) },
+                new[] { new GradientAlphaKey(0.85f, 0f), new GradientAlphaKey(0.55f, 0.45f), new GradientAlphaKey(0f, 1f) });
+            Colorize(flame.Smoke,
+                new[] { new GradientColorKey(new Color(0.35f, 0.32f, 0.3f), 0f), new GradientColorKey(new Color(0.55f, 0.53f, 0.5f), 1f) },
+                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.28f, 0.2f), new GradientAlphaKey(0f, 1f) });
+            if (flame.Flame != null)
+            {
+                var noise = flame.Flame.noise;
+                noise.enabled = true;
+                noise.strength = 0.6f;
+                noise.frequency = 2.5f;
+                noise.scrollSpeed = 1.5f;
+            }
+            if (flame.Smoke != null)
+            {
+                var noise = flame.Smoke.noise;
+                noise.enabled = true;
+                noise.strength = 0.4f;
+                noise.frequency = 0.8f;
+            }
+            var glow = new GameObject("Glow").AddComponent<Light>();
+            glow.transform.SetParent(flame.Root, false);
+            glow.transform.localPosition = new Vector3(0f, 0f, 0.35f);
+            glow.type = LightType.Point;
+            glow.color = new Color(1f, 0.6f, 0.25f);
+            glow.range = 4f;
+            glow.intensity = 0f;
+            glow.shadows = LightShadows.None;
+            flame.Glow = glow;
+            return flame;
+        }
+
+        private static void Colorize(ParticleSystem effect, GradientColorKey[] colors, GradientAlphaKey[] alphas)
+        {
+            if (effect == null)
+            {
+                return;
+            }
+            var main = effect.main;
+            main.startColor = Color.white;
+            var overLifetime = effect.colorOverLifetime;
+            overLifetime.enabled = true;
+            overLifetime.color = new ParticleSystem.MinMaxGradient(new Gradient { colorKeys = colors, alphaKeys = alphas });
+        }
+
+        private static Material AdditiveMaterial()
+        {
+            if (_additiveTried)
+            {
+                return _additive;
+            }
+            _additiveTried = true;
+            ParticleSystem template = Resources.FindObjectsOfTypeAll<ParticleSystem>().FirstOrDefault(p => p.name == "DustPoof");
+            ParticleSystemRenderer templateRenderer = template != null ? template.GetComponent<ParticleSystemRenderer>() : null;
+            Material source = templateRenderer != null ? templateRenderer.sharedMaterial : null;
+            Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            if (source == null || shader == null)
+            {
+                Melon<MiningMod>.Logger.Msg($"Jetpack flame: no additive particle shader ({(shader == null ? "shader missing" : "template missing")}), using the dust material");
+                return null;
+            }
+            var m = new Material(shader) { name = "JetpackFlame" };
+            Texture texture = source.HasProperty("_BaseMap") ? source.GetTexture("_BaseMap") : source.HasProperty("_MainTex") ? source.GetTexture("_MainTex") : null;
+            if (texture != null)
+            {
+                m.SetTexture("_BaseMap", texture);
+            }
+            m.SetColor("_BaseColor", Color.white);
+            m.SetFloat("_Surface", 1f);
+            m.SetFloat("_Blend", 2f);
+            m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            m.SetFloat("_ZWrite", 0f);
+            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            m.renderQueue = 3100;
+            _additive = m;
+            Melon<MiningMod>.Logger.Msg($"Jetpack flame: additive material, texture {texture?.name}");
+            return m;
+        }
+
+        private void UpdateFlames()
+        {
+            float flicker = 0.8f + 0.2f * Mathf.PerlinNoise(Time.time * 18f, 0.3f);
+            foreach (NozzleFlame flame in _nozzles)
+            {
+                if (flame == null || flame.Core == null)
+                {
+                    continue;
+                }
+                bool play = Flying;
+                if (play != flame.Playing)
+                {
+                    foreach (ParticleSystem ps in new[] { flame.Core, flame.Flame, flame.Smoke })
+                    {
+                        if (ps == null) continue;
+                        if (play) ps.Play(true);
+                        else ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                    }
+                    flame.Playing = play;
+                }
+                if (flame.Glow != null)
+                {
+                    flame.Glow.intensity = _intensity * 2.2f * flicker;
+                    flame.Glow.enabled = flame.Glow.intensity > 0.01f;
+                }
+            }
+        }
+
         private ParticleSystem CreateEffect(string name, (float, float) lifetime, (float, float) size, (float, float) speed, float rate, float angle, float radius, float grow)
+        {
+            return CreateEffect(name, lifetime, size, speed, rate, angle, radius, grow, transform, 80, null, ParticleSystemSimulationSpace.World);
+        }
+
+        private ParticleSystem CreateEffect(string name, (float, float) lifetime, (float, float) size, (float, float) speed, float rate, float angle, float radius, float grow,
+            Transform parent, int maxParticles, Material material, ParticleSystemSimulationSpace space)
         {
             ParticleSystem template = Resources.FindObjectsOfTypeAll<ParticleSystem>().FirstOrDefault(p => p.name == "DustPoof");
             if (template == null)
             {
                 return null;
             }
-            ParticleSystem effect = Instantiate(template.gameObject, transform).GetComponent<ParticleSystem>();
+            ParticleSystem effect = Instantiate(template.gameObject, parent).GetComponent<ParticleSystem>();
+            effect.transform.localPosition = Vector3.zero;
+            effect.transform.localRotation = Quaternion.identity;
+            if (material != null)
+            {
+                effect.GetComponent<ParticleSystemRenderer>().sharedMaterial = material;
+            }
             effect.name = name;
             effect.transform.localScale = Vector3.one;
             effect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
@@ -73,8 +243,8 @@ namespace Mining.Content
             main.startLifetime = new ParticleSystem.MinMaxCurve(lifetime.Item1, lifetime.Item2);
             main.startSize = new ParticleSystem.MinMaxCurve(size.Item1, size.Item2);
             main.startSpeed = new ParticleSystem.MinMaxCurve(speed.Item1, speed.Item2);
-            main.maxParticles = 80;
-            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = maxParticles;
+            main.simulationSpace = space;
             var emission = effect.emission;
             emission.enabled = true;
             emission.rateOverTime = rate;
@@ -115,6 +285,7 @@ namespace Mining.Content
             SetPlaying(_dust, ref _dustPlaying, onGround);
 
             _intensity = Mathf.MoveTowards(_intensity, Flying ? 1f : 0f, Time.deltaTime * (Flying ? 6f : 4f));
+            UpdateFlames();
             UpdateSound();
         }
 

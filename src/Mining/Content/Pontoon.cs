@@ -18,7 +18,7 @@ namespace Mining.Content
         internal const ushort ResearchId = 210;
         internal const float FloatY = 0.62f, FloatRadius = 0.38f, FloatHalfLength = 1.15f;
         internal const byte OxygenSocket = 0;
-        internal const float OxygenToInflate = 2f, InflateSeconds = 6f;
+        internal const float OxygenToInflate = 2f, InflateSeconds = 6f, DeflateSeconds = 8f;
 
         private const ushort ChestPartId = 30;
         private static PartSettings _part;
@@ -135,6 +135,7 @@ namespace Mining.Content
             settings.snappingStyle = chest.snappingStyle;
             settings.description = $"Inflatable float landing gear: attach it under the ship (mount plate against the floor). It comes deflated - " +
                                    $"pipe oxygen into the inlet at the end of its mount plate and it takes {OxygenToInflate:0} oxygen and inflates over {InflateSeconds:0} s. " +
+                                   $"Air keeps leaking out, so keep the oxygen flowing - it tops the pontoon up; close the valve or cut the supply and it goes flat within about half a minute. " +
                                    $"Inflated, in a lake each pontoon holds up about 2000 kg (Water mod setting PontoonLift), so with enough of them the ship floats " +
                                    $"on the surface and can sail. Deflated pontoons do not float. Spread them out (e.g. one at each corner) to keep the ship level. " +
                                    $"On land they work as skids. Needs the Water mod.";
@@ -155,6 +156,8 @@ namespace Mining.Content
         private Transform _float;
         private float _inflation, _target;
         private bool _wasMoving;
+        private readonly Audio.LoopEmitter _inflateSound = new Audio.LoopEmitter("pontoon_inflate", 25f, MiningMod.DoorVolume);
+        private readonly Audio.LoopEmitter _deflateSound = new Audio.LoopEmitter("pontoon_deflate", 25f, MiningMod.DoorVolume);
 
         private void Awake()
         {
@@ -176,17 +179,39 @@ namespace Mining.Content
         private void Update()
         {
             bool moving = !Mathf.Approximately(_inflation, _target);
-            if (moving && !_wasMoving && _target > _inflation)
-            {
-                Audio.OneShot.Play("pontoon_inflate", transform.position, 25f, MiningMod.DoorVolume.Value, 1f);
-            }
-            _wasMoving = moving;
+            bool inflating = moving && _target > _inflation;
+            bool deflating = moving && _target < _inflation;
             if (!moving)
             {
+                if (_wasMoving)
+                {
+                    _inflateSound.Stop();
+                    _deflateSound.Stop();
+                }
+                _wasMoving = false;
                 return;
             }
-            _inflation = Mathf.MoveTowards(_inflation, _target, Time.deltaTime / Pontoon.InflateSeconds);
+            _wasMoving = true;
+            _inflation = Mathf.MoveTowards(_inflation, _target, Time.deltaTime / (inflating ? Pontoon.InflateSeconds : Pontoon.DeflateSeconds));
+            float edge = Mathf.Clamp01(Mathf.Abs(_target - _inflation) * 8f);
+            if (inflating)
+            {
+                _deflateSound.Stop();
+                _inflateSound.Update(transform.position, edge, 0.9f + 0.25f * _inflation);
+            }
+            else if (deflating)
+            {
+                _inflateSound.Stop();
+                _deflateSound.Update(transform.position, edge * (0.4f + 0.6f * _inflation), 0.8f + 0.3f * _inflation);
+            }
             Apply();
+        }
+
+        private void OnDisable()
+        {
+            _inflateSound.Stop();
+            _deflateSound.Stop();
+            _wasMoving = false;
         }
 
         private void Apply()

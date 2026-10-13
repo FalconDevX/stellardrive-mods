@@ -6,6 +6,7 @@ using Managers.Client;
 using Managers.Server;
 using MelonLoader;
 using Ships;
+using Ships.Grid.Model;
 using Ships.Physics.Collision;
 using Ships.Values;
 using UnityEngine;
@@ -26,6 +27,9 @@ namespace ShipSafety.Patches
 
         private static readonly AccessTools.FieldRef<TrackedShip, ShipPrefabs> PrefabsRef = AccessTools.FieldRefAccess<TrackedShip, ShipPrefabs>("Prefabs");
         private static readonly Dictionary<(bool server, uint host, uint guest), Guest> Guests = new Dictionary<(bool, uint, uint), Guest>();
+        private static readonly Dictionary<uint, (float radius, int frame)> Radii = new Dictionary<uint, (float, int)>();
+        private const int RadiusRefreshFrames = 120;
+        private const float NearMargin = 2f;
         private static bool _failed;
 
         internal static void Update(bool server, TrackedShip host, IEnumerable<TrackedShip> ships)
@@ -51,10 +55,27 @@ namespace ShipSafety.Patches
             if (host.IsInteriorColliderObjectCreated && host.InteriorColliders != null)
             {
                 Scene scene = host.InteriorColliders.scene;
-                uint space = host.RelativeSpaceId;
+                uint inside = host.RelativeSpaceId;
+                Quaternion toHost = Quaternion.Inverse(host.Rotation);
                 foreach (TrackedShip guest in ships)
                 {
-                    if (guest == null || guest == host || guest.SpaceId != space || guest.IsShipDestroyed)
+                    if (guest == null || guest == host || guest.IsShipDestroyed)
+                    {
+                        continue;
+                    }
+                    Vector3 position;
+                    Quaternion rotation;
+                    if (guest.SpaceId == inside)
+                    {
+                        position = guest.Position;
+                        rotation = guest.Rotation;
+                    }
+                    else if (guest.SpaceId == host.SpaceId && Near(host, guest, frame))
+                    {
+                        position = toHost * (guest.Position - host.Position);
+                        rotation = toHost * guest.Rotation;
+                    }
+                    else
                     {
                         continue;
                     }
@@ -67,14 +88,14 @@ namespace ShipSafety.Patches
                             continue;
                         }
                         Guests[key] = entry;
-                        Melon<ShipSafetyMod>.Logger.Msg($"Ship {guest.Id} rests on ship {host.Id} - added its colliders for walking ({(server ? "server" : "client")})");
+                        Melon<ShipSafetyMod>.Logger.Msg($"Ship {guest.Id} is next to or on ship {host.Id} - added its colliders for walking ({(server ? "server" : "client")})");
                     }
                     entry.Frame = frame;
                     if (entry.Colliders.scene != scene)
                     {
                         SceneManager.MoveGameObjectToScene(entry.Colliders, scene);
                     }
-                    entry.Colliders.transform.SetPositionAndRotation(guest.Position, guest.Rotation);
+                    entry.Colliders.transform.SetPositionAndRotation(position, rotation);
                     if (entry.Hull != null && entry.Hull.ShouldUpdate)
                     {
                         entry.Hull.UpdateColliders();
@@ -85,6 +106,24 @@ namespace ShipSafety.Patches
             {
                 Remove(key);
             }
+        }
+
+        private static float Radius(TrackedShip ship, int frame)
+        {
+            if (Radii.TryGetValue(ship.Id, out (float radius, int frame) cached) && frame - cached.frame < RadiusRefreshFrames)
+            {
+                return cached.radius;
+            }
+            CoordBounds bounds = ship.GetHullCoordBounds();
+            float radius = Mathf.Max(((Vector3)bounds.UpperCoord).magnitude, ((Vector3)bounds.LowerCoord).magnitude) + 1f;
+            Radii[ship.Id] = (radius, frame);
+            return radius;
+        }
+
+        private static bool Near(TrackedShip host, TrackedShip guest, int frame)
+        {
+            float reach = Radius(host, frame) + Radius(guest, frame) + NearMargin;
+            return (guest.Position - host.Position).sqrMagnitude <= reach * reach;
         }
 
         private static Guest Create(TrackedShip guest)

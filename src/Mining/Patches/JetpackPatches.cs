@@ -359,22 +359,32 @@ namespace Mining.Patches
                     $"player state {____state.ClientState.Type}", !fuel);
             }
             var audio = ServiceLocator.GetService<IAudioPlayer>();
+            JetpackFx fx = null;
             if (unlocked)
             {
-                JetpackFx fx = JetpackFx.For(__instance);
+                fx = JetpackFx.For(__instance);
                 fx.Flying = flying;
                 fx.Up = __0.Rotation * Vector3.up;
             }
+            ParticleSystem left = ___leftHipRcs != null ? ___leftHipRcs : ___leftShoulderRcs;
+            ParticleSystem right = ___rightHipRcs != null ? ___rightHipRcs : ___rightShoulderRcs;
+            bool ownFlames = fx != null && fx.UpdateNozzles(left != null ? left.transform : null, right != null ? right.transform : null, __0.Rotation);
             if (flying)
             {
                 if (Flying.Add(__instance) && !JetpackFx.HasCustomSound)
                 {
                     audio?.PlayAudioEvent3D("Event:/Players/JetpackThruster", __instance.gameObject);
                 }
-                ParticleSystem left = ___leftHipRcs != null ? ___leftHipRcs : ___leftShoulderRcs;
-                ParticleSystem right = ___rightHipRcs != null ? ___rightHipRcs : ___rightShoulderRcs;
-                Flame(left, __0.Rotation);
-                Flame(right, __0.Rotation);
+                if (ownFlames)
+                {
+                    if (left != null) left.Stop();
+                    if (right != null) right.Stop();
+                }
+                else
+                {
+                    Flame(left, __0.Rotation);
+                    Flame(right, __0.Rotation);
+                }
                 return false;
             }
             if (Flying.Remove(__instance))

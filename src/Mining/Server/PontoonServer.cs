@@ -20,7 +20,7 @@ namespace Mining.Server
     internal static class PontoonServer
     {
         private const float MaxIntakePerSecond = 2f;
-        private static readonly Dictionary<(uint ship, ushort part), float> Filled = new Dictionary<(uint, ushort), float>();
+        private static readonly Dictionary<(uint ship, ushort part), float> Air = new Dictionary<(uint, ushort), float>();
         private static readonly Dictionary<(uint ship, ushort part), string> Status = new Dictionary<(uint, ushort), string>();
         private static bool _loggedError;
 
@@ -33,39 +33,37 @@ namespace Mining.Server
                 {
                     var key = (__instance.Id, part.Id);
                     var state = (DoorState)part.State;
+                    float air = Air.TryGetValue(key, out float a) ? a : state.IsOpen ? Pontoon.OxygenToInflate : 0f;
                     if (state.IsOpen)
                     {
-                        Filled.Remove(key);
-                        Report(key, "inflated");
-                        continue;
+                        air -= Mathf.Max(0f, MiningMod.PontoonLeakPerMinute.Value) / 60f * deltaTime;
                     }
                     connections = connections ?? ServiceLocator.GetService<ConnectionsServerTracker>();
-                    if (connections == null ||
-                        !connections.TryGetFluidGroupCacheFromSocket(new EntityPartSocket(__instance.Id, part.Id, Pontoon.OxygenSocket), out FluidGroupServerState group))
+                    string supply = Supply(__instance.Id, part.Id, connections, out FluidGroupServerState group);
+                    if (group != null)
                     {
-                        Report(key, "deflated, no pipe on the oxygen inlet");
+                        float take = Mathf.Min(group.Available, MaxIntakePerSecond * deltaTime, Pontoon.OxygenToInflate - air);
+                        if (take > 0f)
+                        {
+                            group.RemoveFluid(take);
+                            air += take;
+                        }
+                    }
+                    if (state.IsOpen && air <= 0f)
+                    {
+                        Air[key] = 0f;
+                        __instance.UpdatePartState(part.Id, state with { IsOpen = false });
+                        Report(key, "out of air, deflating");
                         continue;
                     }
-                    if (group.FluidItemId != ItemsConstants.OxygenItemId)
+                    Air[key] = air;
+                    if (!state.IsOpen && air >= Pontoon.OxygenToInflate - 0.0001f)
                     {
-                        Report(key, group.FluidItemId == 0 ? "deflated, the pipe is empty" : $"deflated, the pipe carries item {group.FluidItemId}, not oxygen");
-                        continue;
-                    }
-                    float filled = Filled.TryGetValue(key, out float f) ? f : 0f;
-                    float take = Mathf.Min(group.Available, MaxIntakePerSecond * deltaTime, Pontoon.OxygenToInflate - filled);
-                    if (take > 0f)
-                    {
-                        group.RemoveFluid(take);
-                        filled += take;
-                    }
-                    Filled[key] = filled;
-                    Report(key, "taking oxygen");
-                    if (filled >= Pontoon.OxygenToInflate - 0.0001f)
-                    {
-                        Filled.Remove(key);
                         __instance.UpdatePartState(part.Id, state with { IsOpen = true });
                         Report(key, "inflating");
+                        continue;
                     }
+                    Report(key, state.IsOpen ? (group != null ? "inflated, topped up with oxygen" : $"inflated, leaking ({supply})") : group != null ? "taking oxygen" : $"deflated, {supply}");
                 }
             }
             catch (Exception e)
@@ -76,6 +74,22 @@ namespace Mining.Server
                     Melon<MiningMod>.Logger.Error($"Pontoon error: {e}");
                 }
             }
+        }
+
+        private static string Supply(uint ship, ushort part, ConnectionsServerTracker connections, out FluidGroupServerState group)
+        {
+            group = null;
+            if (connections == null ||
+                !connections.TryGetFluidGroupCacheFromSocket(new EntityPartSocket(ship, part, Pontoon.OxygenSocket), out FluidGroupServerState found))
+            {
+                return "no pipe on the oxygen inlet";
+            }
+            if (found.FluidItemId != ItemsConstants.OxygenItemId)
+            {
+                return found.FluidItemId == 0 ? "the pipe is empty" : $"the pipe carries item {found.FluidItemId}, not oxygen";
+            }
+            group = found;
+            return "oxygen supplied";
         }
 
         private static void Report((uint ship, ushort part) key, string status)

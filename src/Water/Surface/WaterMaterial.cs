@@ -9,7 +9,7 @@ namespace Water.Surface
 {
     internal static class WaterMaterial
     {
-        internal static readonly Color Shallow = new Color(0.24f, 0.69f, 0.71f, 0.55f);
+        internal static readonly Color Shallow = new Color(0.24f, 0.69f, 0.71f, 0.92f);
         internal static bool Stylized { get; private set; }
         private static AssetBundle _bundle;
 
@@ -64,6 +64,12 @@ namespace Water.Surface
                 m.SetTexture("_CausticsTex", Tex("water_caustics"));
                 m.SetTexture("_FoamTex", Tex("water_foam"));
                 m.SetTexture("_NormalTex", Tex("water_normal"));
+                m.SetColor("_ShallowColor", new Color(0.42f, 0.74f, 0.68f, 0.93f));
+                m.SetColor("_MidColor", new Color(0.16f, 0.56f, 0.64f, 0.99f));
+                m.SetColor("_DeepColor", new Color(0.07f, 0.33f, 0.5f, 1f));
+                m.SetFloat("_MidDepth", 2.5f);
+                m.SetFloat("_DeepDepth", 9f);
+                m.SetFloat("_CausticsStrength", 0.7f);
                 Melon<WaterMod>.Logger.Msg($"Water: shader {shader.name} from the bundle, textures: {string.Join(", ", textures.Select(t => t.name))}");
                 return m;
             }
