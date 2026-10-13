@@ -257,6 +257,20 @@ namespace Mining.Content
 
     internal class LaserCannonVisuals : DefaultShipPartVisuals
     {
+        private static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
+        private static readonly Color Unset = new Color(-1f, -1f, -1f, -1f);
+        private Color _glowColor = Unset, _tubeColor = Unset, _lampColor = Unset;
+
+        private static void SetEmission(Material material, ref Color last, Color value)
+        {
+            if (last == value)
+            {
+                return;
+            }
+            last = value;
+            material.SetColor(EmissionId, value);
+        }
+
         private const float ShotInterval = 0.16f, Recoil = 0.09f, FlapAngle = 62f, SteamInterval = 0.05f;
 
         internal static readonly Color IdleGlow = new Color(0.25f, 0.02f, 0.02f);
@@ -361,19 +375,19 @@ namespace Mining.Content
 
             if (_glow != null)
             {
-                _glow.SetColor("_EmissionColor", Color.Lerp(IdleGlow, HotGlow, _flash));
+                SetEmission(_glow, ref _glowColor, Color.Lerp(IdleGlow, HotGlow, _flash));
             }
             if (_tube != null)
             {
                 float t = Mathf.InverseLerp(0.25f, 1f, _heat);
-                _tube.SetColor("_EmissionColor", BarrelHot * (t * t));
+                SetEmission(_tube, ref _tubeColor, BarrelHot * (t * t));
             }
             if (_lamp != null)
             {
                 Color lamp = _overheated
                     ? (Mathf.Repeat(Time.time * 3f, 1f) < 0.5f ? LampAlarm : LampAlarm * 0.08f)
                     : Color.Lerp(LampIdle, LampHot, Mathf.InverseLerp(0.4f, 0.8f, _heat));
-                _lamp.SetColor("_EmissionColor", lamp);
+                SetEmission(_lamp, ref _lampColor, lamp);
             }
         }
     }

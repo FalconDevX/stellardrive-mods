@@ -31,7 +31,7 @@ namespace Mining.Server
         [HarmonyPatch(nameof(ElectrolyzersUpdater.WritePowerRequest))]
         private static bool WritePowerRequest(IShipStateWrite ____ship, float deltaTime)
         {
-            Run(() =>
+            try
             {
                 var power = ServiceLocator.GetService<PowerServerTracker>();
                 var connections = ServiceLocator.GetService<ConnectionsServerTracker>();
@@ -43,7 +43,11 @@ namespace Mining.Server
                         group.TotalPowerNeeded += deltaTime * PowerWatts;
                     }
                 }
-            });
+            }
+            catch (Exception e)
+            {
+                LogError(e);
+            }
             return false;
         }
 
@@ -51,7 +55,7 @@ namespace Mining.Server
         [HarmonyPatch(nameof(ElectrolyzersUpdater.Update))]
         private static bool Update(IShipStateWrite ____ship, float deltaTime)
         {
-            Run(() =>
+            try
             {
                 var power = ServiceLocator.GetService<PowerServerTracker>();
                 var connections = ServiceLocator.GetService<ConnectionsServerTracker>();
@@ -70,7 +74,11 @@ namespace Mining.Server
                     }
                     ____ship.UpdatePartState(part.Id, state with { NormalizedProductionRate = rate });
                 }
-            });
+            }
+            catch (Exception e)
+            {
+                LogError(e);
+            }
             return false;
         }
 
@@ -133,19 +141,12 @@ namespace Mining.Server
             }
         }
 
-        private static void Run(Action action)
+        private static void LogError(Exception e)
         {
-            try
+            if (!_loggedError)
             {
-                action();
-            }
-            catch (Exception e)
-            {
-                if (!_loggedError)
-                {
-                    _loggedError = true;
-                    Melon<MiningMod>.Logger.Error($"Electrolyzer error: {e}");
-                }
+                _loggedError = true;
+                Melon<MiningMod>.Logger.Error($"Electrolyzer error: {e}");
             }
         }
     }

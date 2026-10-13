@@ -14,7 +14,7 @@ namespace Mining.Content
         private const float MaxRpm = 240f;
         private const float RestLift = 1.23f;
         private const float Extend = 0.9f;
-        private const float MaxHearDistance = 35f;
+        private const float MaxHearDistance = 25f;
 
         private Transform _drill;
         private Vector3 _drillRest;
@@ -154,7 +154,7 @@ namespace Mining.Content
             Camera cam = Camera.main;
             float distance = cam != null ? Vector3.Distance(cam.transform.position, transform.position) : float.MaxValue;
             float attenuation = Mathf.Clamp01(1f - distance / MaxHearDistance);
-            float volume = _speed * attenuation * attenuation * MiningMod.DrillVolume.Value * 0.35f;
+            float volume = _speed * attenuation * attenuation * MiningMod.DrillVolume.Value * 0.15f;
 
             if (volume <= 0.001f)
             {

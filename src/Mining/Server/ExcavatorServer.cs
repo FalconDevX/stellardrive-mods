@@ -56,24 +56,42 @@ namespace Mining.Server
         [HarmonyPatch(nameof(TrackedShipServer.PrepareConsumers))]
         private static void PrepareConsumers(TrackedShipServer __instance, float deltaTime)
         {
-            Run(() =>
+            List<ushort> ids = ShipPartIndex.Get(__instance, Excavator.PartId);
+            if (ids.Count == 0)
+            {
+                return;
+            }
+            try
             {
                 var power = ServiceLocator.GetService<PowerServerTracker>();
-                foreach (StatefulPart part in Excavators(__instance))
+                foreach (ushort id in ids)
                 {
+                    if (!TryGetExcavator(__instance, id, out StatefulPart part))
+                    {
+                        continue;
+                    }
                     if (CanWork(__instance, part, out _) && power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, part.Id, PowerSocketId), out PowerGroupServerState group))
                     {
                         group.TotalPowerNeeded += deltaTime * MiningMod.PowerWatts.Value;
                     }
                 }
-            });
+            }
+            catch (Exception e)
+            {
+                LogError(e);
+            }
         }
 
         [HarmonyPostfix]
         [HarmonyPatch(nameof(TrackedShipServer.UpdateParts))]
         private static void UpdateParts(TrackedShipServer __instance, float deltaTime)
         {
-            Run(() =>
+            List<ushort> ids = ShipPartIndex.Get(__instance, Excavator.PartId);
+            if (ids.Count == 0)
+            {
+                return;
+            }
+            try
             {
                 if (Time.time >= _nextSiteRefresh)
                 {
@@ -81,8 +99,12 @@ namespace Mining.Server
                     SiteCache.Clear();
                 }
                 var power = ServiceLocator.GetService<PowerServerTracker>();
-                foreach (StatefulPart part in Excavators(__instance))
+                foreach (ushort id in ids)
                 {
+                    if (!TryGetExcavator(__instance, id, out StatefulPart part))
+                    {
+                        continue;
+                    }
                     var key = (__instance.Id, part.Id);
                     MiningSite site = FindSite(__instance, part);
                     PowerGroupServerState group = null;
@@ -92,9 +114,9 @@ namespace Mining.Server
                         !HasSpace((StorageState)part.State, site.Kind.ItemId) ? "full - take the ore out" :
                         !power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, part.Id, PowerSocketId), out group) ? "no power cable" :
                         group.NormalizedConsumerRate <= 0f ? "not enough power (generator empty or overloaded)" :
-                        $"working - {site.Kind.Name}";
+                        WorkingText(site.Kind.Name);
                     SetStatus(key, status);
-                    bool working = status.StartsWith("working");
+                    bool working = site != null && ReferenceEquals(status, WorkingText(site.Kind.Name));
                     if (Excavator.HasWorkingMarker((StorageState)part.State) != working)
                     {
                         __instance.UpdatePartState(part.Id, (StorageState)((StorageState)part.State).WithUpdatedSlot(Excavator.WorkingMarkerSlot, Excavator.WorkingMarker(working)));
@@ -115,19 +137,26 @@ namespace Mining.Server
                     }
                     Progress[key] = progress;
                 }
-            });
-        }
-
-        private static IEnumerable<StatefulPart> Excavators(TrackedShipServer ship)
-        {
-            foreach (StatefulPart part in ship.GetAllStatefulParts<StorageState>())
+            }
+            catch (Exception e)
             {
-                if (Excavator.IsExcavator(part.Settings))
-                {
-                    yield return part;
-                }
+                LogError(e);
             }
         }
+
+        private static readonly Dictionary<string, string> Working = new Dictionary<string, string>();
+
+        private static string WorkingText(string kind)
+        {
+            if (!Working.TryGetValue(kind, out string text))
+            {
+                Working[kind] = text = "working - " + kind;
+            }
+            return text;
+        }
+
+        private static bool TryGetExcavator(TrackedShipServer ship, ushort id, out StatefulPart part) =>
+            ship.TryGetStatefulPart(id, out part) && part.State is StorageState;
 
         private static bool CanWork(TrackedShipServer ship, StatefulPart part, out MiningSite site)
         {
@@ -206,19 +235,12 @@ namespace Mining.Server
             return true;
         }
 
-        private static void Run(Action action)
+        private static void LogError(Exception e)
         {
-            try
+            if (!_loggedError)
             {
-                action();
-            }
-            catch (Exception e)
-            {
-                if (!_loggedError)
-                {
-                    _loggedError = true;
-                    Melon<MiningMod>.Logger.Error($"Excavator error (server): {e}");
-                }
+                _loggedError = true;
+                Melon<MiningMod>.Logger.Error($"Excavator error (server): {e}");
             }
         }
     }

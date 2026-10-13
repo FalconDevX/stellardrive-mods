@@ -34,7 +34,7 @@ namespace Mining.Server
         [HarmonyPatch(nameof(ShipThrustersUpdater.WriteFluidTargetConsumption))]
         private static void WriteTargets(IShipStateWrite ____ship, ConnectionsServerTracker ____connections, float deltaTime)
         {
-            Run(() =>
+            try
             {
                 var power = ServiceLocator.GetService<PowerServerTracker>();
                 foreach (StatefulPart part in ____ship.GetAllStatefulParts<ThrusterState>())
@@ -50,7 +50,11 @@ namespace Mining.Server
                         group.TotalPowerNeeded += deltaTime * HydrogenThruster.PowerWatts;
                     }
                 }
-            });
+            }
+            catch (Exception e)
+            {
+                LogError(e);
+            }
         }
 
         private delegate bool TryGroups(ShipThrustersUpdater updater, ushort partId, out FluidGroupServerState group0, out FluidGroupServerState group1);
@@ -63,7 +67,7 @@ namespace Mining.Server
         private static bool Update(ShipThrustersUpdater __instance, IShipStateWrite ____ship, ConnectionsServerTracker ____connections, float deltaTime)
         {
             bool done = false;
-            Run(() =>
+            try
             {
                 var power = ServiceLocator.GetService<PowerServerTracker>();
                 foreach (StatefulPart part in ____ship.GetAllStatefulParts<ThrusterState>())
@@ -115,7 +119,11 @@ namespace Mining.Server
                     ____ship.UpdatePartState(part.Id, (ThrusterState)part.State with { ThrusterStrength = rate });
                 }
                 done = true;
-            });
+            }
+            catch (Exception e)
+            {
+                LogError(e);
+            }
             return !done;
         }
 
@@ -136,19 +144,12 @@ namespace Mining.Server
             return hydrogen != null;
         }
 
-        private static void Run(Action action)
+        private static void LogError(Exception e)
         {
-            try
+            if (!_loggedError)
             {
-                action();
-            }
-            catch (Exception e)
-            {
-                if (!_loggedError)
-                {
-                    _loggedError = true;
-                    Melon<MiningMod>.Logger.Error($"Hydrogen thruster error: {e}");
-                }
+                _loggedError = true;
+                Melon<MiningMod>.Logger.Error($"Hydrogen thruster error: {e}");
             }
         }
     }

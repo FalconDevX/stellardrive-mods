@@ -41,31 +41,53 @@ namespace Mining.Server
         [HarmonyPatch(nameof(TrackedShipServer.PrepareConsumers))]
         private static void PrepareConsumers(TrackedShipServer __instance, float deltaTime)
         {
-            Run(() =>
+            List<ushort> ids = ShipPartIndex.Get(__instance, WaterPump.PartId);
+            if (ids.Count == 0)
+            {
+                return;
+            }
+            try
             {
                 var power = ServiceLocator.GetService<PowerServerTracker>();
                 var connections = ServiceLocator.GetService<ConnectionsServerTracker>();
-                foreach (StatefulPart part in Pumps(__instance))
+                foreach (ushort id in ids)
                 {
+                    if (!__instance.TryGetStatefulPart(id, out StatefulPart part) || !(part.State is DoorState))
+                    {
+                        continue;
+                    }
                     if (Plan(__instance, connections, part, 0f, out _, out _, out _) &&
                         power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, part.Id, WaterPump.PowerSocket), out PowerGroupServerState group))
                     {
                         group.TotalPowerNeeded += deltaTime * PowerWatts;
                     }
                 }
-            });
+            }
+            catch (Exception e)
+            {
+                LogError(e);
+            }
         }
 
         [HarmonyPostfix]
         [HarmonyPatch(nameof(TrackedShipServer.UpdateParts))]
         private static void UpdateParts(TrackedShipServer __instance, float deltaTime)
         {
-            Run(() =>
+            List<ushort> ids = ShipPartIndex.Get(__instance, WaterPump.PartId);
+            if (ids.Count == 0)
+            {
+                return;
+            }
+            try
             {
                 var power = ServiceLocator.GetService<PowerServerTracker>();
                 var connections = ServiceLocator.GetService<ConnectionsServerTracker>();
-                foreach (StatefulPart part in Pumps(__instance))
+                foreach (ushort id in ids)
                 {
+                    if (!__instance.TryGetStatefulPart(id, out StatefulPart part) || !(part.State is DoorState))
+                    {
+                        continue;
+                    }
                     var key = (__instance.Id, part.Id);
                     if (!Runtime.TryGetValue(key, out PumpRuntime rt))
                     {
@@ -132,7 +154,11 @@ namespace Mining.Server
                                                     (reach ? $" (hose needs {needed:0.0} m of {limit:0.0} m, water {water})" : " (no planet under the pump)"));
                     }
                 }
-            });
+            }
+            catch (Exception e)
+            {
+                LogError(e);
+            }
         }
 
         private static bool Plan(TrackedShipServer ship, ConnectionsServerTracker connections, StatefulPart part, float deployed,
@@ -219,30 +245,12 @@ namespace Mining.Server
             return true;
         }
 
-        private static IEnumerable<StatefulPart> Pumps(TrackedShipServer ship)
+        private static void LogError(Exception e)
         {
-            foreach (StatefulPart part in ship.GetAllStatefulParts<DoorState>())
+            if (!_loggedError)
             {
-                if (WaterPump.Is(part.Settings))
-                {
-                    yield return part;
-                }
-            }
-        }
-
-        private static void Run(Action action)
-        {
-            try
-            {
-                action();
-            }
-            catch (Exception e)
-            {
-                if (!_loggedError)
-                {
-                    _loggedError = true;
-                    Melon<MiningMod>.Logger.Error($"Pump error (server): {e}");
-                }
+                _loggedError = true;
+                Melon<MiningMod>.Logger.Error($"Pump error (server): {e}");
             }
         }
     }

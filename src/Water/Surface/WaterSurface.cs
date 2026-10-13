@@ -38,6 +38,9 @@ namespace Water.Surface
             if (_object != null) Object.Destroy(_object);
             _object = null;
             _hasAnchor = false;
+            _building = false;
+            _hasTriangles = false;
+            _tracked = null;
         }
 
         internal static void Update()
@@ -46,7 +49,6 @@ namespace Water.Surface
             if (!(ClientOrigin.LocalVisualSpace is PlanetSurfaceSpace space) || space.PlanetId != PlanetId || cam == null)
             {
                 if (_object != null) _object.SetActive(false);
-                if (cam != null) Effects.UnderwaterView.Update(cam, -1f);
                 return;
             }
             var transpose = ServiceLocator.GetService<IWorldTransposeClient>();
@@ -68,19 +70,25 @@ namespace Water.Surface
             _object.SetActive(altitude < MaxAltitude);
             if (altitude >= MaxAltitude)
             {
-                Effects.UnderwaterView.Update(cam, -1f);
                 return;
             }
             Vector3 under = camPlanet.normalized * _radius;
-            if (!_hasAnchor || (under - _anchor).sqrMagnitude > Rebuild * Rebuild)
+            float extent = Mathf.Max(500f, WaterMod.SurfaceRadius.Value);
+            if (!_hasAnchor)
             {
-                _anchor = under;
-                _hasAnchor = true;
-                BuildMesh(_anchor, Mathf.Max(500f, WaterMod.SurfaceRadius.Value));
+                if (!_building) StartBuild(under, extent);
+                ContinueBuild(Rings);
+            }
+            else if (!_building && (under - _anchor).sqrMagnitude > Rebuild * Rebuild)
+            {
+                StartBuild(under, extent);
+            }
+            if (_building)
+            {
+                ContinueBuild(RingsPerFrame);
             }
             UpdateExposure(transpose.Rotation(planetSpace, ClientOrigin.LocalVisualSpace, Quaternion.identity) * camPlanet.normalized);
             UpdateUnderwater(altitude < UnderwaterAltitude);
-            Effects.UnderwaterView.Update(cam, UnderwaterAltitude - altitude);
             _object.transform.position = (Vector3)transpose.Position(planetSpace, ClientOrigin.LocalVisualSpace, (Vector3Double)_anchor);
             _object.transform.rotation = transpose.Rotation(planetSpace, ClientOrigin.LocalVisualSpace, Quaternion.identity);
         }
@@ -94,6 +102,9 @@ namespace Water.Surface
             _object = new GameObject("WaterSurface");
             Object.DontDestroyOnLoad(_object);
             _mesh = new Mesh { name = "WaterSurface", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+            _hasTriangles = false;
+            _hasAnchor = false;
+            _building = false;
             _object.AddComponent<MeshFilter>().sharedMesh = _mesh;
             var renderer = _object.AddComponent<MeshRenderer>();
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -109,7 +120,7 @@ namespace Water.Surface
 
         private static void UpdateExposure(Vector3 upVisual)
         {
-            if (Material == null || !Material.HasProperty("_Exposure"))
+            if (Material == null || !Material.HasProperty(ExposureId))
             {
                 return;
             }
@@ -126,7 +137,7 @@ namespace Water.Surface
                 target = Mathf.Lerp(0.1f, 1f, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-0.12f, 0.3f, height)));
             }
             _exposure = _exposure < 0f ? target : Mathf.MoveTowards(_exposure, target, Time.deltaTime * 0.5f);
-            Material.SetFloat("_Exposure", _exposure);
+            Material.SetFloat(ExposureId, _exposure);
         }
 
         private const float UnderwaterAltitude = -0.2f;
@@ -135,20 +146,20 @@ namespace Water.Surface
 
         private static void UpdateUnderwater(bool underwater)
         {
-            if (Material == null || !Material.HasProperty("_FoamDistance"))
+            if (Material == null || !Material.HasProperty(FoamDistanceId))
             {
                 return;
             }
             if (_surfaceFoam < 0f)
             {
-                _surfaceFoam = Material.GetFloat("_FoamDistance");
+                _surfaceFoam = Material.GetFloat(FoamDistanceId);
             }
             if (underwater == _underwater)
             {
                 return;
             }
             _underwater = underwater;
-            Material.SetFloat("_FoamDistance", underwater ? 0.0001f : _surfaceFoam);
+            Material.SetFloat(FoamDistanceId, underwater ? 0.0001f : _surfaceFoam);
         }
 
         private static Camera _depthCam;
@@ -169,44 +180,106 @@ namespace Water.Surface
             Melon<WaterMod>.Logger.Msg($"Water: depth buffer in URP settings: {asset?.supportsCameraDepthTexture}, camera: {data?.requiresDepthTexture}");
         }
 
-        private static void BuildMesh(Vector3 anchor, float extent)
+        private const int RingsPerFrame = 10;
+        private static readonly int ExposureId = Shader.PropertyToID("_Exposure");
+        private static readonly int FoamDistanceId = Shader.PropertyToID("_FoamDistance");
+        private static Vector3[] _verts, _normals;
+        private static Vector2[] _uvs, _depth;
+        private static bool _hasTriangles;
+        private static bool _building;
+        private static int _buildRing;
+        private static Vector3 _buildAnchor, _buildUp, _buildT1, _buildT2, _axisU, _axisV;
+        private static Vector2 _snap;
+        private static float _buildExtent, _baseRadius;
+        private static TrackedPlanet _tracked;
+        private static System.Diagnostics.Stopwatch _buildWatch;
+
+        private static void StartBuild(Vector3 anchor, float extent)
         {
+            int count = 1 + Rings * Segments;
+            if (_verts == null || _verts.Length != count)
+            {
+                _verts = new Vector3[count];
+                _normals = new Vector3[count];
+                _uvs = new Vector2[count];
+                _depth = new Vector2[count];
+            }
             Vector3 up = anchor.normalized;
-            Vector3 t1 = Vector3.Cross(up, Mathf.Abs(up.y) < 0.9f ? Vector3.up : Vector3.right).normalized;
-            Vector3 t2 = Vector3.Cross(up, t1);
-            var verts = new Vector3[1 + Rings * Segments];
-            var normals = new Vector3[verts.Length];
-            var uvs = new Vector2[verts.Length];
-            var depth = new Vector2[verts.Length];
+            _buildAnchor = anchor;
+            _buildExtent = extent;
+            _buildUp = up;
+            _buildT1 = Vector3.Cross(up, Mathf.Abs(up.y) < 0.9f ? Vector3.up : Vector3.right).normalized;
+            _buildT2 = Vector3.Cross(up, _buildT1);
             Vector3 ax = new Vector3(Mathf.Abs(up.x), Mathf.Abs(up.y), Mathf.Abs(up.z));
-            Vector3 axisU = ax.y >= ax.x && ax.y >= ax.z ? Vector3.right : Vector3.up;
-            Vector3 axisV = ax.z >= ax.x && ax.z >= ax.y ? Vector3.right : Vector3.forward;
-            if (ax.x >= ax.y && ax.x >= ax.z) { axisU = Vector3.up; axisV = Vector3.forward; }
-            Vector2 snap = new Vector2(Mathf.Round(Vector3.Dot(anchor, axisU) / 500f) * 500f, Mathf.Round(Vector3.Dot(anchor, axisV) / 500f) * 500f);
-            Planets.Network.TrackedPlanet tracked = FindTracked();
-            float baseRadius = _radius - LakeTerrainPatch.SeaLevel;
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-            verts[0] = Vector3.zero;
-            normals[0] = up;
-            for (int r = 1; r <= Rings; r++)
+            _axisU = ax.y >= ax.x && ax.y >= ax.z ? Vector3.right : Vector3.up;
+            _axisV = ax.z >= ax.x && ax.z >= ax.y ? Vector3.right : Vector3.forward;
+            if (ax.x >= ax.y && ax.x >= ax.z) { _axisU = Vector3.up; _axisV = Vector3.forward; }
+            _snap = new Vector2(Mathf.Round(Vector3.Dot(anchor, _axisU) / 500f) * 500f, Mathf.Round(Vector3.Dot(anchor, _axisV) / 500f) * 500f);
+            if (_tracked == null || _tracked.Planet == null || _tracked.PointsProvider == null)
+            {
+                _tracked = FindTracked();
+            }
+            _baseRadius = _radius - LakeTerrainPatch.SeaLevel;
+            _buildWatch = System.Diagnostics.Stopwatch.StartNew();
+            _verts[0] = Vector3.zero;
+            _normals[0] = up;
+            _uvs[0] = new Vector2(Vector3.Dot(anchor, _axisU) - _snap.x, Vector3.Dot(anchor, _axisV) - _snap.y);
+            float b0 = _tracked != null ? _tracked.PointsProvider.GetElevationAtPoint(up) - _baseRadius : 0f;
+            _depth[0] = new Vector2(Mathf.Max(0f, LakeTerrainPatch.SeaLevel - b0), 0f);
+            _buildRing = 1;
+            _building = true;
+        }
+
+        private static void ContinueBuild(int rings)
+        {
+            int last = Mathf.Min(Rings, _buildRing + rings - 1);
+            for (int r = _buildRing; r <= last; r++)
             {
                 float k = (float)r / Rings;
-                float d = extent * k * k;
+                float d = _buildExtent * k * k;
                 float theta = d / _radius;
+                float cosTheta = Mathf.Cos(theta), sinTheta = Mathf.Sin(theta);
                 for (int s = 0; s < Segments; s++)
                 {
                     float phi = s * Mathf.PI * 2f / Segments;
-                    Vector3 tangent = t1 * Mathf.Cos(phi) + t2 * Mathf.Sin(phi);
-                    Vector3 dir = up * Mathf.Cos(theta) + tangent * Mathf.Sin(theta);
+                    Vector3 tangent = _buildT1 * Mathf.Cos(phi) + _buildT2 * Mathf.Sin(phi);
+                    Vector3 dir = _buildUp * cosTheta + tangent * sinTheta;
                     int i = 1 + (r - 1) * Segments + s;
-                    verts[i] = dir * _radius - anchor;
-                    normals[i] = dir;
                     Vector3 world = dir * _radius;
-                    uvs[i] = new Vector2(Vector3.Dot(world, axisU) - snap.x, Vector3.Dot(world, axisV) - snap.y);
-                    float bottom = tracked != null ? tracked.PointsProvider.GetElevationAtPoint(dir) - baseRadius : LakeTerrainPatch.SeaLevel - 5f;
-                    depth[i] = new Vector2(Mathf.Max(0f, LakeTerrainPatch.SeaLevel - bottom), 0f);
+                    _verts[i] = world - _buildAnchor;
+                    _normals[i] = dir;
+                    _uvs[i] = new Vector2(Vector3.Dot(world, _axisU) - _snap.x, Vector3.Dot(world, _axisV) - _snap.y);
+                    float bottom = _tracked != null ? _tracked.PointsProvider.GetElevationAtPoint(dir) - _baseRadius : LakeTerrainPatch.SeaLevel - 5f;
+                    _depth[i] = new Vector2(Mathf.Max(0f, LakeTerrainPatch.SeaLevel - bottom), 0f);
                 }
             }
+            _buildRing = last + 1;
+            if (_buildRing > Rings)
+            {
+                ApplyBuild();
+            }
+        }
+
+        private static void ApplyBuild()
+        {
+            _building = false;
+            _mesh.vertices = _verts;
+            _mesh.normals = _normals;
+            _mesh.uv = _uvs;
+            _mesh.uv2 = _depth;
+            if (!_hasTriangles)
+            {
+                _mesh.triangles = BuildTriangles();
+                _hasTriangles = true;
+            }
+            _mesh.bounds = new Bounds(Vector3.zero, Vector3.one * _buildExtent * 2.2f);
+            _anchor = _buildAnchor;
+            _hasAnchor = true;
+            if (_logBuilds-- > 0) Melon<WaterMod>.Logger.Msg($"Water: mesh {_verts.Length} verts, built in {_buildWatch.Elapsed.TotalMilliseconds:0.0} ms");
+        }
+
+        private static int[] BuildTriangles()
+        {
             var tris = new int[(Segments + (Rings - 1) * Segments * 2) * 3];
             int t = 0;
             for (int s = 0; s < Segments; s++)
@@ -224,22 +297,7 @@ namespace Water.Surface
                     tris[t++] = a; tris[t++] = e; tris[t++] = c;
                 }
             }
-            _mesh.Clear();
-            _mesh.vertices = verts;
-            _mesh.normals = normals;
-            _mesh.uv = uvs;
-            _mesh.uv2 = depth;
-            {
-                Vector3 w0 = anchor;
-                uvs[0] = new Vector2(Vector3.Dot(w0, axisU) - snap.x, Vector3.Dot(w0, axisV) - snap.y);
-                float b0 = tracked != null ? tracked.PointsProvider.GetElevationAtPoint(up) - baseRadius : 0f;
-                depth[0] = new Vector2(Mathf.Max(0f, LakeTerrainPatch.SeaLevel - b0), 0f);
-                _mesh.uv = uvs;
-                _mesh.uv2 = depth;
-            }
-            if (_logBuilds-- > 0) Melon<WaterMod>.Logger.Msg($"Water: mesh {verts.Length} verts, bottom read {sw.Elapsed.TotalMilliseconds:0.0} ms");
-            _mesh.triangles = tris;
-            _mesh.bounds = new Bounds(Vector3.zero, Vector3.one * extent * 2.2f);
+            return tris;
         }
 
         internal static Planet FindPlanet()

@@ -27,7 +27,7 @@ namespace Mining.Server
         [HarmonyPatch(nameof(PowerGeneratorUpdaters.WriteProductionCapacity))]
         private static bool WriteCapacity(IShipStateWrite ____ship, PowerServerTracker ____power, float deltaTime)
         {
-            Run(() =>
+            try
             {
                 foreach (StatefulPart part in ____ship.GetAllStatefulParts<WoodPowerGeneratorState>())
                 {
@@ -36,7 +36,11 @@ namespace Mining.Server
                         group.TotalPowerProductionCapacity += Capacity(____ship, part, deltaTime);
                     }
                 }
-            });
+            }
+            catch (Exception e)
+            {
+                LogError(e);
+            }
             return false;
         }
 
@@ -44,7 +48,7 @@ namespace Mining.Server
         [HarmonyPatch(nameof(PowerGeneratorUpdaters.Update))]
         private static bool Update(IShipStateWrite ____ship, PowerServerTracker ____power, float deltaTime)
         {
-            Run(() =>
+            try
             {
                 foreach (StatefulPart part in ____ship.GetAllStatefulParts<WoodPowerGeneratorState>())
                 {
@@ -67,7 +71,11 @@ namespace Mining.Server
                     }
                     ____ship.UpdatePartState(part.Id, state with { ItemSlot = slot, NormalizedProductionLevel = level, PartialItemConsumptionLevel = left - whole });
                 }
-            });
+            }
+            catch (Exception e)
+            {
+                LogError(e);
+            }
             return false;
         }
 
@@ -117,19 +125,12 @@ namespace Mining.Server
                    water.FluidItemId == HydrogenThruster.WaterItemId && water.Available > 0.0001f;
         }
 
-        private static void Run(Action action)
+        private static void LogError(Exception e)
         {
-            try
+            if (!_loggedError)
             {
-                action();
-            }
-            catch (Exception e)
-            {
-                if (!_loggedError)
-                {
-                    _loggedError = true;
-                    Melon<MiningMod>.Logger.Error($"Generator/reactor error: {e}");
-                }
+                _loggedError = true;
+                Melon<MiningMod>.Logger.Error($"Generator/reactor error: {e}");
             }
         }
     }

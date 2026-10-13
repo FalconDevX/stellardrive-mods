@@ -8,6 +8,20 @@ namespace Mining.Content
 {
     internal class ReactorVisuals : DefaultShipPartVisuals
     {
+        private static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
+        private static readonly Color Unset = new Color(-1f, -1f, -1f, -1f);
+        private Color _bodyColor = Unset, _coreColor = Unset;
+
+        private static void SetEmission(Material material, ref Color last, Color value)
+        {
+            if (material == null || last == value)
+            {
+                return;
+            }
+            last = value;
+            material.SetColor(EmissionId, value);
+        }
+
         private static readonly Color Cyan = new Color(0.3f, 0.9f, 1f);
         private Material _body, _core;
         private Transform[] _cores;
@@ -53,14 +67,17 @@ namespace Mining.Content
             _level = Mathf.MoveTowards(_level, _target, Time.deltaTime / (_target > _level ? 3f : 2f));
             float t = Time.time + _phase;
             float pulse = 1f + 0.25f * Mathf.Sin(t * 2.2f) + 0.08f * Mathf.Sin(t * 13f);
-            if (_body != null) _body.SetColor("_EmissionColor", Cyan * (_level * 3.5f * pulse));
-            if (_core != null) _core.SetColor("_EmissionColor", Cyan * (0.05f + _level * 1.3f * pulse));
+            SetEmission(_body, ref _bodyColor, Cyan * (_level * 3.5f * pulse));
+            SetEmission(_core, ref _coreColor, Cyan * (0.05f + _level * 1.3f * pulse));
             float spin = _level * Time.deltaTime;
-            foreach (Transform c in _cores)
+            if (spin > 0f)
             {
-                if (c != null) c.Rotate(Vector3.up, 420f * spin, Space.Self);
+                foreach (Transform c in _cores)
+                {
+                    if (c != null) c.Rotate(Vector3.up, 420f * spin, Space.Self);
+                }
+                if (_rotor != null) _rotor.Rotate(Vector3.up, -160f * spin, Space.Self);
             }
-            if (_rotor != null) _rotor.Rotate(Vector3.up, -160f * spin, Space.Self);
             _sound.Update(transform.position + transform.up * 0.8f, Mathf.SmoothStep(0f, 1f, _level), 0.75f + 0.3f * _level);
         }
 

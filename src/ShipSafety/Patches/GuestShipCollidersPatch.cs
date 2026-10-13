@@ -27,9 +27,13 @@ namespace ShipSafety.Patches
 
         private static readonly AccessTools.FieldRef<TrackedShip, ShipPrefabs> PrefabsRef = AccessTools.FieldRefAccess<TrackedShip, ShipPrefabs>("Prefabs");
         private static readonly Dictionary<(bool server, uint host, uint guest), Guest> Guests = new Dictionary<(bool, uint, uint), Guest>();
+        private static readonly List<(bool server, uint host, uint guest)> Gone = new List<(bool, uint, uint)>();
         private static readonly Dictionary<uint, (float radius, int frame)> Radii = new Dictionary<uint, (float, int)>();
         private const int RadiusRefreshFrames = 120;
         private const float NearMargin = 2f;
+        private const int MaxGuestParts = 1500;
+        private const float MaxGuestScale = 1.25f;
+        private static readonly HashSet<(bool, uint, uint)> Logged = new HashSet<(bool, uint, uint)>();
         private static bool _failed;
 
         internal static void Update(bool server, TrackedShip host, IEnumerable<TrackedShip> ships)
@@ -59,7 +63,7 @@ namespace ShipSafety.Patches
                 Quaternion toHost = Quaternion.Inverse(host.Rotation);
                 foreach (TrackedShip guest in ships)
                 {
-                    if (guest == null || guest == host || guest.IsShipDestroyed)
+                    if (guest == null || guest == host || guest.IsShipDestroyed || guest.PartCount > MaxGuestParts)
                     {
                         continue;
                     }
@@ -70,7 +74,7 @@ namespace ShipSafety.Patches
                         position = guest.Position;
                         rotation = guest.Rotation;
                     }
-                    else if (guest.SpaceId == host.SpaceId && Near(host, guest, frame))
+                    else if (guest.SpaceId == host.SpaceId && Radius(guest, frame) <= Radius(host, frame) * MaxGuestScale && Near(host, guest, frame))
                     {
                         position = toHost * (guest.Position - host.Position);
                         rotation = toHost * guest.Rotation;
@@ -88,7 +92,10 @@ namespace ShipSafety.Patches
                             continue;
                         }
                         Guests[key] = entry;
-                        Melon<ShipSafetyMod>.Logger.Msg($"Ship {guest.Id} is next to or on ship {host.Id} - added its colliders for walking ({(server ? "server" : "client")})");
+                        if (Logged.Add(key))
+                        {
+                            Melon<ShipSafetyMod>.Logger.Msg($"Ship {guest.Id} is next to or on ship {host.Id} - added its colliders for walking ({(server ? "server" : "client")})");
+                        }
                     }
                     entry.Frame = frame;
                     if (entry.Colliders.scene != scene)
@@ -102,10 +109,19 @@ namespace ShipSafety.Patches
                     }
                 }
             }
-            foreach (var key in Guests.Where(p => p.Key.server == server && p.Key.host == host.Id && p.Value.Frame != frame).Select(p => p.Key).ToList())
+            if (Guests.Count == 0)
+            {
+                return;
+            }
+            foreach (var pair in Guests)
+            {
+                if (pair.Key.server == server && pair.Key.host == host.Id && pair.Value.Frame != frame) Gone.Add(pair.Key);
+            }
+            foreach (var key in Gone)
             {
                 Remove(key);
             }
+            Gone.Clear();
         }
 
         private static float Radius(TrackedShip ship, int frame)

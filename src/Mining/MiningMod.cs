@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.9.6", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.9.7", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -103,6 +103,7 @@ namespace Mining
             Sites.MiningSiteVisuals.Clear();
             Server.ExcavatorServer.Reset();
             Server.WaterPumpServer.Reset();
+            Server.ShipPartIndex.Reset();
             Diagnostics.DevTools.OnSceneLoaded(sceneName);
         }
 
@@ -151,6 +152,10 @@ namespace Mining
 
         public override void OnGUI()
         {
+            if (Event.current.type != EventType.Repaint)
+            {
+                return;
+            }
             if (Patches.StorageMenuPatch.TryGetOpenExcavator(out uint shipId, out ushort partId) && Server.ExcavatorServer.TryGetStatus(shipId, partId, out string status) &&
                 !status.StartsWith("working"))
             {
@@ -163,16 +168,20 @@ namespace Mining
             DrawLabel(_message, Screen.height * 0.18f);
         }
 
+        private static GUIStyle _labelStyle, _shadowStyle;
+
         private static void DrawLabel(string text, float y)
         {
-            string _message = text;
-            var style = new GUIStyle(GUI.skin.label) { fontSize = 22, alignment = TextAnchor.MiddleCenter };
-            style.normal.textColor = Color.white;
+            if (_labelStyle == null)
+            {
+                _labelStyle = new GUIStyle(GUI.skin.label) { fontSize = 22, alignment = TextAnchor.MiddleCenter };
+                _labelStyle.normal.textColor = Color.white;
+                _shadowStyle = new GUIStyle(_labelStyle);
+                _shadowStyle.normal.textColor = new Color(0, 0, 0, 0.8f);
+            }
             var rect = new Rect(0, y, Screen.width, 40);
-            var shadow = new GUIStyle(style);
-            shadow.normal.textColor = new Color(0, 0, 0, 0.8f);
-            GUI.Label(new Rect(rect.x + 2, rect.y + 2, rect.width, rect.height), _message, shadow);
-            GUI.Label(rect, _message, style);
+            GUI.Label(new Rect(rect.x + 2, rect.y + 2, rect.width, rect.height), text, _shadowStyle);
+            GUI.Label(rect, text, _labelStyle);
         }
     }
 }

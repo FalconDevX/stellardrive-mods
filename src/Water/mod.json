@@ -2,6 +2,6 @@
   "id": "stellardrive-water",
   "name": "Water",
   "author": "mateu",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Real water in the lakes of Otrera b: stylized shader (turquoise, caustics, foam), deepened bottoms; ships brake, bounce and slowly sink in lakes with splashes and sound; ships with Pontoons (Mining mod) float on the surface"
 }

@@ -68,6 +68,7 @@ namespace Water.Effects
         private static bool _failed;
         private static int _frame;
         private static float _wakeLevel, _wakePan;
+        private static float _nextTemplateSearch;
 
         internal static void Clear()
         {
@@ -80,6 +81,7 @@ namespace Water.Effects
             PlayerSplashes.Clear();
             if (_root != null) Object.Destroy(_root);
             _root = null;
+            _nextTemplateSearch = 0f;
             SplashSound.StopWake();
         }
 
@@ -133,6 +135,7 @@ namespace Water.Effects
             float sea = WaterLevel.SeaRadius;
 
             RunDelayed(ToVisual, toVisual, camPos);
+            GlassDroplets.BeginFrame();
             while (PlayerSplashes.Count > 0)
             {
                 var (point, speed) = PlayerSplashes.Dequeue();
@@ -178,6 +181,7 @@ namespace Water.Effects
 
                 if (near)
                 {
+                    GlassDroplets.UpdateShip(ship, up, ToVisual(water.SurfacePoint), lake, camPos, dt);
                     Flooding(ship, entry, bounds.Center, bounds.Extents, Mathf.Clamp01((f - 0.1f) / 0.9f), up, toVisual * velocity, dt);
                 }
                 if (!lake)
@@ -552,12 +556,7 @@ namespace Water.Effects
                 Emit(_mist, p, v, Random.Range(2f, 6f) * Mathf.Sqrt(radius / 3f + 0.5f), Random.Range(2.5f, 5.5f), MistColor);
             }
             SplashSound.PlayImpact(hit, power, camPos);
-            float near = (hit - camPos).magnitude;
-            float reach = 6f + 10f * Mathf.Sqrt(power);
-            if (near < reach)
-            {
-                LensDroplets.Splash(Mathf.Clamp01(power) * (1f - near / reach));
-            }
+            GlassDroplets.SplashAt(hit, power);
         }
 
         private static void PlayerSplash(Vector3Double surface, Vector3 hit, Vector3 up, float speed, Vector3 camPos)
@@ -708,6 +707,11 @@ namespace Water.Effects
             {
                 return true;
             }
+            if (Time.unscaledTime < _nextTemplateSearch)
+            {
+                return false;
+            }
+            _nextTemplateSearch = Time.unscaledTime + 5f;
             ParticleSystem template = Resources.FindObjectsOfTypeAll<ParticleSystem>().FirstOrDefault(p => p.name == "DustPoof");
             if (template == null)
             {

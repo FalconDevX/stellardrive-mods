@@ -150,16 +150,10 @@ Shader "StellarDriveMods/StylizedWater"
                 {
                     Light sunBelow = GetMainLight();
                     half3 ambientBelow = SampleSH(up);
-                    float3 below = normalize(-up + tangent * ripple.x * 1.6 + bitangent * ripple.y * 1.6);
-                    float facing = saturate(dot(viewDir, below));
-                    float window = smoothstep(0.6, 0.74, facing);
-                    half3 sky = _FresnelColor.rgb * (sunBelow.color * 0.75 + ambientBelow * 0.9);
-                    half3 depths = _DeepColor.rgb * (sunBelow.color * 0.35 + ambientBelow * 0.5) * 0.7;
-                    float shimmer = pow(saturate(1 - abs(ripple.x + ripple.y) * 2.5), 6);
-                    float edgeGlow = exp(-pow((facing - 0.67) * 18, 2));
+                    float shimmer = saturate((abs(ripple.x) + abs(ripple.y)) * 1.5);
                     half4 under;
-                    under.rgb = lerp(depths, sky, window) + sky * (shimmer * 0.25 * window + edgeGlow * 0.18);
-                    under.a = lerp(0.97, 0.86, window);
+                    under.rgb = _ShallowColor.rgb * (sunBelow.color * 0.6 + ambientBelow * 0.7) + (sunBelow.color + ambientBelow) * shimmer * 0.12;
+                    under.a = 0.16 + shimmer * 0.12;
                     under.rgb *= _Exposure;
                     under.rgb = MixFog(under.rgb, i.fog);
                     return under;

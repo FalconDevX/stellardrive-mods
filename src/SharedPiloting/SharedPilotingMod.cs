@@ -1,7 +1,7 @@
 using MelonLoader;
 using SharedPiloting;
 
-[assembly: MelonInfo(typeof(SharedPilotingMod), "Shared Piloting", "0.1.0", "mateu")]
+[assembly: MelonInfo(typeof(SharedPilotingMod), "Shared Piloting", "0.1.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace SharedPiloting

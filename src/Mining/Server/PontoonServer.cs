@@ -29,8 +29,12 @@ namespace Mining.Server
             try
             {
                 ConnectionsServerTracker connections = null;
-                foreach (StatefulPart part in __instance.StatefulParts.Where(p => p?.Settings != null && p.Settings.id == Pontoon.PartId && p.State is DoorState).ToList())
+                foreach (ushort id in ShipPartIndex.Get(__instance, Pontoon.PartId))
                 {
+                    if (!__instance.TryGetStatefulPart(id, out StatefulPart part) || !(part.State is DoorState))
+                    {
+                        continue;
+                    }
                     var key = (__instance.Id, part.Id);
                     var state = (DoorState)part.State;
                     float air = Air.TryGetValue(key, out float a) ? a : state.IsOpen ? Pontoon.OxygenToInflate : 0f;

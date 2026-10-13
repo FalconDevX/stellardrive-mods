@@ -13,15 +13,25 @@ namespace SharedPiloting.Patches
     internal static class IdleSeatGyroPatch
     {
         private const float InputDeadzone = 0.001f;
+        private static readonly List<StatefulPart> Seats = new List<StatefulPart>();
 
         private static void Prefix(IShipStateWrite ship, out List<KeyValuePair<StatefulPart, PilotSeatState>> __state)
         {
             __state = null;
-            List<StatefulPart> seats = ship.GetAllStatefulParts<PilotSeatState>()
-                .Where(p => ((PilotSeatState)p.State).IsInUse)
-                .ToList();
-            if (seats.Count < 2 || !seats.Any(IsSteering))
+            List<StatefulPart> seats = Seats;
+            seats.Clear();
+            bool steering = false;
+            foreach (StatefulPart part in ship.GetAllStatefulParts<PilotSeatState>())
             {
+                if (((PilotSeatState)part.State).IsInUse)
+                {
+                    seats.Add(part);
+                    steering |= IsSteering(part);
+                }
+            }
+            if (seats.Count < 2 || !steering)
+            {
+                seats.Clear();
                 return;
             }
 
@@ -32,6 +42,7 @@ namespace SharedPiloting.Patches
                 __state.Add(new KeyValuePair<StatefulPart, PilotSeatState>(seat, original));
                 seat.State = original with { IsInUse = false };
             }
+            seats.Clear();
         }
 
         private static void Finalizer(List<KeyValuePair<StatefulPart, PilotSeatState>> __state)

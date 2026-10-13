@@ -21,52 +21,70 @@ namespace Mining.Server
         [HarmonyPatch(nameof(TrackedShipServer.PrepareConsumers))]
         private static void PrepareConsumers(TrackedShipServer __instance, float deltaTime)
         {
-            Run(() =>
+            try
             {
-                var power = ServiceLocator.GetService<PowerServerTracker>();
-                foreach (StatefulPart part in __instance.StatefulParts.Where(p => InfoPanels.Is(p?.Settings)))
+                PowerServerTracker power = null;
+                foreach (InfoPanels.Variant variant in InfoPanels.Variants)
                 {
-                    if (power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, part.Id, InfoPanels.PowerSocket), out PowerGroupServerState group))
+                    foreach (ushort id in ShipPartIndex.Get(__instance, variant.Id))
                     {
-                        group.TotalPowerNeeded += deltaTime * InfoPanels.Find(part.Settings.id).Watts;
+                        power = power ?? ServiceLocator.GetService<PowerServerTracker>();
+                        if (power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, id, InfoPanels.PowerSocket), out PowerGroupServerState group))
+                        {
+                            group.TotalPowerNeeded += deltaTime * variant.Watts;
+                        }
                     }
                 }
-            });
+            }
+            catch (Exception e)
+            {
+                LogError(e);
+            }
         }
 
         [HarmonyPostfix]
         [HarmonyPatch(nameof(TrackedShipServer.UpdateParts))]
         private static void UpdateParts(TrackedShipServer __instance)
         {
-            Run(() =>
-            {
-                var power = ServiceLocator.GetService<PowerServerTracker>();
-                foreach (StatefulPart part in __instance.StatefulParts.Where(p => InfoPanels.Is(p?.Settings) && p.State is DoorState).ToList())
-                {
-                    bool powered = power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, part.Id, InfoPanels.PowerSocket), out PowerGroupServerState group) &&
-                                   group.NormalizedConsumerRate >= 0.5f;
-                    var state = (DoorState)part.State;
-                    if (state.IsOpen != powered)
-                    {
-                        __instance.UpdatePartState(part.Id, state with { IsOpen = powered });
-                    }
-                }
-            });
-        }
-
-        private static void Run(Action action)
-        {
             try
             {
-                action();
+                PowerServerTracker power = null;
+                foreach (InfoPanels.Variant variant in InfoPanels.Variants)
+                {
+                    foreach (ushort id in ShipPartIndex.Get(__instance, variant.Id))
+                    {
+                        if (!__instance.TryGetStatefulPart(id, out StatefulPart part) || !(part.State is DoorState))
+                        {
+                            continue;
+                        }
+                        power = power ?? ServiceLocator.GetService<PowerServerTracker>();
+                        Update(__instance, power, part);
+                    }
+                }
             }
             catch (Exception e)
             {
-                if (!_loggedError)
-                {
-                    _loggedError = true;
-                    Melon<MiningMod>.Logger.Error($"Info panel error: {e}");
-                }
+                LogError(e);
+            }
+        }
+
+        private static void Update(TrackedShipServer ship, PowerServerTracker power, StatefulPart part)
+        {
+            bool powered = power.TryGetGroupFromSocket(new EntityPartSocket(ship.Id, part.Id, InfoPanels.PowerSocket), out PowerGroupServerState group) &&
+                           group.NormalizedConsumerRate >= 0.5f;
+            var state = (DoorState)part.State;
+            if (state.IsOpen != powered)
+            {
+                ship.UpdatePartState(part.Id, state with { IsOpen = powered });
+            }
+        }
+
+        private static void LogError(Exception e)
+        {
+            if (!_loggedError)
+            {
+                _loggedError = true;
+                Melon<MiningMod>.Logger.Error($"Info panel error: {e}");
             }
         }
     }

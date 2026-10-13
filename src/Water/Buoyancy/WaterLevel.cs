@@ -68,12 +68,15 @@ namespace Water.Buoyancy
             return cache.Lake;
         }
 
+        private static readonly float[] Depths = new float[8];
+        private static readonly Vector3[] Corners = new Vector3[8];
+
         internal static Immersion Measure(Vector3Double origin, Quaternion rotation, Vector3 center, Vector3 extents)
         {
             float sea = SeaRadius;
             float low = float.MaxValue, high = float.MinValue;
-            var depths = new float[8];
-            var corners = new Vector3[8];
+            float[] depths = Depths;
+            Vector3[] corners = Corners;
             int n = 0;
             for (int x = -1; x <= 1; x += 2)
             for (int y = -1; y <= 1; y += 2)

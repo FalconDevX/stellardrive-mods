@@ -2,6 +2,6 @@
   "id": "stellardrive-sharedpiloting",
   "name": "Shared Piloting",
   "author": "mateu",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Several pilot seats on a ship: whoever moves the mouse turns it, idle seats do not block steering. Host only."
 }

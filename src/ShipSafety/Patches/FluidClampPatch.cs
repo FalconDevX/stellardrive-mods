@@ -1,57 +1,75 @@
 using System;
-using System.Collections.Generic;
-using System.Reflection;
 using HarmonyLib;
 using MelonLoader;
 using Ships.Cables.Fluids;
+using Ships.Interface.Model.Parts;
+using Ships.Interface.Model.Parts.StateTypes;
 using UnityEngine;
 
 namespace ShipSafety.Patches
 {
-    [HarmonyPatch]
-    internal static class FluidClampPatch
+    internal static class FluidClamp
     {
-        private static readonly Type PartContainer = AccessTools.Inner(typeof(FluidGroupServerState), "PartFluidContainer");
-        private static readonly Type CableContainer = AccessTools.Inner(typeof(FluidGroupServerState), "CableFluidContainer");
+        internal static readonly Type PartContainer = AccessTools.Inner(typeof(FluidGroupServerState), "PartFluidContainer");
+        internal static readonly Type CableContainer = AccessTools.Inner(typeof(FluidGroupServerState), "CableFluidContainer");
 
         private static float _nextLogTime;
 
-        private static IEnumerable<MethodBase> TargetMethods()
+        internal static bool TryFix(object container, string kind, float quantity, float max, out float fixedQuantity)
         {
-            yield return AccessTools.Method(PartContainer, "CommitChanges");
-            yield return AccessTools.Method(CableContainer, "CommitChanges");
-        }
-
-        private static void Prefix(object __instance)
-        {
-            var container = Traverse.Create(__instance);
-            float quantity = container.Property<float>("FluidQuantity").Value;
-            float max = container.Property<float>("MaxFluid").Value;
+            fixedQuantity = quantity;
             if (!float.IsNaN(quantity) && quantity >= 0f && quantity <= max)
             {
-                return;
+                return false;
             }
-
-            float fixedQuantity = float.IsNaN(quantity) ? 0f : Mathf.Clamp(quantity, 0f, Mathf.Max(max, 0f));
+            fixedQuantity = float.IsNaN(quantity) ? 0f : Mathf.Clamp(quantity, 0f, Mathf.Max(max, 0f));
             if (Time.realtimeSinceStartup >= _nextLogTime && Mathf.Abs(quantity - fixedQuantity) > 0.01f)
             {
                 _nextLogTime = Time.realtimeSinceStartup + 1f;
                 Melon<ShipSafetyMod>.Logger.Warning(
-                    $"Fuel error in {(__instance.GetType() == PartContainer ? "part" : "pipe")} {__instance}: quantity {quantity:0.###} " +
+                    $"Fuel error in {kind} {container}: quantity {quantity:0.###} " +
                     $"(capacity {max:0.###})" + (ShipSafetyMod.Enabled.Value ? $" -> {fixedQuantity:0.###}" : ""));
             }
-            if (!ShipSafetyMod.Enabled.Value)
+            return ShipSafetyMod.Enabled.Value;
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class PartFluidClampPatch
+    {
+        private static readonly AccessTools.FieldRef<object, float> QuantityRef = AccessTools.FieldRefAccess<float>(FluidClamp.PartContainer, "_fluidQuantity");
+        private static readonly AccessTools.FieldRef<object, StatefulPart> PartRef = AccessTools.FieldRefAccess<StatefulPart>(FluidClamp.PartContainer, "_part");
+
+        private static System.Reflection.MethodBase TargetMethod() => AccessTools.Method(FluidClamp.PartContainer, "CommitChanges");
+
+        private static void Prefix(object __instance)
+        {
+            ref float quantity = ref QuantityRef(__instance);
+            if (!(PartRef(__instance)?.State is IStatefulPartWithFluidContainer state))
             {
                 return;
             }
-
-            if (__instance.GetType() == PartContainer)
+            if (FluidClamp.TryFix(__instance, "part", quantity, state.FluidCapacity, out float fixedQuantity))
             {
-                container.Field<float>("_fluidQuantity").Value = fixedQuantity;
+                quantity = fixedQuantity;
             }
-            else
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class CableFluidClampPatch
+    {
+        private static readonly AccessTools.FieldRef<object, float> QuantityRef = AccessTools.FieldRefAccess<float>(FluidClamp.CableContainer, "<FluidQuantity>k__BackingField");
+        private static readonly AccessTools.FieldRef<object, float> MaxRef = AccessTools.FieldRefAccess<float>(FluidClamp.CableContainer, "<MaxFluid>k__BackingField");
+
+        private static System.Reflection.MethodBase TargetMethod() => AccessTools.Method(FluidClamp.CableContainer, "CommitChanges");
+
+        private static void Prefix(object __instance)
+        {
+            ref float quantity = ref QuantityRef(__instance);
+            if (FluidClamp.TryFix(__instance, "pipe", quantity, MaxRef(__instance), out float fixedQuantity))
             {
-                container.Property<float>("FluidQuantity").Value = fixedQuantity;
+                quantity = fixedQuantity;
             }
         }
     }
