@@ -22,6 +22,9 @@ namespace Mining.Patches
             (ElectrolyzerPart.PartId, ElectrolyzerPart.GetOrCreatePart, () => ElectrolyzerPart.Part, 80),
             (Reactor.PartId, Reactor.GetOrCreatePart, () => Reactor.Part, 60),
             (WaterPump.PartId, WaterPump.GetOrCreatePart, () => WaterPump.Part, 81),
+            (HydrogenEngines.Variants[0].Id, p => HydrogenEngines.GetOrCreate(HydrogenEngines.Variants[0].Id, p), () => HydrogenEngines.Get(HydrogenEngines.Variants[0].Id), HydrogenThruster.PartId),
+            (HydrogenEngines.Variants[1].Id, p => HydrogenEngines.GetOrCreate(HydrogenEngines.Variants[1].Id, p), () => HydrogenEngines.Get(HydrogenEngines.Variants[1].Id), HydrogenThruster.PartId),
+            (HydrogenEngines.Variants[2].Id, p => HydrogenEngines.GetOrCreate(HydrogenEngines.Variants[2].Id, p), () => HydrogenEngines.Get(HydrogenEngines.Variants[2].Id), HydrogenThruster.PartId),
             (LaserCannon.PartId, LaserCannon.GetOrCreatePart, () => LaserCannon.Part, 19),
             (Pontoon.PartId, Pontoon.GetOrCreatePart, () => Pontoon.Part, 19),
             (InfoPanels.Variants[0].Id, p => InfoPanels.GetOrCreate(InfoPanels.Variants[0].Id, p), () => InfoPanels.Get(InfoPanels.Variants[0].Id), 0),
@@ -56,6 +59,10 @@ namespace Mining.Patches
         internal static readonly ModResearch HydrogenResearch = new ModResearch(201, "Hydrogen Propulsion", new Vector2Int(5, 4), Excavator.ResearchId,
             () => new[] { HydrogenThruster.Part, ElectrolyzerPart.Part, WaterPump.Part },
             (Items.Model.ItemsConstants.IronItemId, 30), (112, 15), (Items.Model.ItemsConstants.GlassItemId, 10));
+
+        internal static readonly ModResearch HeavyHydrogenResearch = new ModResearch(HydrogenEngines.ResearchId, "Heavy Hydrogen Engines", new Vector2Int(6, 3), 201,
+            () => HydrogenEngines.All,
+            (Items.Model.ItemsConstants.IronItemId, 80), (112, 40), (Items.Model.ItemsConstants.GlassItemId, 20));
 
         internal static readonly ModResearch MechanicsResearch = new ModResearch(RotorUnlock.ResearchId, "Mechanics", new Vector2Int(4, 5), 16,
             () => new[] { RotorUnlock.Rotor },
@@ -95,6 +102,7 @@ namespace Mining.Patches
         {
             Excavator.EnsureResearch();
             HydrogenResearch.Ensure();
+            HeavyHydrogenResearch.Ensure();
             MechanicsResearch.Ensure();
             NuclearResearch.Ensure();
             LaserResearch.Ensure();

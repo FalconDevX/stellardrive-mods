@@ -33,7 +33,7 @@ namespace PickBlock.Patches
         [HarmonyPatch(nameof(BuildToolLocalClient.ExecuteScrollAction))]
         private static bool Scroll(BuildToolLocalClient __instance, float scroll)
         {
-            if (!PickBlockMod.AreaBuild.Value || Keyboard.current == null || !Keyboard.current.ctrlKey.isPressed)
+            if (!PickBlockMod.AreaBuild.Value || Keyboard.current == null || !Keyboard.current.altKey.isPressed)
             {
                 return true;
             }

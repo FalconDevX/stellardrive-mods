@@ -834,6 +834,15 @@ namespace Mining.Diagnostics
             yield return null;
             large = thumbs?.GetLargeThumbnail(seat.id) ?? large;
             if (large != null) SaveTexture(large, Path.Combine(OutDir, "test_thumb_seat.png"));
+            foreach (ushort id in new ushort[] { Content.HydrogenThruster.PartId }.Concat(Content.HydrogenEngines.Variants.Select(v => v.Id)))
+            {
+                Texture2D thumb = thumbs?.GetLargeThumbnail(id);
+                yield return null;
+                yield return null;
+                thumb = thumbs?.GetLargeThumbnail(id) ?? thumb;
+                if (thumb != null) SaveTexture(thumb, Path.Combine(OutDir, $"test_thumb_{id}.png"));
+                log.Msg($"[seat] thumbnail {id}: {(thumb != null ? "saved" : "missing")}");
+            }
             yield return new WaitForSeconds(1f);
         }
 

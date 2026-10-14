@@ -41,11 +41,12 @@ namespace Mining.Server
                     {
                         continue;
                     }
-                    hydrogen.AddConsumptionTarget(HydrogenPerSecond * deltaTime);
-                    oxygen?.AddConsumptionTarget(OxygenPerSecond * deltaTime);
+                    float scale = HydrogenThruster.Scale(part.Settings);
+                    hydrogen.AddConsumptionTarget(HydrogenPerSecond * scale * deltaTime);
+                    oxygen?.AddConsumptionTarget(OxygenPerSecond * scale * deltaTime);
                     if (power.TryGetGroupFromSocket(new EntityPartSocket(____ship.Id, part.Id, HydrogenThruster.PowerSocket), out PowerGroupServerState group))
                     {
-                        group.TotalPowerNeeded += deltaTime * HydrogenThruster.PowerWatts;
+                        group.TotalPowerNeeded += deltaTime * HydrogenThruster.PowerWatts * scale;
                     }
                 }
             }
@@ -98,8 +99,9 @@ namespace Mining.Server
                         }
                         if (rate > 0f)
                         {
-                            hydrogen.RemoveFluid(rate * HydrogenPerSecond * deltaTime);
-                            oxygen.RemoveFluid(rate * OxygenPerSecond * deltaTime);
+                            float scale = HydrogenThruster.Scale(part.Settings);
+                            hydrogen.RemoveFluid(rate * HydrogenPerSecond * scale * deltaTime);
+                            oxygen.RemoveFluid(rate * OxygenPerSecond * scale * deltaTime);
                         }
                         if (status == null && rate <= 0f)
                         {
@@ -157,7 +159,7 @@ namespace Mining.Server
 
         private static void Postfix(IShipStateRead __0, ref Vector3 __result)
         {
-            float extra = (MiningMod.HydrogenThrustMultiplier.Value - 1f) * ChemicalThrust;
+            float multiplier = MiningMod.HydrogenThrustMultiplier.Value;
             IShipStateRead stateRead = __0;
             if (stateRead == null)
             {
@@ -167,6 +169,7 @@ namespace Mining.Server
             {
                 if (HydrogenThruster.Is(part.Settings))
                 {
+                    float extra = (multiplier * HydrogenThruster.Scale(part.Settings) - 1f) * ChemicalThrust;
                     __result += -part.Placement.UpOrientation.GetVector3() * (((ThrusterState)part.State).ThrusterStrength * extra);
                 }
             }

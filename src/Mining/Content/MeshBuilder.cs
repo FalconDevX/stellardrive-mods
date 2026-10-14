@@ -164,9 +164,82 @@ namespace Mining.Content
             }
         }
 
+        internal MeshBuilder Lathe(Vector3 origin, Vector3 axis, IList<Vector2> profile, string color, int segments = 24, bool inward = false)
+        {
+            _atlas = true;
+            axis.Normalize();
+            Vector3 side = Vector3.Cross(axis, Mathf.Abs(axis.y) < 0.9f ? Vector3.up : Vector3.right).normalized;
+            Vector3 side2 = Vector3.Cross(axis, side);
+            int count = profile.Count;
+            var normals = new Vector2[count];
+            for (int k = 0; k < count; k++)
+            {
+                Vector2 prev = profile[Mathf.Max(0, k - 1)], next = profile[Mathf.Min(count - 1, k + 1)];
+                Vector2 t = next - prev;
+                Vector2 n = new Vector2(t.y, -t.x);
+                normals[k] = (n.sqrMagnitude > 1e-8f ? n.normalized : Vector2.right) * (inward ? -1f : 1f);
+            }
+            float total = 0f;
+            var along = new float[count];
+            for (int k = 1; k < count; k++)
+            {
+                total += (profile[k] - profile[k - 1]).magnitude;
+                along[k] = total;
+            }
+            int start = _vertices.Count;
+            for (int k = 0; k < count; k++)
+            {
+                float fv = Margin + (1f - 2f * Margin) * (total > 0f ? along[k] / total : 0f);
+                for (int i = 0; i <= segments; i++)
+                {
+                    float a = i * Mathf.PI * 2f / segments;
+                    Vector3 radial = side * Mathf.Cos(a) + side2 * Mathf.Sin(a);
+                    float fu = Margin + (1f - 2f * Margin) * Mathf.Abs((float)i / segments * 2f - 1f);
+                    Vector3 normal = (radial * normals[k].x + axis * normals[k].y).normalized;
+                    Add(origin + radial * profile[k].x + axis * profile[k].y, normal, CellUv(color, fu, fv));
+                }
+            }
+            for (int k = 0; k + 1 < count; k++)
+            {
+                for (int i = 0; i < segments; i++)
+                {
+                    int a0 = start + k * (segments + 1) + i, b0 = a0 + 1;
+                    int a1 = a0 + segments + 1, b1 = a1 + 1;
+                    if (inward) _triangles.AddRange(new[] { a0, a1, b1, a0, b1, b0 });
+                    else _triangles.AddRange(new[] { a0, b1, a1, a0, b0, b1 });
+                }
+            }
+            return this;
+        }
+
+        internal MeshBuilder Sphere(Vector3 center, float radius, string color, int segments = 20)
+        {
+            int rings = Mathf.Max(6, segments / 2);
+            var profile = new List<Vector2>();
+            for (int k = 0; k <= rings; k++)
+            {
+                float a = -Mathf.PI * 0.5f + Mathf.PI * k / rings;
+                profile.Add(new Vector2(Mathf.Cos(a) * radius, Mathf.Sin(a) * radius));
+            }
+            return Lathe(center, Vector3.up, profile, color, segments);
+        }
+
+        internal MeshBuilder Pipe(IList<Vector3> points, float radius, string color, int segments = 10)
+        {
+            for (int k = 0; k + 1 < points.Count; k++)
+            {
+                Cylinder(points[k], points[k + 1], radius, color, segments);
+                if (k > 0)
+                {
+                    Sphere(points[k], radius, color, segments);
+                }
+            }
+            return this;
+        }
+
         internal Mesh Build(string name)
         {
-            var mesh = new Mesh { name = name };
+            var mesh = new Mesh { name = name, indexFormat = _vertices.Count > 65000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16 };
             mesh.SetVertices(_vertices);
             mesh.SetNormals(_normals);
             mesh.SetUVs(0, _uvs);

@@ -21,14 +21,16 @@ namespace Mining.Content
         internal const float PowerWatts = 3000f;
         internal static readonly Vector3 NozzleTop = new Vector3(0f, 1.98f, 0f);
 
-        private const ushort ChemicalThrusterId = 19;
-        private const ushort GeneratorPartId = 60;
+        internal const ushort ChemicalThrusterId = 19;
+        internal const ushort GeneratorPartId = 60;
         private static ThrusterSettings _part;
         private static bool _failed;
 
         internal static PartSettings Part => _part;
 
-        internal static bool Is(PartSettings settings) => settings != null && settings.id == PartId;
+        internal static bool Is(PartSettings settings) => settings != null && (settings.id == PartId || HydrogenEngines.Find(settings.id) != null);
+
+        internal static float Scale(PartSettings settings) => HydrogenEngines.Find(settings.id)?.Scale ?? 1f;
 
         internal static PartSettings GetOrCreatePart(IEnumerable<PartSettings> gameParts)
         {
@@ -171,7 +173,7 @@ namespace Mining.Content
             }
         }
 
-        private static void TintFlame(GameObject flame)
+        internal static void TintFlame(GameObject flame)
         {
             foreach (ParticleSystem ps in flame.GetComponentsInChildren<ParticleSystem>(true))
             {

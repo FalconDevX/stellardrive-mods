@@ -13,6 +13,7 @@ namespace Mining.Server
     internal static class RotorObstacles
     {
         private const float Margin = 0.08f;
+        private const float DeeperBy = 0.002f;
         private static readonly Collider[] Hits = new Collider[16];
         private static readonly HashSet<Collider> Own = new HashSet<Collider>();
         private static readonly List<Collider> Moving = new List<Collider>();
@@ -52,19 +53,42 @@ namespace Mining.Server
                 {
                     continue;
                 }
+                Transform t = collider.transform;
+                Vector3 movedPosition = toWorld.MultiplyPoint3x4(t.position);
+                Quaternion movedTransformRotation = worldRotation * t.rotation;
                 Vector3 movedCenter = toWorld.MultiplyPoint3x4(center);
                 Quaternion movedRotation = worldRotation * rotation;
                 PhysicsScene scene = collider.gameObject.scene.GetPhysicsScene();
                 int count = scene.OverlapBox(movedCenter, halfExtents, Hits, movedRotation, Physics.AllLayers, QueryTriggerInteraction.Ignore);
                 for (int i = 0; i < count; i++)
                 {
-                    if (Hits[i] != null && !Own.Contains(Hits[i]))
+                    Collider other = Hits[i];
+                    if (other == null || Own.Contains(other))
+                    {
+                        continue;
+                    }
+                    float after = Depth(collider, movedPosition, movedTransformRotation, other);
+                    float before = Depth(collider, t.position, t.rotation, other);
+                    if (after < 0f || after > before + DeeperBy)
                     {
                         return true;
                     }
                 }
             }
             return false;
+        }
+
+        private static float Depth(Collider collider, Vector3 position, Quaternion rotation, Collider other)
+        {
+            Transform o = other.transform;
+            try
+            {
+                return Physics.ComputePenetration(collider, position, rotation, other, o.position, o.rotation, out _, out float distance) ? distance : 0f;
+            }
+            catch (System.Exception)
+            {
+                return -1f;
+            }
         }
 
         private static void CollectOwn(ShipsServerTracker ships, TrackedShipServer ship, int depth)
