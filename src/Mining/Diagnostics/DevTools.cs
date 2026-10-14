@@ -834,7 +834,7 @@ namespace Mining.Diagnostics
             yield return null;
             large = thumbs?.GetLargeThumbnail(seat.id) ?? large;
             if (large != null) SaveTexture(large, Path.Combine(OutDir, "test_thumb_seat.png"));
-            foreach (ushort id in new ushort[] { Content.HydrogenThruster.PartId }.Concat(Content.HydrogenEngines.Variants.Select(v => v.Id)))
+            foreach (ushort id in new ushort[] { Content.HydrogenThruster.PartId, Content.RotorUnlock.RotorPartId }.Concat(Content.HydrogenEngines.Variants.Select(v => v.Id)))
             {
                 Texture2D thumb = thumbs?.GetLargeThumbnail(id);
                 yield return null;
@@ -842,6 +842,43 @@ namespace Mining.Diagnostics
                 thumb = thumbs?.GetLargeThumbnail(id) ?? thumb;
                 if (thumb != null) SaveTexture(thumb, Path.Combine(OutDir, $"test_thumb_{id}.png"));
                 log.Msg($"[seat] thumbnail {id}: {(thumb != null ? "saved" : "missing")}");
+            }
+            UI.BuildMenu.BuildMenuActivator activator = Resources.FindObjectsOfTypeAll<UI.BuildMenu.BuildMenuActivator>().FirstOrDefault(m => m.gameObject.scene.IsValid());
+            log.Msg($"[seat] build menu activator: {(activator != null ? PathOf(activator.transform) : "missing")}");
+            if (activator != null)
+            {
+                activator.Open();
+                yield return null;
+                yield return null;
+                yield return new WaitForSeconds(0.5f);
+                ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, "test_build_menu.png"));
+                UI.BuildMenu.BuildMenu opened = UnityEngine.Object.FindObjectOfType<UI.BuildMenu.BuildMenu>();
+                if (opened != null)
+                {
+                    foreach (RectTransform rt in opened.GetComponentsInChildren<RectTransform>(true).Where(r => r.GetComponentInParent<UI.BuildMenu.BuildPartButton>() == null && r.GetComponentInParent<UI.BuildMenu.TabButton>() == null))
+                    {
+                        string layout = string.Join(",", rt.GetComponents<Component>().Where(c => c is UnityEngine.UI.LayoutGroup || c is UnityEngine.UI.LayoutElement || c is UnityEngine.UI.ContentSizeFitter || c is UnityEngine.UI.ScrollRect).Select(c => c.GetType().Name));
+                        log.Msg($"[menu] {PathOf(rt)}: anchors {rt.anchorMin}-{rt.anchorMax} pivot {rt.pivot} pos {rt.anchoredPosition} size {rt.sizeDelta} rect {rt.rect.size} {layout}");
+                    }
+                    foreach (UI.BuildMenu.TabButton tab in opened.GetComponentsInChildren<UI.BuildMenu.TabButton>(true).Take(1))
+                    {
+                        log.Msg($"[menu] tab rect {((RectTransform)tab.transform).rect.size}");
+                    }
+                    var config = Traverse.Create(opened).Field<UI.BuildMenu.BuildMenuTabConfig[]>("tabsConfig").Value;
+                    int propulsion = Array.FindIndex(config, t => t.name == "Propulsion");
+                    if (propulsion >= 0)
+                    {
+                        Traverse.Create(opened).Method("SwitchTab", propulsion).GetValue();
+                        yield return null;
+                        yield return new WaitForSeconds(0.5f);
+                        ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, "test_build_menu2.png"));
+                        yield return null;
+                        yield return null;
+                    }
+                }
+                yield return null;
+                yield return null;
+                activator.Close();
             }
             yield return new WaitForSeconds(1f);
         }

@@ -166,35 +166,134 @@ namespace Mining.Patches
         }
     }
 
-    [HarmonyPatch(typeof(BuildMenu), "LoadTabPanel")]
+    [HarmonyPatch(typeof(BuildMenu), "Start")]
     internal static class BuildMenuPatch
     {
-        private const int MaxPerRow = 8;
+        private const int MaxPerRow = 11;
+        private const ushort DoorPartId = 14;
+        private const float MenuWidth = 3000f, MenuCenter = -380f, InfoCenter = 1510f;
 
-        private static void Prefix(BuildMenuTabConfig[] ___tabsConfig)
+        private static readonly (string name, ushort[] ids)[] Tabs =
         {
-            if (___tabsConfig == null)
+            ("Control", new ushort[] { 3, 29, 17, 46, 18, 50, 54, 45, 48, 82, 56, 49, 68, 39, 225, 226, 227 }),
+            ("Propulsion", new ushort[] { 69, 19, 201, 228, 229, 230, 53, 16, 58, 222 }),
+            ("Power", new ushort[] { 61, 65, 60, 203 }),
+            ("Fluids", new ushort[] { 24, 81, 57, 23, 218, 215, 79, 66, 67, 202, 214, 80 }),
+            ("Doors", new ushort[] { DoorPartId, 42, 217, 210, 211, 212, 213, 216, 223, 224 }),
+            ("Utility", new ushort[] { 22, 15, 38, 30, 219, 220, 43, 41, 200, 221, 55 }),
+        };
+
+        private static void Prefix(ref BuildMenuTabConfig[] ___tabsConfig)
+        {
+            if (___tabsConfig == null || ___tabsConfig.Any(t => t?.name == Tabs[0].name))
             {
                 return;
             }
-            var rows = ___tabsConfig.Where(t => t?.rows != null).SelectMany(t => t.rows).Where(r => r?.parts != null).ToList();
-            foreach (var (part, menuNextTo) in ModParts.MenuParts())
+            try
             {
-                if (part == null || rows.Any(r => r.parts.Contains(part)))
+                ___tabsConfig = Sort(___tabsConfig);
+            }
+            catch (Exception e)
+            {
+                Melon<MiningMod>.Logger.Error($"Build menu tabs: {e}");
+            }
+        }
+
+        private static void Postfix(BuildMenu __instance)
+        {
+            try
+            {
+                Widen(__instance);
+            }
+            catch (Exception e)
+            {
+                Melon<MiningMod>.Logger.Error($"Build menu size: {e}");
+            }
+        }
+
+        private static void Widen(BuildMenu menu)
+        {
+            var panel = menu.transform.Find("Menu") as RectTransform;
+            if (panel == null)
+            {
+                return;
+            }
+            panel.sizeDelta = new Vector2(MenuWidth, panel.sizeDelta.y);
+            panel.anchoredPosition = new Vector2(MenuCenter, panel.anchoredPosition.y);
+            if (menu.transform.Find("PartInfo") is RectTransform info)
+            {
+                info.anchoredPosition = new Vector2(InfoCenter, info.anchoredPosition.y);
+            }
+            TabButton[] tabs = Traverse.Create(menu).Field<TabButton[]>("_tabs").Value ?? new TabButton[0];
+            var bar = panel.Find("TabsSelect/Tabs") as RectTransform;
+            if (tabs.Length == 0 || bar == null)
+            {
+                return;
+            }
+            var group = bar.GetComponent<UnityEngine.UI.HorizontalLayoutGroup>();
+            float spacing = group != null ? group.spacing : 0f;
+            float padding = group != null ? group.padding.horizontal : 0f;
+            float available = MenuWidth - 164f - padding - 130f - spacing * (tabs.Length + 1);
+            float natural = ((RectTransform)tabs[0].transform).rect.width;
+            float width = Mathf.Min(natural, available / tabs.Length);
+            Melon<MiningMod>.Logger.Msg($"Build menu: {tabs.Length} tabs, {width:0} wide (spacing {spacing:0}, padding {padding:0})");
+            foreach (TabButton tab in tabs)
+            {
+                var rt = (RectTransform)tab.transform;
+                rt.sizeDelta = new Vector2(width, rt.sizeDelta.y);
+                UnityEngine.UI.LayoutElement element = tab.GetComponent<UnityEngine.UI.LayoutElement>() ?? tab.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+                element.minWidth = width;
+                element.preferredWidth = width;
+                element.flexibleWidth = 0f;
+                foreach (TMPro.TMP_Text text in tab.GetComponentsInChildren<TMPro.TMP_Text>(true))
                 {
-                    continue;
-                }
-                BuildMenuTabConfig.BuildMenuRow row = rows.FirstOrDefault(r => r.parts.Any(p => p != null && p.id == menuNextTo)) ?? rows.LastOrDefault();
-                if (row != null && row.parts.Length >= MaxPerRow)
-                {
-                    var tab = ___tabsConfig.FirstOrDefault(t => t?.rows != null && t.rows.Contains(row));
-                    row = tab?.rows.Where(r => r?.parts != null && r.parts.Length < MaxPerRow).OrderBy(r => r.parts.Length).FirstOrDefault() ?? row;
-                }
-                if (row != null)
-                {
-                    row.parts = row.parts.Concat(new[] { part }).ToArray();
+                    text.enableAutoSizing = false;
+                    text.fontSize *= Mathf.Min(1f, width / natural * 0.95f);
+                    text.overflowMode = TMPro.TextOverflowModes.Ellipsis;
                 }
             }
+            UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(bar);
+        }
+
+        private static BuildMenuTabConfig[] Sort(BuildMenuTabConfig[] tabs)
+        {
+            new PartSettingsProvider().GetAllPartSettings();
+            List<PartSettings> all = tabs.Where(t => t?.rows != null).SelectMany(t => t.rows).Where(r => r?.parts != null).SelectMany(r => r.parts).Where(p => p != null).ToList();
+            foreach (var (part, _) in ModParts.MenuParts())
+            {
+                if (part != null && !all.Contains(part)) all.Add(part);
+            }
+            Dictionary<ushort, PartSettings> byId = all.GroupBy(p => p.id).ToDictionary(g => g.Key, g => g.First());
+            var sorted = new HashSet<ushort>(Tabs.SelectMany(t => t.ids));
+            BuildMenuTabConfig parts = tabs.FirstOrDefault(t => t?.name == "Parts") ?? tabs.Last(t => t != null);
+            Texture doorIcon = tabs.FirstOrDefault(t => t?.rows != null && t.rows.Any(r => r?.parts != null && r.parts.Any(p => p != null && p.id == DoorPartId)))?.icon ?? parts.icon;
+
+            var result = new List<BuildMenuTabConfig>();
+            foreach (BuildMenuTabConfig tab in tabs)
+            {
+                if (tab == parts || tab?.rows == null) continue;
+                tab.rows = tab.rows.Where(r => r?.parts != null)
+                    .Select(r => new BuildMenuTabConfig.BuildMenuRow { parts = r.parts.Where(p => p != null && !sorted.Contains(p.id)).ToArray() })
+                    .Where(r => r.parts.Length > 0).ToArray();
+                if (tab.rows.Length > 0) result.Add(tab);
+            }
+            var placed = new HashSet<PartSettings>(result.SelectMany(t => t.rows).SelectMany(r => r.parts));
+            List<PartSettings> leftovers = all.Where(p => !sorted.Contains(p.id) && !placed.Contains(p)).Distinct().ToList();
+
+            foreach (var (name, ids) in Tabs)
+            {
+                List<PartSettings> list = ids.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
+                if (name == Tabs[Tabs.Length - 1].name) list.AddRange(leftovers);
+                if (list.Count == 0) continue;
+                var rows = new List<BuildMenuTabConfig.BuildMenuRow>();
+                for (int i = 0; i < list.Count; i += MaxPerRow)
+                {
+                    rows.Add(new BuildMenuTabConfig.BuildMenuRow { parts = list.Skip(i).Take(MaxPerRow).ToArray() });
+                }
+                result.Add(new BuildMenuTabConfig { name = name, icon = name == "Doors" ? doorIcon : parts.icon, rows = rows.ToArray() });
+            }
+            Melon<MiningMod>.Logger.Msg($"Build menu: {result.Count} tabs ({string.Join(", ", result.Select(t => $"{t.name} {t.rows.Sum(r => r.parts.Length)}"))})");
+            return result.ToArray();
         }
     }
 
