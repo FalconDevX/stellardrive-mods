@@ -1,93 +1,321 @@
+<div align="center">
+
 # StellarDrive Mods
 
-Nieoficjalne mody do **StellarDrive Demo** (Curious Owl) na **MelonLoader 0.7.3**.
-Nie są powiązane z twórcą gry.
+**A collection of unofficial gameplay, building and quality-of-life mods for _StellarDrive Demo_, built on MelonLoader and Harmony.**
 
-| Mod | Co robi |
-|---|---|
-| **Resource Tweaks** | 3x więcej surowców z wydobycia (bez narzędzi), stacki do 100, szybsze kopanie (drzewa -50% czasu, reszta -25%) |
-| **Crouch** | Kucanie na lewy Ctrl (niższa postać i kamera, wolniejszy chód) |
-| **Flora** | Pola kwiatów na planecie (tylko dekoracja) |
-| **Pick Block** | Z narzędziem budowania: środkowy przycisk myszy na części = buduj tą samą częścią; przytrzymany lewy przycisk stawia część w każdym kolejnym wolnym miejscu (jak w Minecrafcie); Alt + kółko myszy na podłodze, ścianie albo szybie zmienia rozmiar kwadratu (1x1 do 9x9, ramka i napis przy celowniku) i jedno kliknięcie stawia cały kwadrat, samo kółko obraca część jak dawniej (opcje `AreaBuild`, `AreaMaxSize`) |
-| **Shared Piloting** | Kilka foteli pilota: obraca statkiem ten, kto rusza myszą (wbudowany żyroskop bezczynnego fotela nie blokuje). Wystarczy u hosta |
-| **Ship Safety** | Naprawia błąd gry, który wyrzuca statek z prędkością wielu c miliony km od planety (paliwo w zbiornikach liczone na minusie → ujemna masa statku). Dodatkowo pilnuje masy, skoków prędkości i limitu 5000 m/s. Statek, który wylądował na innym albo stoi tuż obok, ma kolizję - z żadnego z nich nie da się przejść przez drugi, a taki statek da się potem przenieść narzędziem (opcja `GuestShipCollision`; do tego obaj gracze potrzebują moda, reszta działa u samego hosta) |
-| **Velocity Indicator** | Wskaźnik prędkości na statku nie przeskakuje nagle w bok przy wejściu na orbitę (pokazuje prędkość względem powierzchni planety) i nie pokazuje fałszywego zera. Każdy gracz potrzebuje moda |
-| **Warp Unlock** | Pokazuje w drzewie badań dema ukryte badanie Warp Drive (i badania wymagane przed nim), żeby dało się latać do innych planet. Chowa "Demo Complete" (czujniki są w odblokowanym badaniu "Sensors"). Obaj gracze potrzebują moda |
-| **Mining** | Złoża na planetach (pola kamieni z rudą, widać jaka to ruda) i koparka do zbudowania po badaniu "Mining" (za Chemical Propulsion). Stawiasz ją prosto na ziemi (dopasowuje się do zbocza) albo na podłodze statku, na złożu. Podłączasz prąd (gniazda z szarym daszkiem przy nogach) i sygnał 1, np. z dźwigni (gniazdo z żółtym daszkiem) - wtedy wysuwa wiertło i wydobywa rudę (do 4 stosów po 100, otwierasz jak skrzynię). Klawisz N pokazuje kierunek do najbliższego złoża, U - do uranu, K - do szkła. Obaj gracze potrzebują moda. Badanie "Hydrogen Propulsion" dodaje silnik wodorowy (wodór + tlen + prąd, np. z reaktora - bez któregokolwiek nie ruszy; 1,8x mocniejszy od chemicznego; bladoniebieski płomień) i elektrolizer (lód albo woda + prąd = wodór, tlen i woda; wyjścia po bokach: wodór z lewej przy pomarańczowym zbiorniku, tlen z prawej przy jasnoniebieskim; wejścia z tyłu: prąd i woda przy granatowym zbiorniku; lód do pojemnika z przodu; przy pracy cicho szumi i bulgocze, opcja `ElectrolyzerVolume`) oraz pompę wody 1x1: nad jeziorem na Otrera b F opuszcza wąż (do 30 m) albo sygnał ustawia jego długość (1 = cały, 0 = zwinięty), pompa z prądem nalewa wodę do dwóch wyjść (prawy bok). Badanie "Heavy Hydrogen Engines" (za "Hydrogen Propulsion") dodaje większe silniki wodorowe: M (2x2x3, 4x ciąg małego), L (3x3x4, 4 dysze, 9x) i XL (4x4x6, duża dysza + 6 małych, 20x) - zużywają tyle razy więcej wodoru, tlenu i prądu; rury wodoru i tlenu do gniazd po bokach, prąd do gniazda z przodu. Badanie "Mechanics" odblokowuje Rotor z gry (własny model z teksturą, pełny blok z gniazdem sygnału z przodu; obraca konstrukcję na swojej płycie; dźwignia działa od razu: 0 = pozycja wyjściowa, 1 = 90°, opcja `RotorLeverAngle`; sygnał większy niż 1 to kąt w stopniach, np. 45 z Constant). Złoża uranu (zielone, świecące) na Otrera b; badanie "Nuclear Power" daje reaktor (uran + woda + sygnał 1 na gnieździe z tyłu = 20 000 W; przy pracy świeci, kręci rdzeniami i buczy). Badanie "Large Reactor" (za "Nuclear Power"): duży reaktor 4x4x4 - 100 000 W, zużywa 5x więcej uranu i wody; gniazda na dolnej ramie (prąd po bokach, woda i sygnał z tyłu). Badanie "Large Tanks" (za Gas Handling): zbiorniki Tank 2x2 (800) i Tank 4x4 (6400), 4 wloty na rogach ramy. Badanie "Large Storage" (za Storage): skrzynie Medium Chest (2x2x2, 30 slotów) i Large Chest (3x3x3, 60 slotów). Drzewko badań ułożone w kategorie (kolorowe pasy). Badanie "Large Doors": drzwi 3x2, 3x3, 4x4, 6x3 i bramy 10x5, 16x8, 24x8, 32x8 - jasnoszare jak płytki kadłuba, ciężkie (wolne otwieranie, własny dźwięk), F z każdego miejsca; kolizja tylko na ramie i skrzydle (otwarte przepuszczają na całej szerokości). F11: raport wydajności (UserData/Mining/fps_report.txt); drobne detale statków nie są rysowane dalej niż 30 m (DetailDistance); po śmierci przyczyna w UserData/Mining/death_log.txt. Badanie "Jetpack": ostatni slot plecaka to paliwo (drewno), w powietrzu przytrzymaj skok (płomień z dysz: jasny rdzeń, pomarańczowy ogień, dym i poświata). Badanie "Pontoons" (za Powered Ship Controls): ponton 1x1x3 - nadmuchiwane podwozie pływające, przyczepiasz płytą montażową pod spód statku. Jest spuszczony - podłącz rurę z tlenem do wejścia na końcu płyty montażowej: zbiera 2 tlenu (prosto z elektrolizera ok. 8 s, ze zbiornika od razu) i pompuje się przez ok. 6 s (z sykiem). Powietrze cały czas z niego uchodzi (4 tlenu/min, opcja `PontoonLeakPerMinute`) - póki płynie tlen, ponton sam się dopompowuje; po zakręceniu zaworu albo odcięciu rury po ok. 30 s jest pusty i z sykiem flaczeje. Dopiero napompowany unosi statek na powierzchni jeziora z modem Water (jeden ponton utrzymuje ok. 2000 kg, opcja `PontoonLift` w Water; najlepiej po jednym w każdym rogu), na lądzie działa jak płozy. Badanie "Laser Weapons": działo laserowe 2x1 - strzela, gdy sygnał > 0 (6000 W przy strzelaniu); lufa ma odrzut, po ok. 6 s ciągłego ognia przegrzewa się (klapy się otwierają, leci para, lampka i paski: zielone - gotowe, żółte - gorące, migające czerwone - przegrzane) i strzela znowu po ostygnięciu. Zaawansowany fotel pilota ma dodatkowe gniazda sygnału L i P = lewy i prawy przycisk myszy (gdy siedzisz w fotelu). Shift na drewnie w plecaku (bez otwartej skrzyni) wkłada je w slot paliwa jetpacka; bez drewna pojawia się "Jetpack: no wood". Badanie "Info Panels" (za sygnałami): panele informacyjne S (1x1, 1 wartość, 15 W), M (2x1, 2 wartości, 40 W), L (3x2, 4 wartości, 90 W) - pokazują sygnały z wejść A-D, bez prądu ekran jest ciemny; gniazda na dole (sygnały z lewej, prąd z prawej). V w fotelu pilota: kamera za statkiem (myszką obracasz wokół statku, większy statek = kamera dalej). Pompa wody w jeziorze bulgocze i wciąga wodę wokół wlotu. Menu budowy (Tab) jest szersze, a części są w zakładkach: Control, Propulsion, Power, Fluids, Doors i Utility (zakładka bez odblokowanych części się nie pokazuje). Własne dźwięki: plik o nazwie dźwięku (np. reactor.wav, pontoon_inflate.wav) w UserData/Mining zastępuje wbudowany |
-| **FPS Counter** | Licznik FPS w prawym górnym rogu (F3 włącza/wyłącza) |
-| **Drop Items** | Wyrzucanie przedmiotów: Q z wybranego slotu paska, X ze slotu pod kursorem w ekwipunku (z Shiftem połowa stosu) |
-| **Water** | Prawdziwa woda w akwenach Otrera b (w grze to tylko niebieski teren): stylizowany shader (turkusowa płycizna, błękitna głębia, świetlne kaustyki, biała piana przy brzegu; woda nieprzezroczysta - dna nie widać). Dno akwenów obniżone o 10 m (opcja `LakeDepth`) - zmienia teren, więc obaj gracze potrzebują moda. Statki w jeziorze hamują, odbijają się i powoli toną; z napompowanymi pontonami z moda Mining pływają po powierzchni (wyporność każdego pontonu osobno, więc statek się nie przewraca). Lekkie fale, piaszczyste dno (mokry piasek planety, opcja `LakeBedTexture`). Rozbryzgi przy uderzeniu (korona, pierścienie piany, słup wody), przy pontonach i kilwater w ruchu. Zanurzony statek nabiera wody (widać jej poziom w środku, na razie tylko efekt), a po wynurzeniu woda wylewa się z kokpitu i burt. Pływanie: WASD płyniesz tam, gdzie patrzysz, spacja w górę, kucanie w dół, Shift szybciej (opcja `Swimming`). Od spodu tafla jest lekka i przejrzysta. Po bliskim rozbryzgu albo gdy szyba statku wynurza się z wody, na szybach pojawiają się krople, które spływają w dół i zostawiają ślad (opcja `GlassDroplets`). Plusk gracza zależy od prędkości upadku (np. z jetpacka). Pod wodą kończy się powietrze: pełny zbiornik tlenu starcza na 30 s (opcja `UnderwaterAirSeconds`), potem gracz się topi. Shader: `src/Water/UnityProject` (Unity 6000.3.24f1) |
-| **Planet Unlock** | EKSPERYMENTALNE: wczytuje wszystkie planety układu 442 Otrera (demo wczytuje tylko Otrera b), żeby dało się do nich dolecieć warpem. Obaj gracze potrzebują moda |
+[![Game](https://img.shields.io/badge/game-StellarDrive%20Demo-1b2838?logo=steam&logoColor=white)](https://store.steampowered.com/search/?term=StellarDrive)
+[![MelonLoader](https://img.shields.io/badge/MelonLoader-0.7.3-6b4fbb)](https://github.com/LavaGang/MelonLoader)
+[![.NET Framework](https://img.shields.io/badge/.NET%20Framework-4.7.2-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![C#](https://img.shields.io/badge/language-C%23-239120?logo=csharp&logoColor=white)](src)
+[![Harmony](https://img.shields.io/badge/patching-Harmony-orange)](https://github.com/pardeike/Harmony)
+[![Platform](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white)](#requirements)
+[![Mods](https://img.shields.io/badge/mods-13-brightgreen)](dist/VERSIONS.txt)
+[![Last commit](https://img.shields.io/github/last-commit/FalconDevX/stellardrive-mods)](https://github.com/FalconDevX/stellardrive-mods/commits/main)
 
-Ustawienia (mnożnik, stack, gęstość roślin...) są w `StellarDrive Demo\UserData\MelonPreferences.cfg`
-(plik pojawia się po pierwszym uruchomieniu gry z modami).
+</div>
 
-## Instalacja dla graczy
-
-Potrzebujesz [Gita](https://git-scm.com/download/win) i gry **StellarDrive Demo** ze Steama.
-
-**Pierwszy raz:**
-1. Otwórz terminal (np. PowerShell) w folderze, gdzie chcesz trzymać mody, i wpisz:
-   ```
-   git clone https://github.com/FalconDevX/stellardrive-mods.git
-   ```
-2. **Zamknij grę**, wejdź do folderu `stellardrive-mods` i kliknij dwa razy **`install.bat`**.
-   Skrypt sam znajdzie grę, zainstaluje MelonLoader (jeśli go nie ma) i skopiuje mody.
-3. Uruchom grę normalnie przez Steam. Otworzy się też czarne okno konsoli MelonLoadera - tak ma być.
-
-**Aktualizacja** (gdy pojawią się zmiany): zamknij grę i kliknij dwa razy **`update.bat`**
-(robi `git pull` i instaluje nowe wersje).
-
-Gra jest w innym miejscu? Uruchom w terminalu: `install.bat "D:\SteamLibrary\steamapps\common\StellarDrive Demo"`.
-
-**Multiplayer:** wszyscy gracze powinni mieć te same wersje modów (`dist\VERSIONS.txt`).
-Wyłączenie modów: usuń pliki `.dll` z `StellarDrive Demo\Mods`.
+> [!NOTE]
+> These mods are a fan project and are not affiliated with or endorsed by Curious Owl, the developer of StellarDrive.
 
 ---
 
-# Dla twórców modów
+## Table of contents
 
-Mody to C# (net472) + Harmony. Format `mod.json` jest zgodny z rejestrem
-[StellarModManager](https://github.com/jollyname/StellarModManager).
-Po zmianach w kodzie: `.\tools\pack.ps1` (buduje Release do `dist\Mods`), potem commit i push.
+- [Mods at a glance](#mods-at-a-glance)
+- [Highlights](#highlights)
+- [Installation](#installation)
+- [Updating and uninstalling](#updating-and-uninstalling)
+- [Multiplayer](#multiplayer)
+- [Configuration](#configuration)
+- [Mod details](#mod-details)
+- [For mod developers](#for-mod-developers)
+- [License](#license)
 
-## Wymagania
-- .NET SDK 8+ (`dotnet --list-sdks`)
-- Gra: domyślnie `C:\Program Files (x86)\Steam\steamapps\common\StellarDrive Demo`
-  (inna ścieżka → skopiuj `GamePath.props.example` jako `GamePath.props` albo ustaw `STELLARDRIVE_DIR`)
-- MelonLoader w grze: `.\tools\install-melonloader.ps1`
+---
 
-## Struktura
+## Mods at a glance
+
+| Mod | Version | Summary | Who needs it |
+|---|:---:|---|---|
+| **[Mining](#mining)** | 0.12.0 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels and more | All players |
+| **[Water](#water)** | 0.4.2 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
+| **[Pick Block](#pick-block)** | 0.3.2 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
+| **[Ship Safety](#ship-safety)** | 0.5.3 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
+| **[Resource Tweaks](#resource-tweaks)** | 0.3.2 | 3x resource yield, stacks of 100, faster mining | Host |
+| **[Warp Unlock](#warp-unlock)** | 0.1.2 | Reveals the hidden Warp Drive research in the demo | All players |
+| **[Planet Unlock](#planet-unlock)** | 0.1.1 | *Experimental:* loads every planet of the 442 Otrera system | All players |
+| **[Shared Piloting](#shared-piloting)** | 0.1.1 | Multiple pilot seats: whoever moves the mouse steers | Host |
+| **[Velocity Indicator](#velocity-indicator)** | 0.1.0 | Stable ship velocity readout when entering orbit | Each player |
+| **[Crouch](#crouch)** | 0.1.2 | Crouch with Left Ctrl | Each player |
+| **[Drop Items](#drop-items)** | 0.1.0 | Drop items from the toolbar or inventory | Each player |
+| **[Flora](#flora)** | 0.4.0 | Decorative flower fields on the planet | Each player |
+| **[FPS Counter](#fps-counter)** | 0.1.0 | FPS counter in the top-right corner (F3) | Each player |
+
+Current versions are always listed in [`dist/VERSIONS.txt`](dist/VERSIONS.txt).
+
+## Highlights
+
+- **New progression:** over a dozen new research nodes (Mining, Hydrogen Propulsion, Heavy Hydrogen Engines, Nuclear Power, Large Reactor, Mechanics, Laser Weapons, Jetpack, Info Panels, Large Doors, Large Tanks, Large Storage), with the research tree grouped into colored category rows.
+- **Industrial chain:** mine ore and uranium, electrolyze ice or water into hydrogen and oxygen, and power ships with chemical, hydrogen or nuclear energy.
+- **Living lakes:** ships float on inflatable pontoons, sink without them, and players can swim and drown.
+- **Faster building:** pick parts like in Minecraft, hold to place in a row, place whole squares of hull at once.
+- **Stability fixes:** a long-standing physics bug that flings ships millions of kilometres away is fixed, along with several performance improvements for large worlds.
+- **Plays well with others:** `mod.json` metadata is compatible with the [StellarModManager](https://github.com/jollyname/StellarModManager) registry.
+
+---
+
+## Installation
+
+### Requirements
+
+- Windows
+- **StellarDrive Demo** from Steam
+- [Git for Windows](https://git-scm.com/download/win)
+
+MelonLoader is installed automatically if it is missing.
+
+### First install
+
+1. Clone the repository wherever you want to keep the mods:
+
+   ```bash
+   git clone https://github.com/FalconDevX/stellardrive-mods.git
+   ```
+
+2. **Close the game**, open the `stellardrive-mods` folder and double-click **`install.bat`**.
+   The script locates the game through Steam (including additional library folders), installs MelonLoader 0.7.3 if needed and copies the mods into `<game>\Mods`.
+
+3. Launch the game normally through Steam. A black MelonLoader console window opens alongside it; this is expected.
+
+If the game is installed somewhere the script cannot find, pass the path explicitly:
+
+```bat
+install.bat "D:\SteamLibrary\steamapps\common\StellarDrive Demo"
 ```
-Directory.Build.props    wspólne ustawienia: net472, referencje do MelonLoadera i wszystkich DLL gry
-Directory.Build.targets  sprawdzenie ścieżek + auto-kopiowanie .dll do <gra>\Mods po buildzie
-src/<Mod>/               jeden folder = jeden mod (csproj, klasa MelonMod, Patches/, mod.json)
-tools/                   install/uninstall MelonLoadera, run-game, new-mod, pack (Release -> dist), install (dla graczy)
-dist/Mods/               gotowe .dll dla graczy (aktualizowane przez tools\pack.ps1)
-install.bat, update.bat  instalacja / aktualizacja dla graczy
+
+## Updating and uninstalling
+
+| Action | How |
+|---|---|
+| Update | Close the game and double-click **`update.bat`** (runs `git pull`, then reinstalls the mods). |
+| Disable one mod | Delete its `.dll` from `StellarDrive Demo\Mods`. |
+| Remove all mods | Delete every `.dll` from `StellarDrive Demo\Mods`. |
+| Remove MelonLoader | Run `.\tools\uninstall-melonloader.ps1`. |
+
+## Multiplayer
+
+StellarDrive uses FishNet for multiplayer. Some mods only need to run on the host, while others change terrain, parts or research and must be installed by everyone (see the [table above](#mods-at-a-glance)). To avoid desyncs, **all players should run the same mod versions** from [`dist/VERSIONS.txt`](dist/VERSIONS.txt).
+
+## Configuration
+
+Every mod exposes its settings through MelonPreferences in:
+
+```
+StellarDrive Demo\UserData\MelonPreferences.cfg
 ```
 
-## Codzienna praca
+The file is created the first time the game starts with mods installed. Settings marked *All players must use the same value* in their descriptions must match between host and clients.
+
+A few commonly tweaked options:
+
+| Mod | Option | Default | Description |
+|---|---|---|---|
+| Resource Tweaks | `DropMultiplier` | `3` | Resource yield multiplier |
+| Resource Tweaks | `MaxStackSize` | `100` | Maximum stack size |
+| Mining | `HydrogenThrustMultiplier` | `1.8` | Hydrogen thruster strength relative to the chemical one |
+| Mining | `ReactorPower` | `20000` | Reactor output in watts |
+| Mining | `RotorLeverAngle` | `90` | Rotor angle for a signal of 1 |
+| Mining | `DetailDistance` | `30` | Distance beyond which small ship details are hidden (m) |
+| Pick Block | `AreaMaxSize` | `9` | Largest square side for area building |
+| Ship Safety | `MaxSpeed` | `5000` | Ship speed limit (m/s) |
+| Ship Safety | `GuestShipCollision` | `true` | Collision between parked ships |
+| Water | `LakeDepth` | `10` | How far lake beds are lowered (m) |
+| Water | `UnderwaterAirSeconds` | `30` | Breath time underwater with a full oxygen tank |
+| FPS Counter | `ToggleKey` | `F3` | Toggles the counter |
+
+---
+
+## Mod details
+
+### Mining
+
+The largest mod in the collection. It adds resource extraction, new power sources, propulsion and a set of new parts. **All players need it.**
+
+<details>
+<summary><b>Deposits and excavator</b></summary>
+
+- Ore deposits appear on planets as fields of rocks that show which ore they contain. Glowing green **uranium** deposits spawn on Otrera b.
+- The **Excavator** (research *Mining*, after *Chemical Propulsion*) can be placed directly on the ground (it adapts to slopes) or on a ship floor above a deposit.
+- Connect power (sockets with a grey cap by the legs) and a signal of `1` (yellow-capped socket), e.g. from a lever. The drill extends and mines up to 4 stacks of 100 ore, accessible like a chest.
+- Navigation keys: **N** nearest deposit, **U** nearest uranium, **K** nearest glass.
+
+</details>
+
+<details>
+<summary><b>Hydrogen propulsion</b></summary>
+
+- **Hydrogen thruster** (research *Hydrogen Propulsion*): needs hydrogen, oxygen and power, is 1.8x stronger than the chemical thruster and burns with a pale blue flame.
+- **Electrolyzer:** turns ice or water plus power into hydrogen, oxygen and water. Hydrogen exits on the left by the orange tank, oxygen on the right by the light blue tank; power and water enter at the back, ice goes into the front container.
+- **Water pump (1x1):** above a lake on Otrera b it lowers a hose (up to 30 m, length controllable by signal) and pumps water to two outlets.
+- **Heavy hydrogen engines** (research *Heavy Hydrogen Engines*): sizes **M** (2x2x3, 4x thrust), **L** (3x3x4, 4 nozzles, 9x) and **XL** (4x4x6, large nozzle plus 6 small, 20x), with proportionally higher consumption.
+
+</details>
+
+<details>
+<summary><b>Nuclear power</b></summary>
+
+- **Reactor** (research *Nuclear Power*): uranium + water + a signal of `1` produces 20,000 W. It glows, spins its cores and hums while running.
+- **Large reactor** (research *Large Reactor*): 4x4x4, 100,000 W, uses 5x more uranium and water. Sockets are on the bottom frame.
+
+</details>
+
+<details>
+<summary><b>Building parts and storage</b></summary>
+
+- **Rotor** (research *Mechanics*): rotates the structure on its plate. A lever works out of the box (`0` = home, `1` = 90°); signals above 1 are interpreted as degrees.
+- **Large doors and gates** (research *Large Doors*): doors 3x2, 3x3, 4x4, 6x3 and gates 10x5, 16x8, 24x8, 32x8, with heavy opening animation and custom sound.
+- **Large tanks** (research *Large Tanks*): Tank 2x2 (800) and Tank 4x4 (6400).
+- **Large chests** (research *Large Storage*): Medium Chest (2x2x2, 30 slots) and Large Chest (3x3x3, 60 slots).
+- **Info panels** (research *Info Panels*): S, M and L displays that show signal values from inputs A-D.
+- The build menu (**Tab**) is wider and split into tabs: Control, Propulsion, Power, Fluids, Doors and Utility.
+
+</details>
+
+<details>
+<summary><b>Pontoons, weapons, jetpack and camera</b></summary>
+
+- **Inflatable pontoons:** feed oxygen into the inlet to inflate them. They slowly leak while air is supplied and deflate about 30 s after the supply is cut. With the Water mod each pontoon supports about 2000 kg; on land they act as skids.
+- **Laser cannon** (research *Laser Weapons*): fires while its signal is above 0, has recoil and overheats after about 6 s of continuous fire, with status lights and venting steam.
+- The advanced pilot seat gets extra **L** and **R** signal outputs for the mouse buttons.
+- **Jetpack** (research *Jetpack*): the last backpack slot holds wood as fuel; hold Jump in mid-air to fly. Shift-click wood to load it.
+- **V** in a pilot seat toggles a chase camera behind the ship.
+
+</details>
+
+<details>
+<summary><b>Performance and diagnostics</b></summary>
+
+- Cached hull bounds, throttled cable visuals and faster room/oxygen recalculation reduce lag on large worlds.
+- Small ship details are not drawn beyond 30 m (`DetailDistance`).
+- **F11** writes a performance report to `UserData/Mining/fps_report.txt`; the cause of death is logged to `UserData/Mining/death_log.txt`.
+- Custom sounds: drop a `.wav` named after a built-in sound (e.g. `reactor.wav`) into `UserData/Mining` to replace it.
+
+</details>
+
+### Water
+
+Turns the blue terrain of Otrera b's lakes into real water. **All players need it** (it lowers lake beds by 10 m).
+
+- Stylized shader with turquoise shallows, deep blue depths, caustics and shoreline foam; a light, translucent surface when seen from below.
+- Ships in a lake brake, bounce and slowly sink. With inflated pontoons from Mining they float, with buoyancy computed per pontoon so ships stay upright.
+- Gentle waves, sandy lake beds, impact splashes, pontoon spray and wakes.
+- Submerged ships take on water, which drains from the cockpit and hull once they surface; droplets run down the glass.
+- **Swimming:** WASD to swim where you look, Space up, Crouch down, Shift faster.
+- Breath lasts 30 s underwater with a full oxygen tank, after which the player drowns.
+- The shader source lives in [`src/Water/UnityProject`](src/Water/UnityProject) (Unity 6000.3.24f1).
+
+### Pick Block
+
+- **Middle mouse** on a part selects the same part for building.
+- **Hold left mouse** to keep placing the part in each next free spot.
+- **Alt + mouse wheel** on a floor, wall or window resizes the build square (1x1 to 9x9, with an outline and a label by the crosshair); one click places the whole square. The wheel alone still rotates parts.
+
+### Ship Safety
+
+- Fixes a game bug where fuel in tanks is counted as negative, giving the ship negative mass and flinging it at many times the speed of light millions of kilometres from the planet.
+- Guards against mass errors, sudden speed jumps and enforces a 5000 m/s limit.
+- Ships parked on or next to each other collide properly and can be moved with the tool afterwards (`GuestShipCollision`, needs the mod on both sides; everything else works host-only).
+
+### Resource Tweaks
+
+3x resources from tool-less mining, stack size of 100, and faster mining (trees -50% time, everything else -25%). Host only.
+
+### Warp Unlock
+
+Reveals the Warp Drive research hidden in the demo, together with its prerequisites, so you can fly to other planets. Hides the "Demo Complete" screen (sensors come from the unlocked *Sensors* research). All players need it.
+
+### Planet Unlock
+
+> [!WARNING]
+> Experimental.
+
+Loads every planet of the 442 Otrera system (the demo only loads Otrera b) so they can be reached by warp. All players need it.
+
+### Shared Piloting
+
+Supports multiple pilot seats: whoever moves the mouse steers the ship, and the idle seat's built-in gyroscope no longer locks rotation. Host only.
+
+### Velocity Indicator
+
+The ship velocity indicator no longer jumps sideways when entering orbit (it shows speed relative to the planet surface) and no longer shows a false zero. Each player needs it.
+
+### Crouch
+
+Crouch with **Left Ctrl**: lower character height and camera, slower movement.
+
+### Drop Items
+
+Drop items with **Q** from the selected toolbar slot or **X** from the inventory slot under the cursor. Hold **Shift** to drop half the stack.
+
+### Flora
+
+Decorative flower fields on the planet surface.
+
+### FPS Counter
+
+FPS counter in the top-right corner, toggled with **F3**.
+
+---
+
+## For mod developers
+
+Mods are written in C# targeting .NET Framework 4.7.2 and patch the game with Harmony.
+
+### Requirements
+
+- .NET SDK 8 or newer (`dotnet --list-sdks`)
+- StellarDrive Demo, by default at `C:\Program Files (x86)\Steam\steamapps\common\StellarDrive Demo`.
+  For a different location, copy [`GamePath.props.example`](GamePath.props.example) to `GamePath.props` or set the `STELLARDRIVE_DIR` environment variable.
+- MelonLoader in the game: `.\tools\install-melonloader.ps1`
+
+### Workflow
+
 ```powershell
-.\tools\new-mod.ps1 -Name MoreIron      # nowy mod w src/MoreIron
-dotnet build                            # build wszystkich modów + kopia do <gra>\Mods
-.\tools\run-game.ps1 -Follow            # start gry + podgląd MelonLoader\Latest.log
+.\tools\new-mod.ps1 -Name MoreIron      # scaffold a new mod in src/MoreIron
+dotnet build                            # build all mods and copy them to <game>\Mods
+.\tools\run-game.ps1 -Follow            # start the game and tail MelonLoader\Latest.log
+.\tools\pack.ps1                        # build Release into dist\Mods for players
 ```
-W VS Code: `Ctrl+Shift+B` (build) albo task **build + run game**.
 
-- Log: `<gra>\MelonLoader\Latest.log`
-- Konfiguracja modów (MelonPreferences): `<gra>\UserData\MelonPreferences.cfg`
-- Wyłączenie moda: usuń jego `.dll` z `<gra>\Mods`. Czysta gra: `.\tools\uninstall-melonloader.ps1`
+In VS Code use `Ctrl+Shift+B` (build) or the **build + run game** task.
 
-## Wskazówki
-- Logika gry jest w modułach w `StellarDrive_Data\Managed` (`Ships.dll`, `Items.Model.dll`, `Planets.dll`,
-  `Players.dll`, `Research.dll`, `Saving.dll`, `UI.dll`…), nie tylko w `Assembly-CSharp.dll`.
-  Do przeglądania: [ILSpy](https://github.com/icsharpcode/ILSpy) / dnSpyEx.
-- Gra używa **nowego Input Systemu** (`UnityEngine.InputSystem.Keyboard.current`), `UnityEngine.Input` nie zadziała.
-- Prywatne pola w patchach: parametry `___nazwaPola` albo `AccessTools.Field(...)`.
-- Gra ma multiplayer (FishNet) - mody zmieniające rozgrywkę zwykle musi mieć host (a często wszyscy gracze).
-- Zdekompilowanego kodu gry nie commitujemy (`decompiled/` jest w `.gitignore`).
+- Log: `<game>\MelonLoader\Latest.log`
+- Settings: `<game>\UserData\MelonPreferences.cfg`
+- Clean game: `.\tools\uninstall-melonloader.ps1`
 
-## Przykład: `src/HelloStellar`
-Logowanie, wpis w konfiguracji (`DebugKey`, domyślnie F8 - wypisuje pozycję kamery),
-reakcja na wczytanie sceny i patch Harmony na `Items.Model.ItemSettingsList.ResetDict`.
+### Project structure
+
+```
+Directory.Build.props    shared settings: net472, references to MelonLoader and all game assemblies
+Directory.Build.targets  path checks and automatic copy of built DLLs to <game>\Mods
+src/<Mod>/               one folder per mod (csproj, MelonMod class, Patches/, mod.json)
+tools/                   MelonLoader install/uninstall, run-game, new-mod, pack, player installer
+dist/Mods/               prebuilt DLLs for players (updated by tools\pack.ps1)
+install.bat, update.bat  player install and update entry points
+```
+
+### Tips
+
+- Game logic is split across modules in `StellarDrive_Data\Managed` (`Ships.dll`, `Items.Model.dll`, `Planets.dll`, `Players.dll`, `Research.dll`, `Saving.dll`, `UI.dll`, ...), not just `Assembly-CSharp.dll`. Browse them with [ILSpy](https://github.com/icsharpcode/ILSpy) or dnSpyEx.
+- The game uses the **new Input System** (`UnityEngine.InputSystem.Keyboard.current`); `UnityEngine.Input` does not work.
+- Access private fields in patches with `___fieldName` parameters or `AccessTools.Field(...)`.
+- Multiplayer runs on FishNet: gameplay-changing mods usually need to run on the host, often on every client too.
+- Decompiled game code is never committed (`decompiled/` is in `.gitignore`).
+- [`src/HelloStellar`](src/HelloStellar) is a minimal example: logging, a preference entry (`DebugKey`, F8 prints the camera position), scene-load handling and a Harmony patch on `Items.Model.ItemSettingsList.ResetDict`.
+
+---
+
+## License
+
+This repository does not include a license file yet, so all rights are reserved by default. StellarDrive and its assets belong to Curious Owl.
