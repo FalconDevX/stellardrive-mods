@@ -58,16 +58,17 @@ namespace Mining.Server
                     }
                     var state = (WoodPowerGeneratorState)part.State;
                     bool reactor = Reactor.Is(part.Settings);
-                    float maxPower = deltaTime * (reactor ? MiningMod.ReactorPower.Value : WoodPower);
+                    float scale = Reactor.Scale(part.Settings);
+                    float maxPower = deltaTime * (reactor ? MiningMod.ReactorPower.Value * scale : WoodPower);
                     float level = Capacity(____ship, part, deltaTime) / maxPower * group.NormalizedGeneratorRate;
-                    float fuelPerSecond = reactor ? 1f / Mathf.Max(1f, MiningMod.ReactorSecondsPerUranium.Value) : WoodPerSecond;
+                    float fuelPerSecond = reactor ? scale / Mathf.Max(1f, MiningMod.ReactorSecondsPerUranium.Value) : WoodPerSecond;
                     uint fuelItem = reactor ? Uranium.ItemId : ItemsConstants.WoodItemId;
                     float left = Mathf.Max(Fuel(state, reactor) - level * deltaTime * fuelPerSecond, 0f);
                     int whole = Mathf.FloorToInt(left);
                     InventorySlot slot = whole > 0 ? new InventorySlot { HasItem = true, Quantity = (byte)whole, ItemId = fuelItem } : new InventorySlot { HasItem = false };
                     if (reactor && level > 0f && TryGetWater(____ship, part.Id, out FluidGroupServerState water))
                     {
-                        water.RemoveFluid(Mathf.Min(level * WaterPerSecond * deltaTime, water.Available));
+                        water.RemoveFluid(Mathf.Min(level * WaterPerSecond * scale * deltaTime, water.Available));
                     }
                     ____ship.UpdatePartState(part.Id, state with { ItemSlot = slot, NormalizedProductionLevel = level, PartialItemConsumptionLevel = left - whole });
                 }
@@ -83,7 +84,8 @@ namespace Mining.Server
         {
             var state = (WoodPowerGeneratorState)part.State;
             bool reactor = Reactor.Is(part.Settings);
-            float fuelPerSecond = reactor ? 1f / Mathf.Max(1f, MiningMod.ReactorSecondsPerUranium.Value) : WoodPerSecond;
+            float scale = Reactor.Scale(part.Settings);
+            float fuelPerSecond = reactor ? scale / Mathf.Max(1f, MiningMod.ReactorSecondsPerUranium.Value) : WoodPerSecond;
             float need = deltaTime * fuelPerSecond;
             float factor = Mathf.Min(Fuel(state, reactor), need) / need;
             if (reactor && !SwitchedOn(ship, part.Id))
@@ -92,10 +94,10 @@ namespace Mining.Server
             }
             if (reactor)
             {
-                float waterNeed = WaterPerSecond * deltaTime;
+                float waterNeed = WaterPerSecond * scale * deltaTime;
                 factor = TryGetWater(ship, part.Id, out FluidGroupServerState water) ? Mathf.Min(factor, Mathf.Min(water.Available, waterNeed) / waterNeed) : 0f;
             }
-            return factor * deltaTime * (reactor ? MiningMod.ReactorPower.Value : WoodPower);
+            return factor * deltaTime * (reactor ? MiningMod.ReactorPower.Value * scale : WoodPower);
         }
 
         private static float Fuel(WoodPowerGeneratorState state, bool reactor)

@@ -21,6 +21,7 @@ namespace Mining.Patches
             (HydrogenThruster.PartId, HydrogenThruster.GetOrCreatePart, () => HydrogenThruster.Part, 19),
             (ElectrolyzerPart.PartId, ElectrolyzerPart.GetOrCreatePart, () => ElectrolyzerPart.Part, 80),
             (Reactor.PartId, Reactor.GetOrCreatePart, () => Reactor.Part, 60),
+            (Reactor.LargePartId, Reactor.GetOrCreateLarge, () => Reactor.Large, Reactor.PartId),
             (WaterPump.PartId, WaterPump.GetOrCreatePart, () => WaterPump.Part, 81),
             (HydrogenEngines.Variants[0].Id, p => HydrogenEngines.GetOrCreate(HydrogenEngines.Variants[0].Id, p), () => HydrogenEngines.Get(HydrogenEngines.Variants[0].Id), HydrogenThruster.PartId),
             (HydrogenEngines.Variants[1].Id, p => HydrogenEngines.GetOrCreate(HydrogenEngines.Variants[1].Id, p), () => HydrogenEngines.Get(HydrogenEngines.Variants[1].Id), HydrogenThruster.PartId),
@@ -64,6 +65,10 @@ namespace Mining.Patches
             () => HydrogenEngines.All,
             (Items.Model.ItemsConstants.IronItemId, 80), (112, 40), (Items.Model.ItemsConstants.GlassItemId, 20));
 
+        internal static readonly ModResearch LargeReactorResearch = new ModResearch(Reactor.LargeResearchId, "Large Reactor", new Vector2Int(7, 4), 204,
+            () => new[] { Reactor.Large },
+            (Items.Model.ItemsConstants.IronItemId, 150), (112, 80), (Items.Model.ItemsConstants.GlassItemId, 40));
+
         internal static readonly ModResearch MechanicsResearch = new ModResearch(RotorUnlock.ResearchId, "Mechanics", new Vector2Int(4, 5), 16,
             () => new[] { RotorUnlock.Rotor },
             (Items.Model.ItemsConstants.IronItemId, 20), (112, 10));
@@ -105,6 +110,7 @@ namespace Mining.Patches
             HeavyHydrogenResearch.Ensure();
             MechanicsResearch.Ensure();
             NuclearResearch.Ensure();
+            LargeReactorResearch.Ensure();
             LaserResearch.Ensure();
             PontoonResearch.Ensure();
             InfoPanelsResearch.Ensure();
@@ -177,7 +183,7 @@ namespace Mining.Patches
         {
             ("Control", new ushort[] { 3, 29, 17, 46, 18, 50, 54, 45, 48, 82, 56, 49, 68, 39, 225, 226, 227 }),
             ("Propulsion", new ushort[] { 69, 19, 201, 228, 229, 230, 53, 16, 58, 222 }),
-            ("Power", new ushort[] { 61, 65, 60, 203 }),
+            ("Power", new ushort[] { 61, 65, 60, 203, Reactor.LargePartId }),
             ("Fluids", new ushort[] { 24, 81, 57, 23, 218, 215, 79, 66, 67, 202, 214, 80 }),
             ("Doors", new ushort[] { DoorPartId, 42, 217, 210, 211, 212, 213, 216, 223, 224 }),
             ("Utility", new ushort[] { 22, 15, 38, 30, 219, 220, 43, 41, 200, 221, 55 }),

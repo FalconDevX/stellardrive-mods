@@ -279,6 +279,13 @@ namespace Mining.Diagnostics
                 }
             }
 
+            if (Content.Reactor.Large != null)
+            {
+                GameObject large = UnityEngine.Object.Instantiate(Content.Reactor.Large.part, ground + Vector3.Cross(up, fwd) * -7.5f + fwd * 3f, Quaternion.LookRotation(fwd, up));
+                large.SetActive(true);
+                log.Msg($"[test] large reactor placed, sockets: {large.GetComponentsInChildren<Ships.Interface.Model.Parts.Common.SocketObject>(true).Length}");
+            }
+
             var storageMenu = UnityEngine.Object.FindObjectsOfType<UI.Inventory.StorageMenuActivator>(true).FirstOrDefault();
             log.Msg($"[test] electrolyzer window: {(storageMenu != null && Traverse.Create(storageMenu).Field("electrolyzerMenu").GetValue<GameObject>() != null ? "present" : "MISSING")}");
 
@@ -834,7 +841,7 @@ namespace Mining.Diagnostics
             yield return null;
             large = thumbs?.GetLargeThumbnail(seat.id) ?? large;
             if (large != null) SaveTexture(large, Path.Combine(OutDir, "test_thumb_seat.png"));
-            foreach (ushort id in new ushort[] { Content.HydrogenThruster.PartId, Content.RotorUnlock.RotorPartId }.Concat(Content.HydrogenEngines.Variants.Select(v => v.Id)))
+            foreach (ushort id in new ushort[] { Content.HydrogenThruster.PartId, Content.RotorUnlock.RotorPartId, Content.Reactor.PartId, Content.Reactor.LargePartId }.Concat(Content.HydrogenEngines.Variants.Select(v => v.Id)))
             {
                 Texture2D thumb = thumbs?.GetLargeThumbnail(id);
                 yield return null;
@@ -865,7 +872,7 @@ namespace Mining.Diagnostics
                         log.Msg($"[menu] tab rect {((RectTransform)tab.transform).rect.size}");
                     }
                     var config = Traverse.Create(opened).Field<UI.BuildMenu.BuildMenuTabConfig[]>("tabsConfig").Value;
-                    int propulsion = Array.FindIndex(config, t => t.name == "Propulsion");
+                    int propulsion = Array.FindIndex(config, t => t.name == "Power");
                     if (propulsion >= 0)
                     {
                         Traverse.Create(opened).Method("SwitchTab", propulsion).GetValue();

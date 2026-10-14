@@ -20,6 +20,8 @@ Shader "StellarDriveMods/StylizedWater"
         _NormalTex ("Ripples", 2D) = "bump" {}
         _NormalScale ("Ripples scale (1/m)", Float) = 0.08
         _NormalStrength ("Ripples strength", Float) = 0.35
+        _PatchScale ("Patches scale (1/m)", Float) = 0.012
+        _PatchStrength ("Patches strength", Float) = 0.22
         _Smoothness ("Smoothness", Range(0, 1)) = 0.9
         _FresnelColor ("Fresnel / sky", Color) = (0.62, 0.86, 0.95, 1)
         _UseSceneDepth ("Use scene depth", Float) = 1
@@ -57,6 +59,7 @@ Shader "StellarDriveMods/StylizedWater"
                 float _FoamScale, _FoamDistance;
                 float _NormalScale, _NormalStrength, _Smoothness, _UseSceneDepth, _Exposure;
                 float _WaveHeight, _WaveSpeed;
+                float _PatchScale, _PatchStrength;
             CBUFFER_END
 
             struct Attributes
@@ -115,7 +118,7 @@ Shader "StellarDriveMods/StylizedWater"
 
             float Band(float v, float edge) { return smoothstep(edge - 0.04, edge + 0.04, v); }
 
-            half4 frag(Varyings i, bool front : SV_IsFrontFace) : SV_Target
+            half4 frag(Varyings i) : SV_Target
             {
                 float t = _Time.y;
                 float3 up = normalize(i.normalWS);
@@ -141,12 +144,14 @@ Shader "StellarDriveMods/StylizedWater"
                 float2 uvN2 = i.uv * _NormalScale * 1.7 + float2(-t * 0.009, t * 0.013);
                 float3 n1 = UnpackNormal(SAMPLE_TEXTURE2D(_NormalTex, sampler_NormalTex, uvN1));
                 float3 n2 = UnpackNormal(SAMPLE_TEXTURE2D(_NormalTex, sampler_NormalTex, uvN2));
-                float2 ripple = (n1.xy + n2.xy) * _NormalStrength - i.slope;
+                float2 uvN3 = i.uv * _NormalScale * 0.23 + float2(t * 0.004, -t * 0.003);
+                float3 n3 = UnpackNormal(SAMPLE_TEXTURE2D(_NormalTex, sampler_NormalTex, uvN3));
+                float2 ripple = (n1.xy + n2.xy + n3.xy * 1.4) * _NormalStrength - i.slope;
                 float3 tangent = normalize(cross(up, abs(up.y) < 0.9 ? float3(0, 1, 0) : float3(1, 0, 0)));
                 float3 bitangent = cross(up, tangent);
                 float3 normal = normalize(up + tangent * ripple.x + bitangent * ripple.y);
 
-                if (!front)
+                if (dot(viewDir, up) < 0)
                 {
                     Light sunBelow = GetMainLight();
                     half3 ambientBelow = SampleSH(up);
@@ -169,16 +174,23 @@ Shader "StellarDriveMods/StylizedWater"
                 caustics *= _CausticsStrength * saturate(1.2 - depth / (_DeepDepth * 1.4));
                 col.rgb += caustics * half3(0.85, 1.0, 0.95);
 
+                float p1 = SAMPLE_TEXTURE2D_LOD(_FoamTex, sampler_FoamTex, i.uv * _PatchScale + float2(t * 0.003, t * 0.002), 5).r;
+                float p2 = SAMPLE_TEXTURE2D_LOD(_FoamTex, sampler_FoamTex, i.uv * _PatchScale * 0.37 + float2(-t * 0.002, t * 0.0025), 5).r;
+                float patches = saturate((p1 + p2) * 0.5 / 0.45);
+                col.rgb *= 1 + (patches - 0.5) * 2 * _PatchStrength;
+
                 Light sun = GetMainLight();
                 float ndl = saturate(dot(normal, sun.direction)) * 0.5 + 0.5;
                 half3 ambient = SampleSH(normal);
-                col.rgb *= sun.color * ndl * 0.8 + ambient * 0.7;
-                float fresnel = pow(1 - saturate(dot(normal, viewDir)), 4);
-                col.rgb = lerp(col.rgb, _FresnelColor.rgb * (sun.color * 0.5 + ambient), fresnel * 0.6);
+                half3 light = sun.color * ndl * 0.62 + ambient * 0.45;
+                col.rgb *= light / max(1, max(light.r, max(light.g, light.b)));
+                float fresnel = pow(1 - saturate(dot(normal, viewDir)), 5);
+                half3 sky = _FresnelColor.rgb * saturate(sun.color * 0.4 + ambient * 0.6);
+                col.rgb = lerp(col.rgb, sky, fresnel * 0.35);
                 col.a = lerp(col.a, 1, fresnel * 0.5);
                 float3 h = normalize(sun.direction + viewDir);
                 float spec = pow(saturate(dot(normal, h)), lerp(16, 512, _Smoothness));
-                col.rgb += sun.color * Band(spec, 0.5) * 0.6;
+                col.rgb += sun.color * Band(spec, 0.5) * 0.45;
 
                 float foamTex = SAMPLE_TEXTURE2D(_FoamTex, sampler_FoamTex, i.uv * _FoamScale + float2(t * 0.01, -t * 0.008)).r;
                 float shore = 1 - saturate(edgeDepth / _FoamDistance);
