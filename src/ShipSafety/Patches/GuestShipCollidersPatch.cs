@@ -25,6 +25,9 @@ namespace ShipSafety.Patches
             public ShipHullColliders Hull;
             public TrackedShip Ship;
             public int Frame;
+            public bool Placed;
+            public Vector3 Position;
+            public Quaternion Rotation;
             public IHullPartCreationSync[] HullSyncs;
             public IStatefulPartCreationSync[] CreationSyncs;
             public IStatefulPartStateSync[] StateSyncs;
@@ -37,6 +40,7 @@ namespace ShipSafety.Patches
         private const int RadiusRefreshFrames = 120;
         private const float NearMargin = 2f;
         private const int MaxGuestParts = 1500;
+        private const float MoveEpsilon = 0.002f, TurnEpsilon = 0.05f;
         private const float MaxGuestScale = 1.25f;
         private static readonly HashSet<(bool, uint, uint)> Logged = new HashSet<(bool, uint, uint)>();
         private static bool _failed;
@@ -110,8 +114,15 @@ namespace ShipSafety.Patches
                     if (entry.Colliders.scene != scene)
                     {
                         SceneManager.MoveGameObjectToScene(entry.Colliders, scene);
+                        entry.Placed = false;
                     }
-                    entry.Colliders.transform.SetPositionAndRotation(position, rotation);
+                    if (!entry.Placed || (entry.Position - position).sqrMagnitude > MoveEpsilon * MoveEpsilon || Quaternion.Angle(entry.Rotation, rotation) > TurnEpsilon)
+                    {
+                        entry.Colliders.transform.SetPositionAndRotation(position, rotation);
+                        entry.Position = position;
+                        entry.Rotation = rotation;
+                        entry.Placed = true;
+                    }
                     if (entry.Hull != null && entry.Hull.ShouldUpdate)
                     {
                         entry.Hull.UpdateColliders();

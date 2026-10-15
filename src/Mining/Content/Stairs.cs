@@ -115,6 +115,30 @@ namespace Mining.Content
             return b.Build("MetalStairs");
         }
 
+        private static readonly Mesh[] Rails = new Mesh[2];
+
+        internal static Mesh RailColliderMesh(int side)
+        {
+            if (Rails[side] != null)
+            {
+                return Rails[side];
+            }
+            float outer = (side == 0 ? -1f : 1f) * Width / 2f, inner = outer - (side == 0 ? -1f : 1f) * 0.08f;
+            var profile = new[] { new Vector2(-Run / 2f, 0f), new Vector2(Run / 2f, Rise), new Vector2(Run / 2f, Rise + PostHeight), new Vector2(-Run / 2f, PostHeight) };
+            var vertices = new List<Vector3>();
+            foreach (float x in new[] { outer, inner })
+            {
+                vertices.AddRange(profile.Select(p => new Vector3(x, p.y, p.x)));
+            }
+            var mesh = new Mesh { name = "MetalStairsRail" + side };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(new[] { 0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6, 0, 4, 5, 0, 5, 1, 1, 5, 6, 1, 6, 2, 2, 6, 7, 2, 7, 3, 3, 7, 4, 3, 4, 0 }, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            mesh.hideFlags = HideFlags.DontUnloadUnusedAsset;
+            return Rails[side] = mesh;
+        }
+
         internal static Mesh ColliderMesh()
         {
             if (_collider != null)

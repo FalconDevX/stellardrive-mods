@@ -41,6 +41,13 @@ namespace Mining.Patches
             ramp.sharedMesh = Stairs.ColliderMesh();
             ramp.convex = true;
             ramp.sharedMaterial = material;
+            for (int side = 0; side < 2; side++)
+            {
+                MeshCollider rail = __result.gameObject.AddComponent<MeshCollider>();
+                rail.sharedMesh = Stairs.RailColliderMesh(side);
+                rail.convex = true;
+                rail.sharedMaterial = material;
+            }
             __result.gameObject.AddComponent<StairsCollider>();
         }
     }
