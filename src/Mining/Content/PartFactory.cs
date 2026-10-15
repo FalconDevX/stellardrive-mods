@@ -106,6 +106,8 @@ namespace Mining.Content
             }
 
             var s = Vector3.one * scale;
+            var originals = root.GetComponentsInChildren<SocketObject>(true).Select(x => x.transform)
+                .Select(t => (t, pos: root.transform.InverseTransformPoint(t.position))).ToList();
             foreach (Transform unit in root.transform.Cast<Transform>().ToArray())
             {
                 if (unit.GetComponent<SocketObject>() != null)
@@ -147,6 +149,45 @@ namespace Mining.Content
                     Melon<MiningMod>.Logger.Warning($"{label}: {unit.name} has a collider other than BoxCollider - it keeps the small size");
                 }
             }
+            foreach (var (t, pos) in originals)
+            {
+                Vector3 p = root.transform.InverseTransformPoint(t.position);
+                Vector3 snapped = SnapToGrid(p, pos, c1, b1, size, scale);
+                t.position = root.transform.TransformPoint(snapped);
+                Melon<MiningMod>.Logger.Msg($"{label}: socket {t.name} {pos} -> {snapped}");
+            }
+        }
+
+        private static Vector3 SnapToGrid(Vector3 p, Vector3 original, Vector3 center, Vector3 bounds, Vector3 size, float scale)
+        {
+            int normal = 0;
+            float best = -1f;
+            for (int k = 0; k < 3; k++)
+            {
+                float edge = bounds[k] > 0.001f ? Mathf.Abs(p[k] - center[k]) / (bounds[k] * 0.5f) : 0f;
+                if (edge > best)
+                {
+                    best = edge;
+                    normal = k;
+                }
+            }
+            Vector3 r = p;
+            for (int k = 0; k < 3; k++)
+            {
+                if (k == normal)
+                {
+                    continue;
+                }
+                if (k == 1)
+                {
+                    r.y = Mathf.Min(p.y, original.y);
+                    continue;
+                }
+                float low = -(Mathf.Round(size[k]) - 1f) * 0.5f;
+                float high = low + Mathf.Round(size[k] * scale) - 1f;
+                r[k] = Mathf.Clamp(Mathf.Round(p[k] - low) + low, low, high);
+            }
+            return r;
         }
 
         internal static Transform RemoveInteract(GameObject root)

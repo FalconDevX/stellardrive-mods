@@ -8,6 +8,7 @@ using Ships.Interface.Model.Parts.Common;
 using Ships.Parts.Common;
 using Ships.Interface.Settings;
 using Ships.Parts.Constant;
+using TMPro;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -18,6 +19,7 @@ namespace Mining.Content
         internal const ushort PartId = 243;
         internal const byte SignalSocket = 0, PowerSocket = 1;
         private const ushort GeneratorPartId = 60;
+        private const float Width = 0.5f, Height = 0.25f, Depth = 0.25f, SocketX = 0.12f, SocketY = 0.11f;
         private static PartSettings _part;
         private static bool _failed;
 
@@ -60,14 +62,67 @@ namespace Mining.Content
             {
                 throw new Exception("constant has no signal socket");
             }
+            Transform visual = root.transform.Find("Visual") ?? root.transform;
+            MeshRenderer look = visual.GetComponentsInChildren<MeshRenderer>(true).FirstOrDefault(r => r.GetComponent<TMP_Text>() == null && r.GetComponentInParent<SocketObject>() == null);
+            if (look == null)
+            {
+                throw new Exception("constant has no renderer to copy");
+            }
+            Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("door_albedo.png"), "PowerMeter");
+            var lookCopy = new GameObject("look").AddComponent<MeshRenderer>();
+            lookCopy.gameObject.layer = look.gameObject.layer;
+            lookCopy.shadowCastingMode = look.shadowCastingMode;
+            lookCopy.renderingLayerMask = look.renderingLayerMask;
+            foreach (Renderer r in root.GetComponentsInChildren<Renderer>(true).ToArray())
+            {
+                if (r.GetComponentInParent<SocketObject>() != null)
+                {
+                    continue;
+                }
+                if (r.GetComponent<TMP_Text>() != null)
+                {
+                    r.gameObject.SetActive(false);
+                    continue;
+                }
+                MeshFilter mf = r.GetComponent<MeshFilter>();
+                Object.DestroyImmediate(r);
+                if (mf != null) Object.DestroyImmediate(mf);
+            }
+
+            var body = new MeshBuilder();
+            body.Box(new Vector3(0f, 0.01f, 0f), new Vector3(Width - 0.02f, 0.02f, Depth - 0.02f), "grey");
+            body.Box(new Vector3(0f, Height * 0.5f + 0.005f, 0f), new Vector3(Width - 0.05f, Height - 0.03f, Depth - 0.05f), "steel");
+            body.Box(new Vector3(0f, Height - 0.02f, 0f), new Vector3(Width - 0.03f, 0.02f, Depth - 0.03f), "grey");
+            body.Box(new Vector3(0f, Height - 0.008f, 0f), new Vector3(Width - 0.12f, 0.006f, Depth - 0.12f), "screen");
+            body.Box(new Vector3(-SocketX, SocketY, Depth * 0.5f - 0.02f), new Vector3(0.08f, 0.08f, 0.012f), "dark");
+            body.Box(new Vector3(SocketX, SocketY, Depth * 0.5f - 0.02f), new Vector3(0.08f, 0.08f, 0.012f), "yellow");
+            body.Box(new Vector3(0f, SocketY, Depth * 0.5f - 0.022f), new Vector3(0.025f, 0.025f, 0.008f), "green");
+            Mesh mesh = body.Build("PowerMeterBody");
+            GameObject meter = PartFactory.CreateRenderer("Body", visual, mesh, material, lookCopy);
+            meter.transform.localPosition = visual.InverseTransformPoint(root.transform.position);
+            meter.transform.localRotation = Quaternion.Inverse(visual.rotation) * root.transform.rotation;
+            Object.DestroyImmediate(lookCopy.gameObject);
+
+            var bounds = new Bounds(new Vector3(0f, Height * 0.5f, 0f), new Vector3(Width, Height, Depth));
+            PartFactory.SetBounds(root, bounds);
+            foreach (BoxCollider box in root.GetComponentsInChildren<BoxCollider>(true).Where(c => c.GetComponentInParent<SocketObject>() == null))
+            {
+                Transform t = box.transform;
+                box.center = t.InverseTransformPoint(root.transform.TransformPoint(bounds.center));
+                box.size = Abs(t.InverseTransformVector(root.transform.TransformVector(bounds.size)));
+            }
+
             Transform parent = signal.transform.parent;
-            Vector3 pos = signal.transform.localPosition;
-            Vector3 mirrored = new Vector3(Mathf.Abs(pos.x) > 0.05f ? -pos.x : pos.x + 0.25f, pos.y, Mathf.Abs(pos.x) > 0.05f ? pos.z : -pos.z);
-            SocketObject power = PartFactory.CloneSocket(PartFactory.FindSocket(generator, CableType.Power), parent, PowerSocket, mirrored, 0f);
-            power.transform.localRotation = Mathf.Abs(pos.x) > 0.05f ? Quaternion.Euler(0f, 180f, 0f) * signal.transform.localRotation : signal.transform.localRotation;
-            Melon<MiningMod>.Logger.Msg($"Power Meter: signal socket at {pos}, power socket at {mirrored}");
+            Quaternion facing = Quaternion.Inverse(parent.rotation) * root.transform.rotation * Quaternion.Euler(0f, 180f, 0f);
+            signal.transform.localPosition = parent.InverseTransformPoint(root.transform.TransformPoint(new Vector3(-SocketX, SocketY, Depth * 0.5f)));
+            signal.transform.localRotation = facing;
+            SocketObject power = PartFactory.CloneSocket(PartFactory.FindSocket(generator, CableType.Power), parent, PowerSocket, Vector3.zero, 0f);
+            power.transform.localPosition = parent.InverseTransformPoint(root.transform.TransformPoint(new Vector3(SocketX, SocketY, Depth * 0.5f)));
+            power.transform.localRotation = facing;
+            Melon<MiningMod>.Logger.Msg($"Power Meter: constant size {constant.size}, snapping {constant.snappingStyle}");
 
             PartSettings settings = Object.Instantiate(constant);
+            settings.size = new Vector3(Width, Height, Depth);
             settings.name = root.name;
             settings.hideFlags = HideFlags.DontUnloadUnusedAsset;
             settings.id = PartId;
@@ -80,5 +135,7 @@ namespace Mining.Content
             PartFactory.SetCost(settings, (Items.Model.ItemsConstants.IronItemId, 2), (112, 3));
             return settings;
         }
+
+        private static Vector3 Abs(Vector3 v) => new Vector3(Mathf.Abs(v.x), Mathf.Abs(v.y), Mathf.Abs(v.z));
     }
 }

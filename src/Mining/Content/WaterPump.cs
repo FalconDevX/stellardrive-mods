@@ -42,15 +42,17 @@ namespace Mining.Content
 
         internal static PartSettings Part => _part;
 
-        internal static bool Is(PartSettings settings) => settings != null && settings.id == PartId;
+        internal static bool Is(PartSettings settings) => settings != null && Ids.Contains(settings.id);
+
+        internal static IEnumerable<ushort> Ids => new[] { PartId }.Concat(ScaledVariants.Variants.Where(v => v.Kind == ScaledVariants.Kind.WaterPump).Select(v => v.Id));
 
         private const float ProbeSpread = 2.5f;
 
-        internal static float HoseNeeded(float above, bool water) => above + NozzleTop - NozzleDepth + (water ? Immersion : 0f);
+        internal static float HoseNeeded(float above, bool water, float scale) => above + (NozzleTop - NozzleDepth) * scale + (water ? Immersion : 0f);
 
-        internal static float HoseMax => Mathf.Max(1f, MiningMod.PumpHoseLength.Value) + NozzleTop;
+        internal static float HoseMax(float scale) => Mathf.Max(1f, MiningMod.PumpHoseLength.Value) + NozzleTop * scale;
 
-        internal static float HoseLimit(Ships.Cables.ConnectionsTracker connections, uint shipId, ushort partId, out bool signalled, out float signal)
+        internal static float HoseLimit(Ships.Cables.ConnectionsTracker connections, uint shipId, ushort partId, float scale, out bool signalled, out float signal)
         {
             signal = 1f;
             signalled = false;
@@ -60,7 +62,7 @@ namespace Mining.Content
                 signalled = true;
                 signal = Mathf.Clamp01((float)connections.GetSignalValue(socket));
             }
-            return signalled ? signal * Mathf.Max(1f, MiningMod.PumpHoseLength.Value) + NozzleTop : HoseMax;
+            return signalled ? signal * Mathf.Max(1f, MiningMod.PumpHoseLength.Value) + NozzleTop * scale : HoseMax(scale);
         }
 
         internal static bool TryProbe(ulong planetId, Vector3 planetPos, out float above, out bool water)
@@ -113,7 +115,7 @@ namespace Mining.Content
             }
             try
             {
-                _part = Build(chest, generator, distiller);
+                _part = Build(chest, generator, distiller, 1);
                 Melon<MiningMod>.Logger.Msg($"Added part '{_part.fullLabel}' (id {PartId})");
             }
             catch (Exception e)
@@ -124,8 +126,17 @@ namespace Mining.Content
             return _part;
         }
 
-        private static PartSettings Build(PartSettings chest, PartSettings generator, PartSettings distiller)
+        internal static PartSettings BuildScaled(IEnumerable<PartSettings> gameParts, int scale)
         {
+            List<PartSettings> parts = gameParts.ToList();
+            PartSettings chest = PartFactory.Find(parts, ChestPartId), generator = PartFactory.Find(parts, GeneratorPartId), distiller = PartFactory.Find(parts, DistillerPartId);
+            return chest?.part == null || generator?.part == null || distiller?.part == null ? null : Build(chest, generator, distiller, scale);
+        }
+
+        private static PartSettings Build(PartSettings chest, PartSettings generator, PartSettings distiller, int n)
+        {
+            float off = (n - 1) * 0.5f;
+            var centre = new Vector3(off, 0f, off);
             GameObject root = Object.Instantiate(chest.part, PartFactory.Holder);
             root.name = "WaterPump";
             Mesh body = ModAssets.LoadMesh("pump_body.bin");
@@ -145,14 +156,20 @@ namespace Mining.Content
             {
                 Object.DestroyImmediate(v);
             }
-            PartFactory.CreateRenderer("Body", visual, body, material, lookCopy);
-            PartFactory.CreateRenderer("Fan", visual, ModAssets.LoadMesh("pump_fan.bin"), material, lookCopy).transform.localPosition = new Vector3(0f, FanY, 0f);
-            PartFactory.CreateRenderer("Hose", visual, ModAssets.LoadMesh("pump_hose.bin"), material, lookCopy).transform.localPosition = new Vector3(0f, NozzleTop, 0f);
-            PartFactory.CreateRenderer("Nozzle", visual, ModAssets.LoadMesh("pump_nozzle.bin"), material, lookCopy).transform.localPosition = new Vector3(0f, NozzleTop, 0f);
+            void Piece(string name, Mesh mesh, float y)
+            {
+                Transform t = PartFactory.CreateRenderer(name, visual, mesh, material, lookCopy).transform;
+                t.localPosition = centre + new Vector3(0f, y * n, 0f);
+                t.localScale = Vector3.one * n;
+            }
+            Piece("Body", body, 0f);
+            Piece("Fan", ModAssets.LoadMesh("pump_fan.bin"), FanY);
+            Piece("Hose", ModAssets.LoadMesh("pump_hose.bin"), NozzleTop);
+            Piece("Nozzle", ModAssets.LoadMesh("pump_nozzle.bin"), NozzleTop);
             Object.DestroyImmediate(lookCopy.gameObject);
             visual.gameObject.AddComponent<WaterPumpVisuals>();
 
-            PartFactory.SetBounds(root, body.bounds);
+            PartFactory.SetBounds(root, new Bounds(centre + body.bounds.center * n, body.bounds.size * n));
 
             Transform interactions = root.transform.Find("Interactions");
             foreach (DefaultShipPartInteractions i in interactions.GetComponentsInChildren<DefaultShipPartInteractions>(true))
@@ -178,20 +195,22 @@ namespace Mining.Content
             var box = interactions.GetComponentInChildren<BoxCollider>(true);
             if (box != null)
             {
-                box.center = new Vector3(0f, 0.47f, -0.035f);
-                box.size = new Vector3(0.86f, 0.96f, 0.97f);
+                box.center = centre + new Vector3(0f, 0.47f, -0.035f) * n;
+                box.size = new Vector3(0.86f, 0.96f, 0.97f) * n;
             }
 
             SocketObject fluid = PartFactory.FindSocket(distiller, CableType.Fluid);
             SocketObject power = PartFactory.FindSocket(generator, CableType.Power);
             const float y = 0.3f;
-            PartFactory.CloneSocket(power, root.transform, PowerSocket, new Vector3(0.15f, y, 0.5f), 180f);
-            PartFactory.CloneSocket(fluid, root.transform, OutSocketA, new Vector3(0.5f, y, -0.2f), 270f);
-            PartFactory.CloneSocket(fluid, root.transform, OutSocketB, new Vector3(0.5f, y, 0.2f), 270f);
+            float back = n - 0.5f, side = n - 0.5f;
+            float powerX = n == 1 ? 0.15f : n - 1f, signalX = n == 1 ? -0.15f : 0f;
+            PartFactory.CloneSocket(power, root.transform, PowerSocket, new Vector3(powerX, y, back), 180f);
+            PartFactory.CloneSocket(fluid, root.transform, OutSocketA, new Vector3(side, y, n == 1 ? -0.2f : 0f), 270f);
+            PartFactory.CloneSocket(fluid, root.transform, OutSocketB, new Vector3(side, y, n == 1 ? 0.2f : n - 1f), 270f);
             SocketObject signalSource = Resources.FindObjectsOfTypeAll<SocketObject>().FirstOrDefault(s => s.Type == CableType.Signal && s.visualObject != null && s.interactive != null);
             if (signalSource != null)
             {
-                PartFactory.CloneSocket(signalSource, root.transform, SignalSocket, new Vector3(-0.15f, y, 0.5f), 180f);
+                PartFactory.CloneSocket(signalSource, root.transform, SignalSocket, new Vector3(signalX, y, back), 180f);
             }
             else
             {
@@ -212,8 +231,8 @@ namespace Mining.Content
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
             settings.thumbnailRotation = Quaternion.Euler(0f, 150f, 0f);
-            settings.mass = 45f;
-            settings.size = Vector3.one;
+            settings.mass = 45f * n * n;
+            settings.size = Vector3.one * n;
             PartFactory.SetCost(settings, (Items.Model.ItemsConstants.IronItemId, 10), (112, 6), (Items.Model.ItemsConstants.GlassItemId, 2));
             return settings;
         }
@@ -282,6 +301,8 @@ namespace Mining.Content
         }
 
         private Transform _fan, _hose, _nozzle;
+        private float _scale = 1f;
+        private Vector3 _centre;
         private Renderer _hoseRenderer;
         private bool _down;
         private float _extension, _target, _nextProbe;
@@ -298,6 +319,11 @@ namespace Mining.Content
             _hose = transform.Find("Hose");
             _nozzle = transform.Find("Nozzle");
             _hoseRenderer = _hose != null ? _hose.GetComponent<Renderer>() : null;
+            if (_fan != null)
+            {
+                _scale = Mathf.Max(1f, _fan.localScale.x);
+                _centre = new Vector3(_fan.localPosition.x, 0f, _fan.localPosition.z);
+            }
         }
 
         public override void SetNetworkState(IStatefulPartState state)
@@ -331,11 +357,12 @@ namespace Mining.Content
             }
             _extension = _snap ? _target : Mathf.MoveTowards(_extension, _target, Time.deltaTime * WaterPump.HoseSpeed);
             _snap = false;
-            Vector3 anchor = transform.TransformPoint(new Vector3(0f, WaterPump.NozzleTop, 0f));
+            Vector3 anchor = transform.TransformPoint(_centre + new Vector3(0f, WaterPump.NozzleTop * _scale, 0f));
             Quaternion hang = Quaternion.FromToRotation(Vector3.down, _downDir);
             _nozzle.SetPositionAndRotation(anchor + _downDir * _extension, hang);
             _hose.SetPositionAndRotation(anchor, hang);
-            _hose.localScale = new Vector3(1f, Mathf.Max(0.001f, _extension), 1f);
+            _nozzle.localScale = Vector3.one * _scale;
+            _hose.localScale = new Vector3(_scale, Mathf.Max(0.001f, _extension), _scale);
             if (_hoseRenderer != null)
             {
                 _hoseRenderer.enabled = _extension > 0.05f;
@@ -346,7 +373,7 @@ namespace Mining.Content
             {
                 _fan.Rotate(Vector3.up, 540f * _pumpLevel * Time.deltaTime, Space.Self);
             }
-            Vector3 position = transform.TransformPoint(new Vector3(0f, 0.4f, 0f));
+            Vector3 position = transform.TransformPoint(_centre + new Vector3(0f, 0.4f * _scale, 0f));
             _pumpSound.Update(position, _pumpLevel, 0.6f + 0.4f * _pumpLevel);
             UpdateBubbles();
         }
@@ -354,11 +381,11 @@ namespace Mining.Content
         private void UpdateBubbles()
         {
             bool active = _pumpLevel > 0.05f && _inWater;
-            Vector3 intake = _nozzle.position + _downDir * WaterPump.NozzleDepth;
+            Vector3 intake = _nozzle.position + _downDir * WaterPump.NozzleDepth * _scale;
             Vector3 surface = intake - _downDir * WaterPump.Immersion;
             if (active)
             {
-                PumpFx.Emit(intake, surface, -_downDir, _pumpLevel, Time.deltaTime, ref _bubbleCarry);
+                PumpFx.Emit(intake, surface, -_downDir, _pumpLevel * _scale, Time.deltaTime, ref _bubbleCarry);
             }
             if (_gas == null && active)
             {
@@ -391,19 +418,19 @@ namespace Mining.Content
         {
             _inWater = false;
             _downDir = -transform.up;
-            float reach = _down ? WaterPump.HoseLimit(ServiceLocator.GetService<Ships.Cables.ConnectionsClientTracker>(), _shipId, _partId, out _, out _) : 0f;
+            float reach = _down ? WaterPump.HoseLimit(ServiceLocator.GetService<Ships.Cables.ConnectionsClientTracker>(), _shipId, _partId, _scale, out _, out _) : 0f;
             try
             {
                 var transpose = ServiceLocator.GetService<IWorldTransposeClient>();
                 if (transpose != null && ClientOrigin.LocalVisualSpace is PlanetSurfaceSpace surface)
                 {
                     var planetSpace = new PlanetSurfaceSpace { PlanetId = surface.PlanetId, Center = Vector3Double.Zero };
-                    Vector3 bottom = transform.TransformPoint(Vector3.zero);
+                    Vector3 bottom = transform.TransformPoint(_centre);
                     Vector3 planetPos = (Vector3)transpose.Position(ClientOrigin.LocalVisualSpace, planetSpace, (Vector3Double)bottom);
                     _downDir = (transpose.Rotation(planetSpace, ClientOrigin.LocalVisualSpace, Quaternion.identity) * -planetPos.normalized).normalized;
                     if (_down && WaterPump.TryProbe(surface.PlanetId, planetPos, out float above, out bool water))
                     {
-                        float needed = WaterPump.HoseNeeded(above, water);
+                        float needed = WaterPump.HoseNeeded(above, water, _scale);
                         _inWater = water && needed <= reach;
                         reach = Mathf.Clamp(needed, 0f, reach);
                     }

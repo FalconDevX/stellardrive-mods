@@ -44,6 +44,8 @@ namespace Mining.Patches
             (ScaledVariants.Variants[3].Id, p => ScaledVariants.GetOrCreate(ScaledVariants.Variants[3].Id, p), () => ScaledVariants.Get(ScaledVariants.Variants[3].Id), 0),
             (ScaledVariants.Variants[4].Id, p => ScaledVariants.GetOrCreate(ScaledVariants.Variants[4].Id, p), () => ScaledVariants.Get(ScaledVariants.Variants[4].Id), 0),
             (ScaledVariants.Variants[5].Id, p => ScaledVariants.GetOrCreate(ScaledVariants.Variants[5].Id, p), () => ScaledVariants.Get(ScaledVariants.Variants[5].Id), 0),
+            (ScaledVariants.Variants[6].Id, p => ScaledVariants.GetOrCreate(ScaledVariants.Variants[6].Id, p), () => ScaledVariants.Get(ScaledVariants.Variants[6].Id), 0),
+            (ScaledVariants.Variants[7].Id, p => ScaledVariants.GetOrCreate(ScaledVariants.Variants[7].Id, p), () => ScaledVariants.Get(ScaledVariants.Variants[7].Id), 0),
             (Blueprints.Workbench.PartId, Blueprints.Workbench.GetOrCreatePart, () => Blueprints.Workbench.Part, Blueprints.Workbench.ResearchTablePartId),
             (BigChest.Variants[2].id, p => BigChest.GetOrCreate(BigChest.Variants[2].id, p), () => BigChest.Get(BigChest.Variants[2].id), BigChest.ChestPartId),
             (BigDoors.Variants[0].id, p => BigDoors.GetOrCreate(BigDoors.Variants[0].id, p), () => BigDoors.Get(BigDoors.Variants[0].id), BigDoors.DoorPartId),
@@ -203,7 +205,7 @@ namespace Mining.Patches
             ("Propulsion", new ushort[] { 69, 19, 201, 228, 229, 230, 53, 16, 58, 222 }),
             ("Power", new ushort[] { 61, 65, 60, 203, Reactor.LargePartId }),
             ("Fluids", new ushort[] { 24, 81, 57, 23, 218, 215, 79, 66, 67, 202, 214, 80 }),
-            ("Doors", new ushort[] { DoorPartId, 42, Barrier.PartId, Stairs.PartId, RetractableStairs.PartId, 217, 210, 211, 212, 213, 216, 223, 224 }),
+            ("Doors", new ushort[] { DoorPartId, 42, Barrier.PartId, Stairs.PartId, RetractableStairs.PartId, 244, 217, 210, 211, 212, 213, 216, 223, 224 }),
             ("Utility", new ushort[] { 22, Blueprints.Workbench.PartId, 15, 38, 30, 219, 220, 232, 43, 41, 200, 221, 55 }),
         };
 

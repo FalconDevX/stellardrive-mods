@@ -31,7 +31,10 @@ namespace Mining.Server
             Indexed.Add(RetractableStairs.PartId);
             Indexed.Add(LaserCannon.PartId);
             Indexed.Add(Excavator.PartId);
-            Indexed.Add(WaterPump.PartId);
+            foreach (ushort id in WaterPump.Ids)
+            {
+                Indexed.Add(id);
+            }
             foreach (InfoPanels.Variant variant in InfoPanels.Variants)
             {
                 Indexed.Add(variant.Id);

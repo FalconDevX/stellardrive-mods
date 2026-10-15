@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using HarmonyLib;
 using MelonLoader;
 using Players.Physics;
@@ -16,6 +17,8 @@ namespace Crouch.Patches
 
         private static readonly AccessTools.FieldRef<PlayerWalkingPhysics, PlayerProperties> PropertiesRef =
             AccessTools.FieldRefAccess<PlayerWalkingPhysics, PlayerProperties>("_properties");
+
+        internal static readonly Dictionary<PlayerWalkingPhysics, float> CrouchedFeet = new Dictionary<PlayerWalkingPhysics, float>();
 
         private static readonly RaycastHit[] Hits = new RaycastHit[32];
         private static readonly Collider[] Overlaps = new Collider[32];
@@ -96,6 +99,7 @@ namespace Crouch.Patches
             bool crouched = state.IsOnGround && (wantsCrouch || (low && !CanStand(scene, state.Position + up * (delta * 0.5f), up, fullHeight, collider.radius)));
             if (!crouched)
             {
+                CrouchedFeet.Remove(physics);
                 float penetration = fullHeight * 0.5f - gap;
                 if (penetration > 0.02f && penetration <= delta * 0.6f + 0.05f && CanStand(scene, state.Position + up * penetration, up, fullHeight, collider.radius))
                 {
@@ -120,6 +124,7 @@ namespace Crouch.Patches
                 GroundCheckDistance = settings.collisionSettings != null ? settings.collisionSettings.groundSphereCheckDistance : 0f,
             };
 
+            CrouchedFeet[physics] = crouchHeight * 0.5f - collider.radius;
             collider.height = crouchHeight;
             float speed = settings.walkingSpeed * Mathf.Clamp(CrouchMod.SpeedFactor.Value, 0.1f, 1f);
             settings.walkingSpeed = speed;

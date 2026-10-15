@@ -41,7 +41,7 @@ namespace Mining.Server
         [HarmonyPatch(nameof(TrackedShipServer.PrepareConsumers))]
         private static void PrepareConsumers(TrackedShipServer __instance, float deltaTime)
         {
-            List<ushort> ids = ShipPartIndex.Get(__instance, WaterPump.PartId);
+            List<ushort> ids = Pumps(__instance);
             if (ids.Count == 0)
             {
                 return;
@@ -59,7 +59,7 @@ namespace Mining.Server
                     if (Plan(__instance, connections, part, 0f, out _, out _, out _) &&
                         power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, part.Id, WaterPump.PowerSocket), out PowerGroupServerState group))
                     {
-                        group.TotalPowerNeeded += deltaTime * PowerWatts;
+                        group.TotalPowerNeeded += deltaTime * PowerWatts * ScaledVariants.Rate(part.Settings);
                     }
                 }
             }
@@ -73,7 +73,7 @@ namespace Mining.Server
         [HarmonyPatch(nameof(TrackedShipServer.UpdateParts))]
         private static void UpdateParts(TrackedShipServer __instance, float deltaTime)
         {
-            List<ushort> ids = ShipPartIndex.Get(__instance, WaterPump.PartId);
+            List<ushort> ids = Pumps(__instance);
             if (ids.Count == 0)
             {
                 return;
@@ -95,7 +95,7 @@ namespace Mining.Server
                     }
                     var state = (DoorState)part.State;
 
-                    float limit = WaterPump.HoseLimit(connections, __instance.Id, part.Id, out bool signalled, out float signal);
+                    float limit = WaterPump.HoseLimit(connections, __instance.Id, part.Id, Scale(part), out bool signalled, out float signal);
                     if (signalled)
                     {
                         bool wanted = signal > 0.01f;
@@ -143,14 +143,14 @@ namespace Mining.Server
                     }
                     else
                     {
-                        float amount = Mathf.Max(0f, MiningMod.PumpRate.Value) * group.NormalizedConsumerRate * deltaTime;
+                        float amount = Mathf.Max(0f, MiningMod.PumpRate.Value) * ScaledVariants.Rate(part.Settings) * group.NormalizedConsumerRate * deltaTime;
                         Deliver(outA, outB, amount);
                         status = "pumping from the lake";
                     }
                     if (rt.Status != status)
                     {
                         rt.Status = status;
-                        Melon<MiningMod>.Logger.Msg($"Water Pump (ship {key.Item1}, part {key.Item2}): {status}" +
+                        Melon<MiningMod>.Logger.Msg($"{part.Settings?.fullLabel ?? "Water Pump"} (ship {key.Item1}, part {key.Item2}): {status}" +
                                                     (reach ? $" (hose needs {needed:0.0} m of {limit:0.0} m, water {water})" : " (no planet under the pump)"));
                     }
                 }
@@ -176,13 +176,27 @@ namespace Mining.Server
                 return false;
             }
             var state = (DoorState)part.State;
-            float limit = WaterPump.HoseLimit(connections, ship.Id, part.Id, out _, out _);
+            float limit = WaterPump.HoseLimit(connections, ship.Id, part.Id, Scale(part), out _, out _);
             if (state.IsOpen && Probe(ship, part, out float needed, out bool water) && water && needed <= limit)
             {
                 fromLake = deployed <= 0f ? RuntimeDeployed(ship, part) >= needed / WaterPump.HoseSpeed : deployed >= needed / WaterPump.HoseSpeed;
             }
             return fromLake;
         }
+
+        private static readonly List<ushort> Found = new List<ushort>();
+
+        private static List<ushort> Pumps(TrackedShipServer ship)
+        {
+            Found.Clear();
+            foreach (ushort settingsId in WaterPump.Ids)
+            {
+                Found.AddRange(ShipPartIndex.Get(ship, settingsId));
+            }
+            return Found;
+        }
+
+        private static float Scale(StatefulPart part) => Mathf.Sqrt(ScaledVariants.Rate(part.Settings));
 
         private static float RuntimeDeployed(TrackedShipServer ship, StatefulPart part) =>
             Runtime.TryGetValue((ship.Id, part.Id), out PumpRuntime rt) ? rt.Deployed : 0f;
@@ -241,7 +255,7 @@ namespace Mining.Server
             {
                 return false;
             }
-            needed = WaterPump.HoseNeeded(above, water);
+            needed = WaterPump.HoseNeeded(above, water, Scale(part));
             return true;
         }
 

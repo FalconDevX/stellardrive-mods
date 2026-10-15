@@ -17,6 +17,7 @@ namespace Mining.Content
             Vent,
             Pump,
             Electrolyzer,
+            WaterPump,
         }
 
         internal sealed class Variant
@@ -37,6 +38,8 @@ namespace Mining.Content
             new Variant { Id = 240, Kind = Kind.Pump, Label = "Fluid Pump L", Scale = 3, Iron = 45, Copper = 20, Glass = 0 },
             new Variant { Id = 241, Kind = Kind.Electrolyzer, Label = "Electrolyzer M", Scale = 2, Iron = 40, Copper = 20, Glass = 10 },
             new Variant { Id = 242, Kind = Kind.Electrolyzer, Label = "Electrolyzer L", Scale = 3, Iron = 90, Copper = 45, Glass = 20 },
+            new Variant { Id = 245, Kind = Kind.WaterPump, Label = "Water Pump M", Scale = 2, Iron = 25, Copper = 14, Glass = 4 },
+            new Variant { Id = 246, Kind = Kind.WaterPump, Label = "Water Pump L", Scale = 3, Iron = 55, Copper = 30, Glass = 8 },
         };
 
         private static readonly Dictionary<ushort, PartSettings> Parts = new Dictionary<ushort, PartSettings>();
@@ -63,6 +66,8 @@ namespace Mining.Content
                     return parts.FirstOrDefault(p => p?.part != null && p.part.GetComponentInChildren<GasExhaustVisuals>(true) != null);
                 case Kind.Pump:
                     return parts.FirstOrDefault(p => p?.part != null && p.part.GetComponentInChildren<FluidPumpVisuals>(true) != null);
+                case Kind.WaterPump:
+                    return WaterPump.GetOrCreatePart(parts);
                 default:
                     return ElectrolyzerPart.GetOrCreatePart(parts);
             }
@@ -83,7 +88,7 @@ namespace Mining.Content
             }
             try
             {
-                PartSettings built = Build(source, v);
+                PartSettings built = Build(source, v, parts);
                 Parts[id] = built;
                 BaseIds[id] = source.id;
                 Melon<MiningMod>.Logger.Msg($"Added part '{built.fullLabel}' (id {id}, {v.Scale}x of part {source.id})");
@@ -106,18 +111,38 @@ namespace Mining.Content
                     return $"An {size} air vent: pipe oxygen into it and it fills the room {v.Rate:0} times faster than the small vent ({0.5f * v.Rate:0.#} units per second).";
                 case Kind.Pump:
                     return $"A {size} fluid pump: moves up to {5f * v.Rate:0} units per second ({v.Rate:0} times the small pump), controlled by a signal like the small pump.";
+                case Kind.WaterPump:
+                    return $"A {size} water pump with a thick hose: press F over a lake on Otrera b to lower it, or set the hose length with a signal (1 = full, 0 = up). " +
+                           $"Pumps {v.Rate:0} times more water than the small pump and uses {v.Rate:0} times the power. " +
+                           "Sockets on the cell centres: right - two water outputs, back - signal (left) and power (right).";
                 default:
-                    return $"A {size} electrolyzer: works like the small one but {v.Rate:0} times faster and uses {v.Rate:0} times the power.";
+                    return $"An industrial electrolyzer ({v.Scale}x{v.Scale}): a long electrolysis stack with radiators, {v.Scale} hydrogen and {v.Scale} oxygen tanks, " +
+                           $"{v.Rate:0} times faster than the small one and uses {v.Rate:0} times the power. Put ice in the hopper on the front, or pipe water in. " +
+                           "Sockets on the cell centres: hydrogen out on the left, oxygen out on the right, power (left) and water (right) on the back.";
             }
         }
 
-        private static PartSettings Build(PartSettings source, Variant v)
+        private static PartSettings Build(PartSettings source, Variant v, List<PartSettings> parts)
         {
-            GameObject root = Object.Instantiate(source.part, PartFactory.Holder);
-            root.name = v.Label.Replace(" ", "");
-            PartFactory.ScaleUniform(root, source.size, v.Scale, v.Label);
-
-            PartSettings settings = Object.Instantiate(source);
+            PartSettings settings;
+            GameObject root;
+            if (v.Kind == Kind.WaterPump || v.Kind == Kind.Electrolyzer)
+            {
+                settings = v.Kind == Kind.WaterPump ? WaterPump.BuildScaled(parts, v.Scale) : ElectrolyzerPart.BuildScaled(parts, v.Scale);
+                if (settings == null)
+                {
+                    throw new Exception("base parts missing");
+                }
+                root = settings.part;
+                root.name = v.Label.Replace(" ", "");
+            }
+            else
+            {
+                root = Object.Instantiate(source.part, PartFactory.Holder);
+                root.name = v.Label.Replace(" ", "");
+                PartFactory.ScaleUniform(root, source.size, v.Scale, v.Label);
+                settings = Object.Instantiate(source);
+            }
             settings.name = "Mining" + root.name;
             settings.hideFlags = HideFlags.DontUnloadUnusedAsset;
             settings.id = v.Id;
