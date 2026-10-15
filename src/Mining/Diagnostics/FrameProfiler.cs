@@ -226,7 +226,9 @@ namespace Mining.Diagnostics
         internal static IEnumerable<string> Totals(int frames)
         {
             double toMs = 1000.0 / System.Diagnostics.Stopwatch.Frequency / Math.Max(1, frames);
-            return Ticks.OrderByDescending(kv => kv.Value).Take(60).Select(kv => $"{kv.Value * toMs,8:0.000} ms/frame  {kv.Key} ({Calls[kv.Key] / Math.Max(1, frames)} calls/frame)");
+            var parents = new HashSet<string> { "game FishNet.Runtime: NetworkReaderLoop.Update", "game step WorldPhysicsServerUpdater.PrePhysics", "game step WorldPhysicsServerUpdater.UpdateShipParts",
+                "game step TrackedShipServer.UpdateParts", "game step TrackedShipServer.PrepareConsumers", "game Assembly-CSharp: ClientVisualsUpdater.Update" };
+            return Ticks.Where(kv => !parents.Contains(kv.Key)).OrderByDescending(kv => kv.Value).Take(60).Select(kv => $"{kv.Value * toMs,8:0.000} ms/frame  {kv.Key} ({Calls[kv.Key] / Math.Max(1, frames)} calls/frame)");
         }
 
         internal static void ResetTotals()
@@ -273,6 +275,7 @@ namespace Mining.Diagnostics
                 Assembly asm = melon.MelonAssembly?.Assembly;
                 if (asm == null || !modAssemblies.Add(asm)) continue;
                 count += PatchAssembly(harmony, asm, melon.Info.Name, methods, prefix, postfix, true);
+                count += PatchHarmonyHooks(harmony, asm, melon.Info.Name, prefix, postfix);
             }
             foreach (Assembly asm in AppDomain.CurrentDomain.GetAssemblies())
             {
@@ -349,6 +352,37 @@ namespace Mining.Diagnostics
                     if (!DeepPrefixes.Any(px => m.Name.StartsWith(px))) continue;
                     Names[m] = $"game step {type.Name}.{m.Name}";
                     done.Add(m);
+                    try
+                    {
+                        harmony.Patch(m, prefix, postfix);
+                        count++;
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+            }
+            return count;
+        }
+
+        private static int PatchHarmonyHooks(HarmonyLib.Harmony harmony, Assembly asm, string label, HarmonyMethod prefix, HarmonyMethod postfix)
+        {
+            int count = 0;
+            Type[] types;
+            try { types = asm.GetTypes(); }
+            catch (ReflectionTypeLoadException e) { types = e.Types.Where(t => t != null).ToArray(); }
+            catch (Exception) { return 0; }
+            foreach (Type type in types)
+            {
+                if (type == typeof(FrameProfiler) || type.ContainsGenericParameters || !type.GetCustomAttributes(typeof(HarmonyPatch), true).Any()) continue;
+                foreach (MethodInfo m in type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+                {
+                    if (m.IsAbstract || m.ContainsGenericParameters || m.GetMethodBody() == null || Names.ContainsKey(m)) continue;
+                    if (m.Name == "TargetMethod" || m.Name == "TargetMethods" || m.Name == "Prepare" || m.Name == "Cleanup") continue;
+                    if (m.GetCustomAttributes(typeof(HarmonyPatch), true).Any() == false && m.Name != "Prefix" && m.Name != "Postfix" && m.Name != "Transpiler" && m.Name != "Finalizer"
+                        && !m.GetCustomAttributes(true).Any(a => a is HarmonyPrefix || a is HarmonyPostfix)) continue;
+                    if (m.Name == "Transpiler") continue;
+                    Names[m] = $"{label} hook: {type.Name}.{m.Name}";
                     try
                     {
                         harmony.Patch(m, prefix, postfix);

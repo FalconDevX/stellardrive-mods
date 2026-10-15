@@ -77,12 +77,18 @@ namespace Mining.Patches
         private static FieldInfo _visualField, _flowField;
         private static int _frame;
         private static int _cableCount = -1;
+        private static bool _ranOriginal;
 
         private static bool Prefix(IReadOnlyDictionary<uint, CableVisual> loadedCables)
         {
             if (!MiningMod.FastCableVisuals.Value) return true;
             _frame++;
-            if (_frame % Every == 0 || loadedCables.Count != _cableCount || _flowField == null) return true;
+            if (_frame % Every == 0 || loadedCables.Count != _cableCount || _flowField == null)
+            {
+                _ranOriginal = true;
+                return true;
+            }
+            _ranOriginal = false;
             foreach (var (visual, flow) in Flows)
             {
                 if (visual != null) visual.UpdateFlow(flow);
@@ -92,7 +98,7 @@ namespace Mining.Patches
 
         private static void Postfix(FluidCablesVisualUpdater __instance, IReadOnlyDictionary<uint, CableVisual> loadedCables)
         {
-            if (!MiningMod.FastCableVisuals.Value) return;
+            if (!MiningMod.FastCableVisuals.Value || !_ranOriginal) return;
             _cableCount = loadedCables.Count;
             Flows.Clear();
             if (!(ConnectionsField?.GetValue(__instance) is IDictionary connections)) return;

@@ -27,26 +27,39 @@ namespace Mining.Diagnostics
             }
             var net = HarmonyLib.Traverse.Create(player).Property("NetworkState").GetValue<Players.Network.PlayerNetworkState>();
             PlayerPhysicsState start = player.PhysicsState;
-            var targets = ships.Ships.OfType<TrackedShipServer>().Where(s => s.PhysicsState.SpaceId == start.SpaceId && Vector3.Distance(s.PhysicsState.Position, start.Position) < 400f)
-                .OrderByDescending(s => s.GetHullParts().Count).Take(4).ToList();
-            log.Msg($"[hitch] player space {start.SpaceId} at {start.Position}, route over ships {string.Join(", ", targets.Select(t => $"{t.Id} ({t.GetHullParts().Count} hull)"))}");
+            var transpose = ServiceLocator.GetService<WorldTracking.Interface.Services.IWorldTransposeServer>();
+            var targets = new List<(TrackedShipServer ship, Vector3 pos)>();
+            foreach (TrackedShipServer s in ships.Ships.OfType<TrackedShipServer>().OrderByDescending(s => s.GetHullParts().Count))
+            {
+                Vector3 pos;
+                try
+                {
+                    pos = transpose.Position(s.PhysicsState.SpaceId, start.SpaceId, s.PhysicsState.Position);
+                }
+                catch (System.Exception)
+                {
+                    continue;
+                }
+                if (Vector3.Distance(pos, start.Position) < 3000f && s.GetHullParts().Count > 20) targets.Add((s, pos));
+                if (targets.Count >= 5) break;
+            }
+            log.Msg($"[hitch] player space {start.SpaceId} at {start.Position}, route over ships {string.Join(", ", targets.Select(t => $"{t.ship.Id} space {t.ship.PhysicsState.SpaceId} ({t.ship.GetHullParts().Count} hull, {Vector3.Distance(t.pos, start.Position):0} m)"))}");
 
             FrameProfiler.StartWatch(30f);
-            yield return new WaitForSeconds(10f);
-            log.Msg($"[hitch] idle 10 s: {FrameProfiler.Hitches.Count} long frames");
-            int idle = FrameProfiler.Hitches.Count;
-
             FrameProfiler.ResetTotals();
             int frameStart = Time.frameCount;
+            yield return new WaitForSeconds(30f);
+            log.Msg($"[hitch] idle 30 s: {FrameProfiler.Hitches.Count} long frames");
+            int idle = FrameProfiler.Hitches.Count;
+
             var route = new List<Vector3> { start.Position };
-            foreach (TrackedShipServer ship in targets)
+            Vector3 worldUp = start.Rotation * Vector3.up;
+            foreach (var target in targets)
             {
-                Vector3 up = ship.PhysicsState.Rotation * Vector3.up;
-                route.Add(ship.PhysicsState.Position + up * 25f);
-                route.Add(ship.PhysicsState.Position + up * 3f);
+                route.Add(target.pos + worldUp * 30f);
             }
             route.Add(start.Position);
-            const float speed = 12f;
+            const float speed = 40f;
             float deadline = Time.unscaledTime + 120f;
             for (int i = 0; i + 1 < route.Count; i++)
             {

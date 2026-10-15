@@ -127,6 +127,7 @@ A few commonly tweaked options:
 | Mining | `ReactorPower` | `20000` | Reactor output in watts |
 | Mining | `RotorLeverAngle` | `90` | Rotor angle for a signal of 1 |
 | Mining | `RotorCollision` | `false` | Stop a turning rotor before its moving part hits something |
+| Mining | `KeepNearbyShipsLoaded` | `true` | Keep ships within 3 km physics-loaded across spaces to avoid hitches |
 | Mining | `DetailDistance` | `30` | Distance beyond which small ship details are hidden (m) |
 | Pick Block | `AreaMaxSize` | `9` | Largest square side for area building |
 | Ship Safety | `MaxSpeed` | `5000` | Ship speed limit (m/s) |
@@ -211,7 +212,7 @@ The largest mod in the collection. It adds resource extraction, new power source
 <details>
 <summary><b>Performance and diagnostics</b></summary>
 
-- Cached hull bounds, throttled cable visuals and faster room/oxygen recalculation reduce lag on large worlds.
+- Cached hull bounds, throttled cable visuals and faster room/oxygen recalculation reduce lag on large worlds. Ships within 3 km stay physics-loaded when you move between areas, so their colliders are not rebuilt (no hitch).
 - Small ship details are not drawn beyond 30 m (`DetailDistance`).
 - **F11** writes a performance report to `UserData/Mining/fps_report.txt`; the cause of death is logged to `UserData/Mining/death_log.txt`.
 - Custom sounds: drop a `.wav` named after a built-in sound (e.g. `reactor.wav`) into `UserData/Mining` to replace it.
