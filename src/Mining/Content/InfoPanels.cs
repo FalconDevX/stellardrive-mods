@@ -160,21 +160,46 @@ namespace Mining.Content
                 Object.DestroyImmediate(old);
             }
 
-            var frame = new Frame { Origin = textPos + normal * back, Rotation = Quaternion.LookRotation(normal, up) };
-            float w = v.Width - 0.06f, hgt = v.Height - 0.06f;
+            Vector3 widthRoot = root.transform.InverseTransformDirection(visual.TransformDirection(Vector3.Cross(up, normal)));
+            Vector3 heightRoot = root.transform.InverseTransformDirection(visual.TransformDirection(up));
+            int wAxis = Dominant(widthRoot), hAxis = Dominant(heightRoot);
+            Vector3 size = display.size;
+            Vector3 shiftRoot = Vector3.zero;
+            shiftRoot[wAxis] = (v.Width - size[wAxis]) * 0.5f;
+            shiftRoot[hAxis] = (v.Height - size[hAxis]) * 0.5f;
+            size[wAxis] = v.Width;
+            size[hAxis] = v.Height;
+            Vector3 shift = visual.InverseTransformVector(root.transform.TransformVector(shiftRoot));
+            var frame = new Frame { Origin = textPos + shift + normal * back, Rotation = Quaternion.LookRotation(normal, up) };
+
+            const float bezel = 0.045f, strip = 0.09f;
+            float w = v.Width - 0.04f, hgt = v.Height - 0.04f;
+            float stripY = -hgt * 0.5f + strip * 0.5f;
+            float screenW = w - bezel * 2f, screenH = hgt - strip - bezel * 2f, screenY = strip * 0.5f;
             var body = new MeshBuilder();
-            Box(body, frame, 0f, 0f, Depth * 0.5f, w, hgt, Depth, "dark");
-            Box(body, frame, 0f, -hgt * 0.5f + 0.03f, Depth + 0.006f, w - 0.04f, 0.035f, 0.012f, "grey");
-            Box(body, frame, 0f, hgt * 0.5f - 0.025f, Depth + 0.006f, w - 0.04f, 0.02f, 0.012f, "grey");
-            Box(body, frame, w * 0.5f - 0.05f, -hgt * 0.5f + 0.03f, Depth + 0.012f, 0.03f, 0.02f, 0.01f, "green");
+            Box(body, frame, 0f, 0f, 0.01f, w + 0.02f, hgt + 0.02f, 0.02f, "grey");
+            Box(body, frame, 0f, 0f, Depth * 0.5f + 0.01f, w, hgt, Depth - 0.02f, "dark");
+            Box(body, frame, 0f, screenY + screenH * 0.5f + bezel * 0.5f, Depth, w, bezel, 0.02f, "grey");
+            Box(body, frame, 0f, screenY - screenH * 0.5f - bezel * 0.5f, Depth, w, bezel, 0.02f, "grey");
+            Box(body, frame, -(w - bezel) * 0.5f, screenY, Depth, bezel, screenH, 0.02f, "grey");
+            Box(body, frame, (w - bezel) * 0.5f, screenY, Depth, bezel, screenH, 0.02f, "grey");
+            Box(body, frame, 0f, stripY, Depth * 0.5f + 0.01f, w, strip, Depth, "steel");
+            Box(body, frame, 0f, stripY + strip * 0.5f - 0.006f, Depth + 0.012f, w - 0.02f, 0.012f, 0.004f, "yellow");
+            Box(body, frame, w * 0.5f - 0.06f, stripY - 0.005f, Depth + 0.012f, 0.025f, 0.025f, 0.006f, "green");
+            int total = v.Lines + 1;
+            float spacing = Mathf.Min(0.2f, (w - 0.2f) / total);
+            float SocketX(int i) => (i - (total - 1) * 0.5f) * spacing;
+            for (int i = 0; i < total; i++)
+            {
+                Box(body, frame, -SocketX(i), -hgt * 0.5f - 0.004f, Depth * 0.5f + 0.01f, 0.07f, 0.008f, 0.07f, i < v.Lines ? "dark" : "yellow");
+            }
             Mesh bodyMesh = body.Build("InfoPanelBody");
             PartFactory.CreateRenderer("Body", visual, bodyMesh, material, lookCopy);
 
-            float screenW = w - 0.1f, screenH = hgt - 0.14f;
             var screen = new MeshBuilder();
-            Box(screen, frame, 0f, 0.01f, Depth + 0.004f, screenW, screenH, 0.008f);
+            Box(screen, frame, 0f, screenY, Depth - 0.004f, screenW, screenH, 0.008f);
             var screenMaterial = new Material(material) { name = "InfoPanelScreen" };
-            screenMaterial.SetTexture("_Albedo", Texture2D.whiteTexture);
+            screenMaterial.SetTexture("_Albedo", Texture2D.blackTexture);
             screenMaterial.SetTexture("_EmissionMap", Texture2D.whiteTexture);
             screenMaterial.SetColor("_EmissionColor", InfoPanelVisuals.ScreenOff);
             screenMaterial.EnableKeyword("_EMISSION");
@@ -190,14 +215,15 @@ namespace Mining.Content
             {
                 TMP_Text line = Object.Instantiate(text.gameObject, text.transform.parent).GetComponent<TMP_Text>();
                 line.name = "Line" + i;
-                float y = 0.01f + screenH * 0.5f - lineH * (i + 0.5f);
-                line.transform.position = visual.TransformPoint(frame.Point(0f, y, Depth + 0.012f));
+                float y = screenY + screenH * 0.5f - lineH * (i + 0.5f);
+                line.transform.position = visual.TransformPoint(frame.Point(0f, y, Depth + 0.006f));
                 line.transform.rotation = visual.rotation * textRot;
-                line.rectTransform.sizeDelta = new Vector2((screenW - 0.06f) / sx, lineH * 0.9f / sy);
+                line.rectTransform.sizeDelta = new Vector2((screenW - 0.08f) / sx, Mathf.Min(lineH * 0.8f, 0.3f) / sy);
                 line.enableAutoSizing = true;
                 line.fontSizeMin = 0.01f;
                 line.fontSizeMax = 1000f;
                 line.enableWordWrapping = false;
+                line.overflowMode = TextOverflowModes.Truncate;
                 line.alignment = TextAlignmentOptions.Midline;
                 line.color = InfoPanelVisuals.TextColor;
                 line.text = "";
@@ -225,14 +251,9 @@ namespace Mining.Content
                 throw new Exception("signal display has no signal socket");
             }
             Transform socketParent = signal.transform.parent;
-            Vector3 socketBase = socketParent.InverseTransformPoint(root.transform.TransformPoint(root.transform.InverseTransformPoint(signal.transform.position)));
-            Quaternion socketRot = signal.transform.localRotation;
-            Vector3 along = socketParent.InverseTransformDirection(visual.TransformDirection(frame.Rotation * Vector3.right)).normalized;
-            float spacing = 0.22f;
-            int total = v.Lines + 1;
+            Quaternion socketRot = Quaternion.Inverse(socketParent.rotation) * visual.rotation * Quaternion.LookRotation(up, normal);
             for (int i = 0; i < total; i++)
             {
-                float offset = (i - (total - 1) * 0.5f) * spacing;
                 SocketObject socket;
                 if (i == 0)
                 {
@@ -240,15 +261,16 @@ namespace Mining.Content
                 }
                 else if (i < v.Lines)
                 {
-                    socket = PartFactory.CloneSocket(signal, socketParent, (byte)i, socketBase, 0f);
+                    socket = PartFactory.CloneSocket(signal, socketParent, (byte)i, Vector3.zero, 0f);
                 }
                 else
                 {
-                    socket = PartFactory.CloneSocket(PartFactory.FindSocket(generator, CableType.Power), socketParent, v.PowerSocket, socketBase, 0f);
+                    socket = PartFactory.CloneSocket(PartFactory.FindSocket(generator, CableType.Power), socketParent, v.PowerSocket, Vector3.zero, 0f);
                 }
-                socket.transform.localPosition = socketBase + along * offset;
+                socket.transform.localPosition = socketParent.InverseTransformPoint(visual.TransformPoint(frame.Point(-SocketX(i), -hgt * 0.5f - 0.02f, Depth * 0.5f + 0.01f)));
                 socket.transform.localRotation = socketRot;
             }
+            Melon<MiningMod>.Logger.Msg($"{v.Label}: width axis {wAxis}, height axis {hAxis}, size {size}, shift {shiftRoot}");
 
             var settings = ScriptableObject.CreateInstance<PartSettings>();
             settings.name = "Mining" + root.name;
@@ -259,14 +281,20 @@ namespace Mining.Content
             settings.snappingStyle = display.snappingStyle;
             string inputs = v.Lines == 1 ? "one signal input (A)" : $"{v.Lines} signal inputs ({string.Join(", ", Letters.Take(v.Lines))})";
             settings.description = $"{v.Width:0}x{v.Height:0} display panel. Shows the values of its {inputs}, one per line. " +
-                                   $"Needs power: {v.Watts:0} W, the screen stays dark without it. Sockets along the bottom: signals from the left, power on the right.";
+                                   $"Needs power: {v.Watts:0} W, the screen stays dark without it. Sockets on the bottom edge, so cables come from below: signals A-D from the left, power (yellow mark) on the right.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
             settings.thumbnailRotation = display.thumbnailRotation;
             settings.mass = 4f * v.Width * v.Height;
-            settings.size = display.size;
+            settings.size = size;
             PartFactory.SetCost(settings, (Items.Model.ItemsConstants.IronItemId, v.Iron), (112, v.Copper), (Items.Model.ItemsConstants.GlassItemId, v.Glass));
             return settings;
+        }
+
+        private static int Dominant(Vector3 v)
+        {
+            Vector3 a = Abs(v);
+            return a.x >= a.y && a.x >= a.z ? 0 : a.y >= a.z ? 1 : 2;
         }
 
         private static Vector3 Abs(Vector3 v) => new Vector3(Mathf.Abs(v.x), Mathf.Abs(v.y), Mathf.Abs(v.z));
