@@ -357,19 +357,34 @@ namespace Mining.Content
 
     internal sealed class FlameMirror : MonoBehaviour
     {
+        private const string Prefix = "FlameMirror|";
         private ParticleSystem _master, _own;
-        private float _scale;
+        private float _scale = 1f;
 
         internal void Setup(ThrusterFlameVFX master, float scale)
         {
-            _master = master.GetComponentInChildren<ParticleSystem>(true);
+            name = Prefix + scale.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private bool Resolve()
+        {
+            if (_master != null && _own != null)
+            {
+                return true;
+            }
+            ThrusterFlameVFX master = transform.parent != null ? transform.parent.GetComponentInChildren<ThrusterFlameVFX>(true) : null;
+            _master = master != null ? master.GetComponentInChildren<ParticleSystem>(true) : null;
             _own = GetComponentInChildren<ParticleSystem>(true);
-            _scale = scale;
+            if (name.StartsWith(Prefix) && float.TryParse(name.Substring(Prefix.Length), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float scale))
+            {
+                _scale = scale;
+            }
+            return _master != null && _own != null;
         }
 
         private void LateUpdate()
         {
-            if (_master == null || _own == null)
+            if (!Resolve())
             {
                 return;
             }

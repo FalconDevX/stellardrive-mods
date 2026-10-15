@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 # StellarDrive Mods
 
@@ -38,7 +38,7 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Mining](#mining)** | 0.13.1 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
+| **[Mining](#mining)** | 0.14.0 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
 | **[Water](#water)** | 0.4.2 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.2 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.5.4 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
@@ -158,7 +158,7 @@ The largest mod in the collection. It adds resource extraction, new power source
 - **Hydrogen thruster** (research *Hydrogen Propulsion*): needs hydrogen, oxygen and power, is 1.8x stronger than the chemical thruster and burns with a pale blue flame.
 - **Electrolyzer:** turns ice or water plus power into hydrogen, oxygen and water. Hydrogen exits on the left by the orange tank, oxygen on the right by the light blue tank; power and water enter at the back, ice goes into the front container.
 - **Water pump (1x1):** above a lake on Otrera b it lowers a hose (up to 30 m, length controllable by signal) and pumps water to two outlets.
-- **Heavy hydrogen engines** (research *Heavy Hydrogen Engines*): sizes **M** (2x2x3, 4x thrust), **L** (3x3x4, 4 nozzles, 9x) and **XL** (4x4x6, large nozzle plus 6 small, 20x), with proportionally higher consumption.
+- **Heavy hydrogen engines** (research *Heavy Hydrogen Engines*): sizes **M** (2x2x3, 4x thrust), **L** (3x3x4, 4 nozzles, 9x) and **XL** (4x4x6, large nozzle plus 6 small, 20x), with proportionally higher consumption. Every nozzle shows its own flame.
 
 </details>
 
@@ -175,9 +175,10 @@ The largest mod in the collection. It adds resource extraction, new power source
 
 - **Rotor** (research *Mechanics*): rotates the structure on its plate. A lever works out of the box (`0` = home, `1` = 90Â°); signals above 1 are interpreted as degrees.
 - **Large doors and gates** (research *Large Doors*): doors 3x2, 3x3, 4x4, 6x3 and gates 10x5, 16x8, 24x8, 32x8, with heavy opening animation and custom sound. They block passage until fully open.
-- **Large tanks** (research *Large Tanks*): Tank 2x2 (800) and Tank 4x4 (6400), with mirrored pipe sockets at floor level.
+- **Large tanks** (research *Large Tanks*): Tank 2x2 (800) and Tank 4x4 (6400), with four pipe sockets, each in its own housing on the frame.
 - **Large chests** (research *Large Storage*): Medium Chest (2x2x2, 30 slots), Large Chest (3x3x3, 60 slots) and Huge Chest (4x4x4, 120 slots). All use the same slot size; scroll the mouse wheel over the grid to see more rows.
 - **Info panels** (research *Info Panels*): S, M and L displays that show signal values from inputs A-D.
+- The **Paint Tool** menu shows a color palette (grey column plus 11 hues, light to dark rows) instead of HSV sliders.
 - The build menu (**Tab**) is wider and split into tabs: Control, Propulsion, Power, Fluids, Doors and Utility.
 
 </details>
@@ -185,8 +186,8 @@ The largest mod in the collection. It adds resource extraction, new power source
 <details>
 <summary><b>Tool crafting and blueprints</b></summary>
 
-- **Tool Workbench** (research *Tool Crafting*, Utility tab): press **F** to craft the Build Tool, Recycler Tool, Mining Laser, Paint Tool and Blueprint Tool from materials in your inventory.
-- **Blueprint Tool:** LMB on one corner of a ship area, LMB on the opposite corner, LMB again to save it (hull, parts, colors and cables). RMB cancels.
+- **Tool Workbench** (research *Tool Crafting*, Utility tab, 2x2): a full workbench model; press **F** to open a crafting window in the style of the research menu and craft the Build Tool, Recycler Tool, Mining Laser, Paint Tool and Blueprint Tool from materials in your inventory.
+- **Blueprint Tool** (its own handheld scanner model): LMB on one corner of a ship area, LMB on the opposite corner, LMB again to save it (hull, parts, colors and cables). RMB cancels.
 - **B** opens the blueprint catalog with a top-down preview, size, parts and material cost; rename or delete blueprints there. Files are stored in `UserData/Blueprints`.
 - Pick a blueprint in the catalog, then with the Blueprint Tool aim at a ship (to extend it) or at the ground (to create a new ship): scroll rotates, Shift+scroll changes height, LMB places a blue hologram, RMB on a hologram removes it.
 - Aim the **Build Tool** at a hologram and click to build it at once if your inventory holds all materials; parts that already exist are skipped.

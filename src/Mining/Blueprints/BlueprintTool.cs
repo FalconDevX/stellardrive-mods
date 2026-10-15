@@ -54,6 +54,49 @@ namespace Mining.Blueprints
             return items.Concat(new[] { _item }).ToArray();
         }
 
+        private static void ReplaceModel(GameObject prefab)
+        {
+            MeshRenderer[] renderers = prefab.GetComponentsInChildren<MeshRenderer>(true);
+            if (renderers.Length == 0)
+            {
+                return;
+            }
+            Bounds? total = null;
+            foreach (MeshRenderer r in renderers)
+            {
+                MeshFilter f = r.GetComponent<MeshFilter>();
+                if (f == null || f.sharedMesh == null) continue;
+                Bounds b = f.sharedMesh.bounds;
+                foreach (Vector3 corner in new[] { b.min, b.max, new Vector3(b.min.x, b.min.y, b.max.z), new Vector3(b.min.x, b.max.y, b.min.z), new Vector3(b.max.x, b.min.y, b.min.z), new Vector3(b.max.x, b.max.y, b.min.z), new Vector3(b.max.x, b.min.y, b.max.z), new Vector3(b.min.x, b.max.y, b.max.z) })
+                {
+                    Vector3 p = prefab.transform.InverseTransformPoint(r.transform.TransformPoint(corner));
+                    if (total == null) total = new Bounds(p, Vector3.zero);
+                    else { Bounds t = total.Value; t.Encapsulate(p); total = t; }
+                }
+            }
+            MeshRenderer template = renderers[0];
+            Material material = new Material(template.sharedMaterial) { name = "BlueprintTool" };
+            Texture2D albedo = ModAssets.LoadTexture("blueprint_tool_albedo.jpg");
+            foreach (string prop in new[] { "_Albedo", "_BaseMap", "_MainTex" })
+            {
+                if (material.HasProperty(prop)) material.SetTexture(prop, albedo);
+            }
+            if (material.HasProperty("_Color")) material.SetColor("_Color", Color.white);
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", Color.white);
+            BlueprintToolModel.Shader = template.sharedMaterial != null ? template.sharedMaterial.shader.name : "-";
+            foreach (MeshRenderer r in renderers) r.enabled = false;
+            var model = new GameObject("BlueprintToolModel") { layer = template.gameObject.layer };
+            model.transform.SetParent(prefab.transform, false);
+            Bounds bounds = total ?? new Bounds(Vector3.zero, Vector3.one * 0.3f);
+            model.transform.localPosition = bounds.center;
+            model.transform.localScale = Vector3.one * Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z) * 1.05f;
+            model.AddComponent<MeshFilter>().sharedMesh = ModAssets.LoadMesh("blueprint_tool_body.bin");
+            var renderer = model.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = template.shadowCastingMode;
+            renderer.renderingLayerMask = template.renderingLayerMask;
+        }
+
         private static void Create(ItemSettings paint)
         {
             if (_item != null)
@@ -63,18 +106,11 @@ namespace Mining.Blueprints
             GameObject prefab = Object.Instantiate(paint.toolSettings.prefab, PartFactory.Holder);
             prefab.name = "BlueprintTool";
             PaintTool paintTool = prefab.GetComponent<PaintTool>();
-            MeshFilter preview = paintTool != null ? Traverse.Create(paintTool).Field<MeshFilter>("colorPreview").Value : null;
             foreach (MonoBehaviour b in prefab.GetComponentsInChildren<MonoBehaviour>(true).Where(b => b is PaintTool || b is PaintToolKeyTips).ToArray())
             {
                 Object.DestroyImmediate(b);
             }
-            if (preview != null && preview.sharedMesh != null)
-            {
-                Mesh source = preview.sharedMesh;
-                var mesh = new Mesh { name = "BlueprintToolPreview", vertices = source.vertices, triangles = source.triangles, normals = source.normals };
-                mesh.colors = Enumerable.Repeat(new Color(0.2f, 0.55f, 1f).linear, source.vertexCount).ToArray();
-                preview.sharedMesh = mesh;
-            }
+            ReplaceModel(prefab);
             prefab.AddComponent<BlueprintTool>();
             var tool = ScriptableObject.CreateInstance<ToolSettings>();
             tool.name = "BlueprintToolSettings";
@@ -88,6 +124,11 @@ namespace Mining.Blueprints
             _item.toolSettings = tool;
             Melon<MiningMod>.Logger.Msg($"Added item 'Blueprint Tool' (id {ItemId})");
         }
+    }
+
+    internal static class BlueprintToolModel
+    {
+        internal static string Shader;
     }
 
     internal class BlueprintTool : MonoBehaviour, IInteractableToolScroll

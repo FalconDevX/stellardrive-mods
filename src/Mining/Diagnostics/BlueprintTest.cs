@@ -26,7 +26,30 @@ namespace Mining.Diagnostics
             var transpose = ServiceLocator.GetService<IWorldTransposeClient>();
             log.Msg($"[bp] item: {(BlueprintToolItem.Item != null ? "present" : "MISSING")}, tool prefab: {(BlueprintToolItem.Item?.toolSettings?.prefab?.GetComponent<BlueprintTool>() != null ? "ok" : "MISSING")}, workbench: {(Workbench.Part != null ? "present" : "MISSING")}");
             var player = ServerInventory.LocalPlayer();
-            log.Msg($"[bp] host: {ServerInventory.IsHost}, player: {(player != null ? "present" : "MISSING")}");
+            log.Msg($"[bp] host: {ServerInventory.IsHost}, player: {(player != null ? "present" : "MISSING")}, tool shader: {BlueprintToolModel.Shader}");
+            var dump = new System.Text.StringBuilder();
+            foreach (ushort id in new ushort[] { 23, Content.BigFluidTank.LargeId })
+            {
+                Ships.Interface.Settings.PartSettings tank = new Ships.Interface.Services.PartSettingsProvider().GetPartSettingById(id);
+                dump.AppendLine($"== {tank.fullLabel}");
+                DevTools.DumpHierarchy(dump, tank.part.transform, 0);
+                foreach (var f in tank.part.GetComponentsInChildren<MeshFilter>(true))
+                {
+                    if (f.sharedMesh == null) continue;
+                    Bounds b = f.sharedMesh.bounds;
+                    dump.AppendLine($"MESH {f.name} verts {f.sharedMesh.vertexCount} local bounds {b.center} {b.size} world center {tank.part.transform.InverseTransformPoint(f.transform.TransformPoint(b.center))} lossy {f.transform.lossyScale}");
+                }
+                foreach (var so in tank.part.GetComponentsInChildren<Ships.Interface.Model.Parts.Common.SocketObject>(true))
+                {
+                    dump.AppendLine($"SOCKET {so.Id} {so.Type} at {tank.part.transform.InverseTransformPoint(so.transform.position)} rot {so.transform.rotation.eulerAngles} scale {so.transform.lossyScale}");
+                }
+            }
+            File.WriteAllText(Path.Combine(DevTools.OutDir, "test_tank_dump.txt"), dump.ToString());
+            var thumbs = ServiceLocator.GetService<Items.Interface.Service.IItemThumbnailProvider>();
+            Texture2D thumb = thumbs?.GetThumbnail(BlueprintToolItem.ItemId);
+            yield return null;
+            thumb = thumbs?.GetThumbnail(BlueprintToolItem.ItemId) ?? thumb;
+            if (thumb != null) DevTools.SaveTexture(thumb, Path.Combine(DevTools.OutDir, "test_bp_tool_icon.png"));
             if (cam == null || ships == null || player == null)
             {
                 yield break;
@@ -117,18 +140,184 @@ namespace Mining.Diagnostics
             log.Msg($"[bp] ghost visible: {(ghost?.Body != null && ghost.Body.gameObject.activeInHierarchy)}, aim test: {aimed}, placed: {BlueprintGhosts.All.Count}");
             if (ghost != null) BlueprintGhosts.Remove(ghost);
 
+            GameObject toolView = Object.Instantiate(BlueprintToolItem.Item.toolSettings.prefab);
+            toolView.SetActive(true);
+            foreach (var b in toolView.GetComponentsInChildren<MonoBehaviour>(true)) b.enabled = false;
+            Vector3 viewUp = cam.transform.up;
+            toolView.transform.position = cam.transform.position + cam.transform.forward * 0.8f;
+            toolView.transform.rotation = Quaternion.LookRotation(cam.transform.right, viewUp);
+            for (int i = 0; i < 5; i++) yield return null;
+            ScreenCapture.CaptureScreenshot(Path.Combine(DevTools.OutDir, "test_bp_tool_side.png"));
+            yield return null;
+            toolView.transform.rotation = Quaternion.LookRotation(cam.transform.forward, viewUp);
+            toolView.transform.position = cam.transform.position + cam.transform.forward * 0.6f + cam.transform.right * 0.15f - viewUp * 0.1f;
+            for (int i = 0; i < 3; i++) yield return null;
+            ScreenCapture.CaptureScreenshot(Path.Combine(DevTools.OutDir, "test_bp_tool_back.png"));
+            yield return null;
+            Object.Destroy(toolView);
+            if (Workbench.Part != null)
+            {
+                GameObject bench = Object.Instantiate(Workbench.Part.part);
+                bench.SetActive(true);
+                Vector3 benchUp = ServiceLocator.GetService<Players.Interface.Services.IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
+                Vector3 flat = Vector3.ProjectOnPlane(cam.transform.forward, benchUp).normalized;
+                bench.transform.position = cam.transform.position + flat * 3.2f - benchUp * 1.6f;
+                bench.transform.rotation = Quaternion.LookRotation(flat, benchUp);
+                cam.transform.rotation = Quaternion.LookRotation(bench.transform.position + benchUp * 0.7f - cam.transform.position, benchUp);
+                for (int i = 0; i < 5; i++) yield return null;
+                ScreenCapture.CaptureScreenshot(Path.Combine(DevTools.OutDir, "test_bp_bench.png"));
+                yield return null;
+                Object.Destroy(bench);
+                cam.transform.rotation = Quaternion.LookRotation(fwd, up);
+            }
+            Ships.Interface.Settings.PartSettings bigTank = Content.BigFluidTank.Get(Content.BigFluidTank.LargeId);
+            if (bigTank != null)
+            {
+                GameObject tankView = Object.Instantiate(bigTank.part);
+                tankView.SetActive(true);
+                Vector3 tankUp = ServiceLocator.GetService<Players.Interface.Services.IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
+                Vector3 flat = Vector3.ProjectOnPlane(cam.transform.forward, tankUp).normalized;
+                Vector3 side = Vector3.Cross(tankUp, flat);
+                tankView.transform.rotation = Quaternion.LookRotation(flat, tankUp);
+                tankView.transform.position = cam.transform.position + flat * 6f - tankUp * 1.6f - side * 1.5f;
+                yield return null;
+                foreach (var r in tankView.GetComponentsInChildren<Renderer>(true))
+                {
+                    Bounds wb = r.bounds;
+                    log.Msg($"[bp] tank renderer {r.name} enabled {r.enabled} local min {tankView.transform.InverseTransformPoint(wb.min)} max {tankView.transform.InverseTransformPoint(wb.max)}");
+                }
+                foreach (var so in tankView.GetComponentsInChildren<Ships.Interface.Model.Parts.Common.SocketObject>(true))
+                {
+                    log.Msg($"[bp] tank socket {so.Id} at {tankView.transform.InverseTransformPoint(so.transform.position)}");
+                }
+                Vector3 frontCenter = tankView.transform.TransformPoint(new Vector3(1.5f, 0.3f, -0.6f));
+                Vector3 savedPos = cam.transform.position;
+                for (int k = 0; k < 2; k++)
+                {
+                    Vector3 target = tankView.transform.TransformPoint(new Vector3(k == 0 ? 0f : 3f, 0.3f, -0.5f));
+                    cam.transform.position = target - flat * 1.6f + tankUp * 0.7f + side * (k == 0 ? -0.6f : 0.6f);
+                    cam.transform.rotation = Quaternion.LookRotation(target - cam.transform.position, tankUp);
+                    for (int i = 0; i < 4; i++) yield return null;
+                    ScreenCapture.CaptureScreenshot(Path.Combine(DevTools.OutDir, $"test_bp_tank{k}.png"));
+                    yield return null;
+                }
+                cam.transform.position = frontCenter - flat * 4.5f + tankUp * 1.2f;
+                cam.transform.rotation = Quaternion.LookRotation(frontCenter - cam.transform.position, tankUp);
+                for (int i = 0; i < 4; i++) yield return null;
+                ScreenCapture.CaptureScreenshot(Path.Combine(DevTools.OutDir, "test_bp_tank_front.png"));
+                yield return null;
+                cam.transform.position = savedPos;
+                cam.transform.rotation = Quaternion.LookRotation(fwd, up);
+                Object.Destroy(tankView);
+            }
             BlueprintCatalog.Toggle();
             for (int i = 0; i < 5; i++) yield return null;
             ScreenCapture.CaptureScreenshot(Path.Combine(DevTools.OutDir, "test_bp_catalog.png"));
             yield return null;
             yield return null;
             BlueprintCatalog.Toggle();
-            WorkbenchMenu.Open();
-            for (int i = 0; i < 5; i++) yield return null;
-            ScreenCapture.CaptureScreenshot(Path.Combine(DevTools.OutDir, "test_bp_workbench.png"));
+            var activator = Object.FindObjectOfType<UI.Research.GenericPartOpenableMenuActivator>(true);
+            GameObject prefab = activator != null ? HarmonyLib.Traverse.Create(activator).Field<GameObject>("researchMenuPrefab").Value : null;
+            if (prefab != null)
+            {
+                WorkbenchUi.Pending = true;
+                GameObject menu = Object.Instantiate(prefab, activator.transform);
+                WorkbenchUi.Pending = false;
+                var canvas = menu.GetComponentInChildren<UI.Research.ResearchCanvas>(true);
+                for (int i = 0; i < 5; i++) yield return null;
+                canvas.SelectResearch(WorkbenchUi.Recipes[0]);
+                for (int i = 0; i < 5; i++) yield return null;
+                ScreenCapture.CaptureScreenshot(Path.Combine(DevTools.OutDir, "test_bp_workbench.png"));
+                yield return null;
+                yield return null;
+                int buildTools = ServerInventory.Count(player, 0);
+                canvas.UnlockSelectedResearch();
+                yield return null;
+                log.Msg($"[bp] workbench ui: buttons {menu.GetComponentsInChildren<UI.Research.ResearchSelectButton>(true).Length}, craft build tool {buildTools} -> {ServerInventory.Count(player, 0)}");
+                Object.Destroy(menu);
+            }
+            else
+            {
+                log.Msg("[bp] workbench ui: research menu prefab MISSING");
+            }
+            var net = HarmonyLib.Traverse.Create(player).Property("NetworkState").GetValue<Players.Network.PlayerNetworkState>();
+            int toolSlot = -1;
+            for (int i = 0; i < net.Toolbar.Count; i++)
+            {
+                if (net.Toolbar[i].HasItem && net.Toolbar[i].ItemId == BlueprintToolItem.ItemId) toolSlot = i;
+            }
+            if (toolSlot < 0)
+            {
+                net.ServerSetToolbarSlot(4, new Items.Model.InventorySlot { HasItem = true, ItemId = BlueprintToolItem.ItemId, Quantity = 1 });
+                toolSlot = 4;
+            }
+            var belt = Object.FindObjectOfType<Players.Inventory.ToolBelt>();
             yield return null;
+            belt?.SelectTool(toolSlot + 1);
+            for (int i = 0; i < 60; i++) yield return null;
+            ScreenCapture.CaptureScreenshot(Path.Combine(DevTools.OutDir, "test_bp_tool_fp.png"));
             yield return null;
-            WorkbenchMenu.Hide();
+            belt?.ClearSelection();
+            for (int i = 0; i < 20; i++) yield return null;
+            var shipsClient = ServiceLocator.GetService<ShipsClientTracker>();
+            var engineShips = new System.Collections.Generic.List<(string label, uint id)>();
+            int slot = 0;
+            foreach (var variant in Content.HydrogenEngines.Variants)
+            {
+                Ships.Interface.Settings.PartSettings engine = Content.HydrogenEngines.Get(variant.Id);
+                if (engine == null) continue;
+                Vector3 pos = cam.transform.position + fwd * 14f + Vector3.Cross(up, fwd) * (slot++ * 6f - 6f) + up * 4f;
+                uint id = Patches.ServerCreateShipPatch.CreateExcavatorShip(engine, new WorldTransform
+                {
+                    SpaceId = ClientOrigin.LocalPhysicsSpaceId,
+                    Position = transpose.Position(ClientOrigin.LocalVisualSpaceId, ClientOrigin.LocalPhysicsSpaceId, pos),
+                    Rotation = transpose.Rotation(ClientOrigin.LocalVisualSpaceId, ClientOrigin.LocalPhysicsSpaceId, Quaternion.LookRotation(fwd, up)),
+                });
+                engineShips.Add((variant.Label, id));
+            }
+            cam.transform.rotation = Quaternion.LookRotation(fwd, up);
+            for (int frame = 0; frame < 120; frame++)
+            {
+                foreach (var (_, id) in engineShips)
+                {
+                    TrackedShipServer ship = ships.GetShip(id);
+                    if (ship == null) continue;
+                    var part = ship.StatefulParts.First();
+                    ship.UpdatePartState(part.Id, (Ships.Interface.Model.Parts.State.ThrusterState)part.State with { ThrusterStrength = 1f });
+                    ship.SetPhysicsState(new Ships.Interface.Model.State.ShipPhysicsState(ship.PhysicsState.SpaceId, ship.PhysicsState.Position, ship.PhysicsState.Rotation, Vector3.zero));
+                    if (shipsClient.TryGetTrackedShip(id, out TrackedShipClient visualShip) && visualShip.IsVisualLoaded)
+                    {
+                        foreach (var vfx in visualShip.VisualObject.GetComponentsInChildren<Ships.Parts.Thruster.ThrusterFlameVFX>(true)) vfx.SetIntensity(1f);
+                    }
+                }
+                yield return null;
+            }
+            foreach (var (label, id) in engineShips)
+            {
+                int systems = 0, emitting = 0;
+                if (shipsClient.TryGetTrackedShip(id, out TrackedShipClient tracked) && tracked.IsVisualLoaded)
+                {
+                    foreach (var ps in tracked.VisualObject.GetComponentsInChildren<ParticleSystem>(true))
+                    {
+                        if (ps.GetComponentInParent<Content.FlameMirror>() == null && ps.GetComponentInParent<Ships.Parts.Thruster.ThrusterFlameVFX>() == null) continue;
+                        systems++;
+                        if (ps.particleCount > 0) emitting++;
+                    }
+                }
+                log.Msg($"[bp] engine {label}: flame systems {systems}, emitting {emitting}");
+            }
+            ScreenCapture.CaptureScreenshot(Path.Combine(DevTools.OutDir, "test_bp_engines.png"));
+            yield return null;
+            var paint = ServiceLocator.GetService<UI.Interface.Services.IPaintMenuActivator>();
+            if (paint != null)
+            {
+                paint.Open();
+                for (int i = 0; i < 5; i++) yield return null;
+                ScreenCapture.CaptureScreenshot(Path.Combine(DevTools.OutDir, "test_bp_paint.png"));
+                yield return null;
+                yield return null;
+                paint.Close();
+            }
             BlueprintStore.Delete(loaded ?? entry);
             log.Msg("[bp] done");
         }

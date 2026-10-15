@@ -39,10 +39,15 @@ namespace Mining.Patches
             { 14, (2, 7) }, { 205, (3, 7) }, { 209, (4, 7) }, { 214, (5, 7) },
         };
 
-        private static void Postfix(RectTransform ___buttonsContainer, List<ResearchSelectButton> ____buttons)
+        private static void Postfix(ResearchCanvas __instance, RectTransform ___buttonsContainer, List<ResearchSelectButton> ____buttons)
         {
             try
             {
+                if (Blueprints.WorkbenchUi.IsWorkbench(__instance))
+                {
+                    ApplyWorkbench(___buttonsContainer, ____buttons);
+                    return;
+                }
                 Apply(___buttonsContainer, ____buttons);
             }
             catch (Exception e)
@@ -79,12 +84,28 @@ namespace Mining.Patches
                 maxColumn = Mathf.Max(maxColumn, cell.column);
             }
             container.sizeDelta = new Vector2(Left + 440f + maxColumn * ColumnWidth, container.sizeDelta.y);
-            DrawBands(container, buttons[0], maxColumn);
+            DrawBands(container, buttons[0], maxColumn, Categories);
         }
 
         private static float RowY(int row) => Top - RowHeight * row;
 
-        private static void DrawBands(RectTransform container, ResearchSelectButton sample, int maxColumn)
+        private static readonly (string name, Color color)[] WorkbenchCategories = { ("TOOL WORKBENCH", new Color(0.55f, 0.9f, 0.45f)) };
+
+        private static void ApplyWorkbench(RectTransform container, List<ResearchSelectButton> buttons)
+        {
+            if (container == null || buttons == null || buttons.Count == 0)
+            {
+                return;
+            }
+            for (int i = 0; i < buttons.Count; i++)
+            {
+                buttons[i].transform.localPosition = new Vector3(Left + ColumnWidth * i, RowY(0));
+            }
+            container.sizeDelta = new Vector2(Left + 440f + (buttons.Count - 1) * ColumnWidth, container.sizeDelta.y);
+            DrawBands(container, buttons[0], buttons.Count - 1, WorkbenchCategories);
+        }
+
+        private static void DrawBands(RectTransform container, ResearchSelectButton sample, int maxColumn, (string name, Color color)[] categories)
         {
             Transform old = container.Find("MiningTreeBands");
             if (old != null) UnityEngine.Object.Destroy(old.gameObject);
@@ -102,9 +123,9 @@ namespace Mining.Patches
             float left = Left + buttonRect.rect.xMin - 60f;
             TMP_Text font = sample.GetComponentInChildren<TMP_Text>(true);
             float width = maxColumn * ColumnWidth + buttonRect.rect.width + 120f;
-            for (int row = 0; row < Categories.Length; row++)
+            for (int row = 0; row < categories.Length; row++)
             {
-                var (name, color) = Categories[row];
+                var (name, color) = categories[row];
                 float y = RowY(row) + centerOffset;
                 var band = new GameObject("Band " + name, typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
                 band.SetParent(root, false);

@@ -6,6 +6,7 @@ using MelonLoader;
 using Mining.Content;
 using Players;
 using Ships.Interface.Settings;
+using Ships.Parts.Common;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -45,9 +46,42 @@ namespace Mining.Blueprints
             {
                 GameObject root = Object.Instantiate(table.part, PartFactory.Holder);
                 root.name = "ToolWorkbench";
-                foreach (MeshRenderer r in root.GetComponentsInChildren<MeshRenderer>(true))
+                Mesh body = ModAssets.LoadMesh("workbench_body.bin");
+                Transform visual = root.transform.Find("Visuals") ?? root.transform.Find("Visual") ?? throw new InvalidOperationException("Research table has no visuals object");
+                MeshRenderer look = visual.GetComponentInChildren<MeshRenderer>(true);
+                Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("workbench_albedo.jpg"), "ToolWorkbench");
+                var lookCopy = new GameObject("look").AddComponent<MeshRenderer>();
+                lookCopy.gameObject.layer = look.gameObject.layer;
+                lookCopy.shadowCastingMode = look.shadowCastingMode;
+                lookCopy.renderingLayerMask = look.renderingLayerMask;
+                foreach (Transform child in visual.Cast<Transform>().ToArray())
                 {
-                    r.sharedMaterials = r.sharedMaterials.Select(Tint).ToArray();
+                    Object.DestroyImmediate(child.gameObject);
+                }
+                foreach (MeshRenderer r in visual.GetComponents<MeshRenderer>()) Object.DestroyImmediate(r);
+                foreach (MeshFilter f in visual.GetComponents<MeshFilter>()) Object.DestroyImmediate(f);
+                DefaultShipPartVisuals oldVisuals = visual.GetComponent<DefaultShipPartVisuals>();
+                if (oldVisuals != null)
+                {
+                    Object.DestroyImmediate(oldVisuals);
+                    visual.gameObject.AddComponent<DefaultShipPartVisuals>();
+                }
+                PartFactory.CreateRenderer("Body", visual, body, material, lookCopy).transform.localRotation = Quaternion.Euler(0f, -90f, 0f);
+                Object.DestroyImmediate(lookCopy.gameObject);
+                Bounds rotated = new Bounds(Quaternion.Euler(0f, -90f, 0f) * body.bounds.center, new Vector3(body.bounds.size.z, body.bounds.size.y, body.bounds.size.x));
+                PartFactory.SetBounds(root, rotated);
+                Transform interactions = root.transform.Find("Interactions");
+                if (interactions != null)
+                {
+                    foreach (PartInteraction interaction in interactions.GetComponentsInChildren<PartInteraction>(true))
+                    {
+                        HarmonyLib.Traverse.Create(interaction).Field("detectionDistance").SetValue(3f);
+                    }
+                    foreach (BoxCollider box in interactions.GetComponentsInChildren<BoxCollider>(true))
+                    {
+                        box.center = box.transform.InverseTransformPoint(root.transform.TransformPoint(rotated.center));
+                        box.size = rotated.size + Vector3.one * 0.02f;
+                    }
                 }
                 PartSettings settings = Object.Instantiate(table);
                 settings.name = "MiningToolWorkbench";
@@ -57,6 +91,9 @@ namespace Mining.Blueprints
                 settings.description = "Crafts tools from your inventory: Build Tool, Recycler, Mining Laser, Paint Tool and Blueprint Tool. Press F to open it.";
                 settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
                 settings.part = root;
+                settings.size = new Vector3(2f, 2f, 2f);
+                settings.mass = 160f;
+                settings.thumbnailRotation = Quaternion.Euler(0f, 150f, 0f);
                 PartFactory.SetCost(settings, (ItemsConstants.IronItemId, 20), (112, 10), (ItemsConstants.GlassItemId, 5));
                 _part = settings;
                 Melon<MiningMod>.Logger.Msg($"Added part '{settings.fullLabel}' (id {PartId})");
@@ -67,14 +104,6 @@ namespace Mining.Blueprints
                 Melon<MiningMod>.Logger.Error($"Could not build the workbench: {e}");
             }
             return _part;
-        }
-
-        private static Material Tint(Material source)
-        {
-            if (source == null) return null;
-            var m = new Material(source) { name = source.name + "_Workbench" };
-            if (m.HasProperty("_Color")) m.SetColor("_Color", new Color(1f, 0.82f, 0.55f));
-            return m;
         }
 
         internal static bool Craft(uint itemId, out string message)

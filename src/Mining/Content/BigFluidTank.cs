@@ -80,17 +80,7 @@ namespace Mining.Content
         {
             GameObject root = Object.Instantiate(tank.part, PartFactory.Holder);
             root.name = "MiningTank" + v.scale;
-            Dictionary<byte, float> socketHeights = root.GetComponentsInChildren<SocketObject>(true).Where(x => x.Type == CableType.Fluid)
-                .ToDictionary(x => x.Id, x => root.transform.InverseTransformPoint(x.transform.position).y);
             PartFactory.ScaleUniform(root, tank.size, v.scale, "Tank");
-            foreach (SocketObject socket in root.GetComponentsInChildren<SocketObject>(true))
-            {
-                if (socketHeights.TryGetValue(socket.Id, out float y) && socket.Type == CableType.Fluid)
-                {
-                    Vector3 p = root.transform.InverseTransformPoint(socket.transform.position);
-                    socket.transform.position = root.transform.TransformPoint(new Vector3(p.x, y, p.z));
-                }
-            }
             AddMirroredSockets(root, v.scale);
             float capacity = Capacity(v.scale);
             foreach (FluidTankVisuals visuals in root.GetComponentsInChildren<FluidTankVisuals>(true))
@@ -113,6 +103,37 @@ namespace Mining.Content
             return settings;
         }
 
+        private static Material _housingMaterial;
+
+        private static void AddHousing(GameObject root, Vector3 socket, Vector3 inward, int scale)
+        {
+            MeshRenderer look = root.GetComponentsInChildren<MeshRenderer>(true).FirstOrDefault(r => r.name == "Model") ?? root.GetComponentInChildren<MeshRenderer>(true);
+            if (look == null)
+            {
+                return;
+            }
+            if (_housingMaterial == null)
+            {
+                _housingMaterial = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("door_albedo.png"), "TankSocketHousing");
+            }
+            inward = new Vector3(0f, 0f, Mathf.Sign(inward.z == 0f ? 1f : inward.z));
+            float width = 0.1f * scale, depth = 0.1f * scale, height = socket.y + 0.05f * scale;
+            float radius = width / 2f;
+            Vector3 front = new Vector3(socket.x, 0f, socket.z) + inward * 0.01f;
+            Vector3 center = front + inward * (depth / 2f);
+            var b = new MeshBuilder();
+            b.Box(center + Vector3.up * ((height - radius) / 2f), new Vector3(width, height - radius, depth), "light");
+            b.Cylinder(center + Vector3.up * (height - radius) - inward * (depth / 2f), center + Vector3.up * (height - radius) + inward * (depth / 2f), radius, "light", 20);
+            b.Box(new Vector3(socket.x, socket.y, front.z) + inward * 0.012f, new Vector3(width * 0.62f, width * 0.62f, 0.02f), "dark");
+            b.Box(center + Vector3.up * 0.02f * scale, new Vector3(width * 1.1f, 0.04f * scale, depth * 1.05f), "grey");
+            Transform visuals = root.transform.Find("Visuals") ?? root.transform;
+            GameObject housing = PartFactory.CreateRenderer("SocketHousing", visuals, b.Build("TankSocketHousing"), _housingMaterial, look);
+            housing.transform.SetParent(visuals, true);
+            housing.transform.position = root.transform.position;
+            housing.transform.rotation = root.transform.rotation;
+            housing.transform.localScale = Vector3.one;
+        }
+
         private static void AddMirroredSockets(GameObject root, int scale)
         {
             SocketObject[] all = root.GetComponentsInChildren<SocketObject>(true);
@@ -131,6 +152,7 @@ namespace Mining.Content
                 Vector3 p = root.transform.InverseTransformPoint(source.transform.position);
                 var pos = new Vector3(2f * mirrorX - p.x, p.y, p.z);
                 SocketObject copy = PartFactory.CloneSocket(source, root.transform, nextId, pos, 0f);
+                AddHousing(root, pos, source.transform.rotation * Vector3.forward, scale);
                 Quaternion r = Quaternion.Inverse(root.transform.rotation) * source.transform.rotation;
                 copy.transform.localRotation = new Quaternion(r.x, -r.y, -r.z, r.w);
                 Vector3 size = source.transform.lossyScale;

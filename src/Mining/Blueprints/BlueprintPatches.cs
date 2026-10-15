@@ -24,35 +24,23 @@ namespace Mining.Blueprints
     [HarmonyPatch(typeof(GenericPartOpenableMenuActivator), nameof(GenericPartOpenableMenuActivator.ShowMenu))]
     internal static class WorkbenchOpenPatch
     {
-        private static bool Prefix()
+        private static void Prefix()
         {
             try
             {
                 var players = ServiceLocator.GetService<IPlayersProviderClient>();
                 var ships = ServiceLocator.GetService<IShipsClientProvider>();
-                if (players == null || ships == null || !players.TryGetLocalPlayerState(out var state))
-                {
-                    return true;
-                }
-                if (!ships.TryGetStatefulPart(new PartContext(state.EntityId, state.PartId), out StatefulPart part) || part.Settings == null || part.Settings.id != Workbench.PartId)
-                {
-                    return true;
-                }
-                WorkbenchMenu.Open();
-                return false;
+                WorkbenchUi.Pending = players != null && ships != null && players.TryGetLocalPlayerState(out var state)
+                    && ships.TryGetStatefulPart(new PartContext(state.EntityId, state.PartId), out StatefulPart part)
+                    && part.Settings != null && part.Settings.id == Workbench.PartId;
             }
             catch (Exception e)
             {
                 Melon<MiningMod>.Logger.Error($"Workbench menu: {e}");
-                return true;
             }
         }
-    }
 
-    [HarmonyPatch(typeof(GenericPartOpenableMenuActivator), nameof(GenericPartOpenableMenuActivator.HideMenu))]
-    internal static class WorkbenchHidePatch
-    {
-        private static void Postfix() => WorkbenchMenu.Hide();
+        private static void Postfix() => WorkbenchUi.Pending = false;
     }
 
     [HarmonyPatch(typeof(BuildToolLocalClient), "PrimaryActionBegin")]

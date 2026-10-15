@@ -1101,7 +1101,7 @@ namespace Mining.Diagnostics
             Melon<MiningMod>.Logger.Msg($"[dev] dump saved: {path}");
         }
 
-        private static void SaveTexture(Texture tex, string path)
+        internal static void SaveTexture(Texture tex, string path)
         {
             var rt = RenderTexture.GetTemporary(tex.width, tex.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
             Graphics.Blit(tex, rt);
