@@ -28,6 +28,7 @@ namespace Mining.Content
             (217, "Wide Door 3x2", 3, 2, 12),
             (223, "Hangar Door 24x8", 24, 8, 330),
             (224, "Hangar Door 32x8", 32, 8, 440),
+            (237, "Narrow Door 1x2", 1, 2, 6),
         };
 
         private static readonly Dictionary<ushort, PartSettings> Parts = new Dictionary<ushort, PartSettings>();

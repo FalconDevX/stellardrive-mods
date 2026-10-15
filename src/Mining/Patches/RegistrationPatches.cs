@@ -48,6 +48,7 @@ namespace Mining.Patches
             (BigDoors.Variants[5].id, p => BigDoors.GetOrCreate(BigDoors.Variants[5].id, p), () => BigDoors.Get(BigDoors.Variants[5].id), BigDoors.DoorPartId),
             (BigDoors.Variants[6].id, p => BigDoors.GetOrCreate(BigDoors.Variants[6].id, p), () => BigDoors.Get(BigDoors.Variants[6].id), BigDoors.DoorPartId),
             (BigDoors.Variants[7].id, p => BigDoors.GetOrCreate(BigDoors.Variants[7].id, p), () => BigDoors.Get(BigDoors.Variants[7].id), BigDoors.DoorPartId),
+            (BigDoors.Variants[8].id, p => BigDoors.GetOrCreate(BigDoors.Variants[8].id, p), () => BigDoors.Get(BigDoors.Variants[8].id), BigDoors.DoorPartId),
         };
 
         internal static readonly ModResearch LargeDoorsResearch = new ModResearch(BigDoors.ResearchId, "Large Doors", new Vector2Int(3, 6), 16,

@@ -178,12 +178,12 @@ namespace Mining.Content
             float screenW = w - bezel * 2f, screenH = hgt - strip - bezel * 2f, screenY = strip * 0.5f;
             var body = new MeshBuilder();
             Box(body, frame, 0f, 0f, 0.01f, w + 0.02f, hgt + 0.02f, 0.02f, "grey");
-            Box(body, frame, 0f, 0f, Depth * 0.5f + 0.01f, w, hgt, Depth - 0.02f, "dark");
+            Box(body, frame, 0f, 0f, (Depth + 0.011f) * 0.5f, w - 0.004f, hgt - 0.004f, Depth - 0.029f, "dark");
             Box(body, frame, 0f, screenY + screenH * 0.5f + bezel * 0.5f, Depth, w, bezel, 0.02f, "grey");
             Box(body, frame, 0f, screenY - screenH * 0.5f - bezel * 0.5f, Depth, w, bezel, 0.02f, "grey");
             Box(body, frame, -(w - bezel) * 0.5f, screenY, Depth, bezel, screenH, 0.02f, "grey");
             Box(body, frame, (w - bezel) * 0.5f, screenY, Depth, bezel, screenH, 0.02f, "grey");
-            Box(body, frame, 0f, stripY, Depth * 0.5f + 0.01f, w, strip, Depth, "steel");
+            Box(body, frame, 0f, stripY, Depth * 0.5f + 0.01f, w - 0.002f, strip, Depth, "steel");
             Box(body, frame, 0f, stripY + strip * 0.5f - 0.006f, Depth + 0.012f, w - 0.02f, 0.012f, 0.004f, "yellow");
             Box(body, frame, w * 0.5f - 0.06f, stripY - 0.005f, Depth + 0.012f, 0.025f, 0.025f, 0.006f, "green");
             int total = v.Lines + 1;
