@@ -4,6 +4,8 @@ using System.Linq;
 using HarmonyLib;
 using Managers.Client;
 using Managers.Server;
+using Players;
+using Players.Services;
 using MelonLoader;
 using Ships;
 using Ships.Grid.Model;
@@ -42,6 +44,8 @@ namespace ShipSafety.Patches
         private const int MaxGuestParts = 1500;
         private const float MoveEpsilon = 0.002f, TurnEpsilon = 0.05f;
         private const float MaxGuestScale = 1.25f;
+        private const float PlayerReach = 25f, PlayerKeepReach = 40f;
+        internal static PlayersServerTracker Players;
         private static readonly HashSet<(bool, uint, uint)> Logged = new HashSet<(bool, uint, uint)>();
         private static bool _failed;
 
@@ -93,7 +97,12 @@ namespace ShipSafety.Patches
                         continue;
                     }
                     var key = (server, host.Id, guest.Id);
-                    if (!Guests.TryGetValue(key, out Guest entry) || entry.Colliders == null)
+                    bool known = Guests.TryGetValue(key, out Guest entry) && entry.Colliders != null;
+                    if (!PlayerNear(host, position, Radius(guest, frame) + (known ? PlayerKeepReach : PlayerReach)))
+                    {
+                        continue;
+                    }
+                    if (!known)
                     {
                         if (entry != null)
                         {
@@ -154,6 +163,41 @@ namespace ShipSafety.Patches
             float radius = Mathf.Max(((Vector3)bounds.UpperCoord).magnitude, ((Vector3)bounds.LowerCoord).magnitude) + 1f;
             Radii[ship.Id] = (radius, frame);
             return radius;
+        }
+
+        private static bool PlayerNear(TrackedShip host, Vector3 guestInHost, float reach)
+        {
+            IReadOnlyList<TrackedPlayerServer> players = Players != null ? Players.ActivePlayers : null;
+            if (players == null || players.Count == 0)
+            {
+                return true;
+            }
+            Quaternion toHost = Quaternion.Inverse(host.Rotation);
+            foreach (TrackedPlayerServer player in players)
+            {
+                if (player == null)
+                {
+                    continue;
+                }
+                Vector3 local;
+                if (player.SpaceId == host.RelativeSpaceId)
+                {
+                    local = player.Position;
+                }
+                else if (player.SpaceId == host.SpaceId)
+                {
+                    local = toHost * (player.Position - host.Position);
+                }
+                else
+                {
+                    continue;
+                }
+                if ((local - guestInHost).sqrMagnitude <= reach * reach)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static bool Near(TrackedShip host, TrackedShip guest, int frame)
@@ -246,8 +290,9 @@ namespace ShipSafety.Patches
     [HarmonyPatch(typeof(WorldPhysicsServerUpdater), "UpdateShipInteriorLoading")]
     internal static class GuestCollidersServerPatch
     {
-        private static void Postfix(TrackedShipServer ship, Ships.Services.ShipsServerTracker ____ships)
+        private static void Postfix(TrackedShipServer ship, Ships.Services.ShipsServerTracker ____ships, PlayersServerTracker ____playersServerTracker)
         {
+            GuestShipColliders.Players = ____playersServerTracker;
             if (ship != null && ____ships != null)
             {
                 GuestShipColliders.Update(true, ship, ____ships.Ships);
