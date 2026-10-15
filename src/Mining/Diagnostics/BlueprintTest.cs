@@ -180,7 +180,10 @@ namespace Mining.Diagnostics
                         barriers.Add(barrier);
                     }
                 }
-                log.Msg($"[bp] barrier: {(Content.Barrier.Part != null ? "present" : "MISSING")}");
+                for (int i = 0; i < 20; i++) yield return null;
+                int hiddenPosts = barriers.Count(g => g.transform.Find(Content.BarrierVisuals.LeftPost) is Transform t1 && !t1.gameObject.activeSelf
+                    || g.GetComponentsInChildren<Transform>(true).Any(t => t.name == Content.BarrierVisuals.LeftPost && !t.gameObject.activeSelf));
+                log.Msg($"[bp] barrier: {(Content.Barrier.Part != null ? "present" : "MISSING")}, hidden left posts {hiddenPosts}/{barriers.Count}");
                 for (int i = 0; i < 5; i++) yield return null;
                 ScreenCapture.CaptureScreenshot(Path.Combine(DevTools.OutDir, "test_bp_bench.png"));
                 yield return null;

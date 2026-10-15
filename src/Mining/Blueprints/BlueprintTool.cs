@@ -84,13 +84,16 @@ namespace Mining.Blueprints
             if (material.HasProperty("_Color")) material.SetColor("_Color", Color.white);
             if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", Color.white);
             BlueprintToolModel.Shader = template.sharedMaterial != null ? template.sharedMaterial.shader.name : "-";
+            int layer = template.gameObject.layer;
+            var shadows = template.shadowCastingMode;
+            uint renderingLayers = template.renderingLayerMask;
             foreach (MeshRenderer r in renderers)
             {
                 MeshFilter filter = r.GetComponent<MeshFilter>();
                 Object.DestroyImmediate(r);
                 if (filter != null) Object.DestroyImmediate(filter);
             }
-            var model = new GameObject("BlueprintToolModel") { layer = template.gameObject.layer };
+            var model = new GameObject("BlueprintToolModel") { layer = layer };
             model.transform.SetParent(prefab.transform, false);
             Bounds bounds = total ?? new Bounds(Vector3.zero, Vector3.one * 0.3f);
             model.transform.localPosition = bounds.center;
@@ -98,8 +101,8 @@ namespace Mining.Blueprints
             model.AddComponent<MeshFilter>().sharedMesh = ModAssets.LoadMesh("blueprint_tool_body.bin");
             var renderer = model.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = material;
-            renderer.shadowCastingMode = template.shadowCastingMode;
-            renderer.renderingLayerMask = template.renderingLayerMask;
+            renderer.shadowCastingMode = shadows;
+            renderer.renderingLayerMask = renderingLayers;
         }
 
         private static void Create(ItemSettings paint)

@@ -46,26 +46,30 @@ namespace Mining.Content
             return _part;
         }
 
-        private static Mesh BuildMesh()
+        internal const float HalfLength = Width / 2f;
+
+        private static Mesh BuildRails()
         {
             var b = new MeshBuilder();
-            float half = Width / 2f;
-            float postRadius = Post / 2f;
-            foreach (float x in new[] { -half, half })
-            {
-                b.Cylinder(new Vector3(x, 0.03f, 0f), new Vector3(x, Height - 0.02f, 0f), postRadius, "yellow", 20);
-                b.Sphere(new Vector3(x, Height - 0.02f, 0f), postRadius * 1.15f, "yellow", 16);
-                b.Cylinder(new Vector3(x, 0.03f, 0f), new Vector3(x, 0.09f, 0f), postRadius * 1.35f, "black", 20);
-                b.Box(new Vector3(x, 0.015f, 0f), new Vector3(0.14f, 0.03f, 0.14f), "dark");
-                foreach (float y in new[] { Height - 0.05f, 0.55f, 0.15f })
-                {
-                    b.Cylinder(new Vector3(x, y - 0.035f, 0f), new Vector3(x, y + 0.035f, 0f), postRadius * 1.3f, "dark", 20);
-                }
-            }
             Rail(b, Height - 0.05f, 0.03f);
             Rail(b, 0.55f, 0.025f);
             Rail(b, 0.15f, 0.02f);
-            return b.Build("YellowBarrier");
+            return b.Build("YellowBarrierRails");
+        }
+
+        private static Mesh BuildPost()
+        {
+            var b = new MeshBuilder();
+            float postRadius = Post / 2f;
+            b.Cylinder(new Vector3(0f, 0.03f, 0f), new Vector3(0f, Height - 0.02f, 0f), postRadius, "yellow", 20);
+            b.Sphere(new Vector3(0f, Height - 0.02f, 0f), postRadius * 1.15f, "yellow", 16);
+            b.Cylinder(new Vector3(0f, 0.03f, 0f), new Vector3(0f, 0.09f, 0f), postRadius * 1.35f, "black", 20);
+            b.Box(new Vector3(0f, 0.015f, 0f), new Vector3(0.14f, 0.03f, 0.14f), "dark");
+            foreach (float y in new[] { Height - 0.05f, 0.55f, 0.15f })
+            {
+                b.Cylinder(new Vector3(0f, y - 0.035f, 0f), new Vector3(0f, y + 0.035f, 0f), postRadius * 1.3f, "dark", 20);
+            }
+            return b.Build("YellowBarrierPost");
         }
 
         private static void Rail(MeshBuilder b, float y, float radius)
@@ -106,8 +110,11 @@ namespace Mining.Content
                 Object.DestroyImmediate(visuals);
                 visual.gameObject.AddComponent<DefaultShipPartVisuals>();
             }
-            Mesh mesh = BuildMesh();
-            PartFactory.CreateRenderer("Body", visual, mesh, material, lookCopy);
+            PartFactory.CreateRenderer("Body", visual, BuildRails(), material, lookCopy);
+            Mesh post = BuildPost();
+            PartFactory.CreateRenderer(BarrierVisuals.LeftPost, visual, post, material, lookCopy).transform.localPosition = new Vector3(-HalfLength, 0f, 0f);
+            PartFactory.CreateRenderer(BarrierVisuals.RightPost, visual, post, material, lookCopy).transform.localPosition = new Vector3(HalfLength, 0f, 0f);
+            visual.gameObject.AddComponent<BarrierVisuals>();
             Object.DestroyImmediate(lookCopy.gameObject);
             var bounds = new Bounds(new Vector3(0f, Height / 2f, 0f), new Vector3(Width * 0.9f, Height, 0.12f));
             PartFactory.SetBounds(root, bounds);
@@ -132,6 +139,46 @@ namespace Mining.Content
             settings.thumbnailRotation = Quaternion.Euler(0f, 30f, 0f);
             PartFactory.SetCost(settings, (Items.Model.ItemsConstants.IronItemId, 3));
             return settings;
+        }
+    }
+
+    internal sealed class BarrierVisuals : MonoBehaviour
+    {
+        internal const string LeftPost = "PostLeft", RightPost = "PostRight";
+        private static readonly HashSet<BarrierVisuals> Active = new HashSet<BarrierVisuals>();
+        private Transform _left;
+        private float _next;
+
+        private void OnEnable()
+        {
+            Active.Add(this);
+            _left = transform.Find(LeftPost);
+            _next = 0f;
+        }
+
+        private void OnDisable() => Active.Remove(this);
+
+        private Vector3 End(float side) => transform.TransformPoint(new Vector3(side * Barrier.HalfLength, 0f, 0f));
+
+        private void LateUpdate()
+        {
+            if (Time.time < _next || _left == null)
+            {
+                return;
+            }
+            _next = Time.time + 0.25f;
+            Vector3 mine = End(-1f);
+            bool shared = false;
+            foreach (BarrierVisuals other in Active)
+            {
+                if (other == this || other == null) continue;
+                if ((other.End(-1f) - mine).sqrMagnitude < 0.0064f || (other.End(1f) - mine).sqrMagnitude < 0.0064f)
+                {
+                    shared = true;
+                    break;
+                }
+            }
+            if (_left.gameObject.activeSelf == shared) _left.gameObject.SetActive(!shared);
         }
     }
 }
