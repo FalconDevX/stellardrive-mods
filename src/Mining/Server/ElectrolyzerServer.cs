@@ -40,7 +40,7 @@ namespace Mining.Server
                     if (CanRun(____ship, connections, part, out _) &&
                         power.TryGetGroupFromSocket(new EntityPartSocket(____ship.Id, part.Id, ElectrolyzerPart.PowerSocket), out PowerGroupServerState group))
                     {
-                        group.TotalPowerNeeded += deltaTime * PowerWatts;
+                        group.TotalPowerNeeded += deltaTime * PowerWatts * ScaledVariants.Rate(part.Settings);
                     }
                 }
             }
@@ -70,7 +70,7 @@ namespace Mining.Server
                     }
                     if (rate > 0f)
                     {
-                        state = Produce(____ship, connections, part, state, rate * deltaTime, fromIce);
+                        state = Produce(____ship, connections, part, state, rate * deltaTime * ScaledVariants.Rate(part.Settings), fromIce);
                     }
                     ____ship.UpdatePartState(part.Id, state with { NormalizedProductionRate = rate });
                 }

@@ -38,6 +38,12 @@ namespace Mining.Patches
             (Barrier.PartId, Barrier.GetOrCreatePart, () => Barrier.Part, BigDoors.DoorPartId),
             (Stairs.PartId, Stairs.GetOrCreatePart, () => Stairs.Part, BigDoors.DoorPartId),
             (RetractableStairs.PartId, RetractableStairs.GetOrCreatePart, () => RetractableStairs.Part, BigDoors.DoorPartId),
+            (ScaledVariants.Variants[0].Id, p => ScaledVariants.GetOrCreate(ScaledVariants.Variants[0].Id, p), () => ScaledVariants.Get(ScaledVariants.Variants[0].Id), 0),
+            (ScaledVariants.Variants[1].Id, p => ScaledVariants.GetOrCreate(ScaledVariants.Variants[1].Id, p), () => ScaledVariants.Get(ScaledVariants.Variants[1].Id), 0),
+            (ScaledVariants.Variants[2].Id, p => ScaledVariants.GetOrCreate(ScaledVariants.Variants[2].Id, p), () => ScaledVariants.Get(ScaledVariants.Variants[2].Id), 0),
+            (ScaledVariants.Variants[3].Id, p => ScaledVariants.GetOrCreate(ScaledVariants.Variants[3].Id, p), () => ScaledVariants.Get(ScaledVariants.Variants[3].Id), 0),
+            (ScaledVariants.Variants[4].Id, p => ScaledVariants.GetOrCreate(ScaledVariants.Variants[4].Id, p), () => ScaledVariants.Get(ScaledVariants.Variants[4].Id), 0),
+            (ScaledVariants.Variants[5].Id, p => ScaledVariants.GetOrCreate(ScaledVariants.Variants[5].Id, p), () => ScaledVariants.Get(ScaledVariants.Variants[5].Id), 0),
             (Blueprints.Workbench.PartId, Blueprints.Workbench.GetOrCreatePart, () => Blueprints.Workbench.Part, Blueprints.Workbench.ResearchTablePartId),
             (BigChest.Variants[2].id, p => BigChest.GetOrCreate(BigChest.Variants[2].id, p), () => BigChest.Get(BigChest.Variants[2].id), BigChest.ChestPartId),
             (BigDoors.Variants[0].id, p => BigDoors.GetOrCreate(BigDoors.Variants[0].id, p), () => BigDoors.Get(BigDoors.Variants[0].id), BigDoors.DoorPartId),
@@ -64,7 +70,7 @@ namespace Mining.Patches
             (Items.Model.ItemsConstants.IronItemId, 30), (112, 5));
 
         internal static readonly ModResearch LargeTanksResearch = new ModResearch(BigFluidTank.ResearchId, "Large Tanks", new Vector2Int(3, 3), 8,
-            () => BigFluidTank.All,
+            () => BigFluidTank.All.Concat(ScaledVariants.All).ToArray(),
             (Items.Model.ItemsConstants.IronItemId, 40), (Items.Model.ItemsConstants.GlassItemId, 15));
 
         internal static readonly ModResearch HydrogenResearch = new ModResearch(201, "Hydrogen Propulsion", new Vector2Int(5, 4), Excavator.ResearchId,
@@ -281,7 +287,7 @@ namespace Mining.Patches
                 if (part != null && !all.Contains(part)) all.Add(part);
             }
             Dictionary<ushort, PartSettings> byId = all.GroupBy(p => p.id).ToDictionary(g => g.Key, g => g.First());
-            var sorted = new HashSet<ushort>(Tabs.SelectMany(t => t.ids));
+            var sorted = new HashSet<ushort>(Tabs.SelectMany(t => t.ids).Concat(ScaledVariants.Ids));
             BuildMenuTabConfig parts = tabs.FirstOrDefault(t => t?.name == "Parts") ?? tabs.Last(t => t != null);
             Texture doorIcon = tabs.FirstOrDefault(t => t?.rows != null && t.rows.Any(r => r?.parts != null && r.parts.Any(p => p != null && p.id == DoorPartId)))?.icon ?? parts.icon;
 
@@ -301,6 +307,11 @@ namespace Mining.Patches
             {
                 List<PartSettings> list = ids.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
                 if (name == Tabs[Tabs.Length - 1].name) list.AddRange(leftovers);
+                for (int i = list.Count - 1; i >= 0; i--)
+                {
+                    PartSettings[] bigger = ScaledVariants.Variants.Where(v => ScaledVariants.BaseId(v.Id) == list[i].id && byId.ContainsKey(v.Id)).Select(v => byId[v.Id]).ToArray();
+                    list.InsertRange(i + 1, bigger);
+                }
                 if (list.Count == 0) continue;
                 var rows = new List<BuildMenuTabConfig.BuildMenuRow>();
                 for (int i = 0; i < list.Count; i += MaxPerRow)
