@@ -11,7 +11,17 @@ namespace Mining.Patches
     {
         private static void Postfix(StatefulPart part, Transform __result)
         {
-            if (part?.Settings == null || part.Settings.id != Stairs.PartId || __result == null)
+            if (part?.Settings == null || __result == null)
+            {
+                return;
+            }
+            if (part.Settings.id == Barrier.PartId && __result.GetComponent<BoxCollider>() is BoxCollider wall)
+            {
+                wall.center = new Vector3(0f, 0.6f, 0f);
+                wall.size = new Vector3(Barrier.HalfLength * 2f, 1.2f, 0.3f);
+                return;
+            }
+            if (part.Settings.id != Stairs.PartId)
             {
                 return;
             }
