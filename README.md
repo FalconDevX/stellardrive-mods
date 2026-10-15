@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 # StellarDrive Mods
 
@@ -38,7 +38,7 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Mining](#mining)** | 0.13.0 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
+| **[Mining](#mining)** | 0.13.1 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
 | **[Water](#water)** | 0.4.2 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.2 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.5.4 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
@@ -166,14 +166,14 @@ The largest mod in the collection. It adds resource extraction, new power source
 <summary><b>Nuclear power</b></summary>
 
 - **Reactor** (research *Nuclear Power*): uranium + water + a signal of `1` produces 20,000 W. It glows, spins its cores and hums while running.
-- **Large reactor** (research *Large Reactor*): 4x4x4, 100,000 W, uses 5x more uranium and water. Sockets are on the bottom frame.
+- **Large reactor** (research *Large Reactor*): 4x4x4, 100,000 W, uses 5x more uranium and water. Sockets are on the bottom frame. It glows and lights its surroundings while running.
 
 </details>
 
 <details>
 <summary><b>Building parts and storage</b></summary>
 
-- **Rotor** (research *Mechanics*): rotates the structure on its plate. A lever works out of the box (`0` = home, `1` = 90°); signals above 1 are interpreted as degrees.
+- **Rotor** (research *Mechanics*): rotates the structure on its plate. A lever works out of the box (`0` = home, `1` = 90Â°); signals above 1 are interpreted as degrees.
 - **Large doors and gates** (research *Large Doors*): doors 3x2, 3x3, 4x4, 6x3 and gates 10x5, 16x8, 24x8, 32x8, with heavy opening animation and custom sound. They block passage until fully open.
 - **Large tanks** (research *Large Tanks*): Tank 2x2 (800) and Tank 4x4 (6400), with mirrored pipe sockets at floor level.
 - **Large chests** (research *Large Storage*): Medium Chest (2x2x2, 30 slots), Large Chest (3x3x3, 60 slots) and Huge Chest (4x4x4, 120 slots). All use the same slot size; scroll the mouse wheel over the grid to see more rows.

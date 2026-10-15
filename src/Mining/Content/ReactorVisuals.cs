@@ -26,6 +26,9 @@ namespace Mining.Content
         private Material _body, _core;
         private Transform[] _cores;
         private Transform _rotor;
+        private Light _light;
+        private const float SmallBodyGlow = 3.5f, LargeBodyGlow = 8f;
+        private float _bodyGlow = SmallBodyGlow;
         private float _target, _level;
         private float _phase;
         private readonly Audio.LoopEmitter _sound = new Audio.LoopEmitter("reactor", 30f, MiningMod.ReactorVolume);
@@ -47,6 +50,20 @@ namespace Mining.Content
             _core = core;
             _rotor = transform.Find("Rotor");
             _phase = Random.value * 10f;
+            if (_rotor == null)
+            {
+                _bodyGlow = LargeBodyGlow;
+                Transform existing = transform.Find("Glow");
+                _light = existing != null ? existing.GetComponent<Light>() : new GameObject("Glow").AddComponent<Light>();
+                _light.transform.SetParent(transform, false);
+                _light.transform.localPosition = new Vector3(0f, 2.2f, 0f);
+                _light.type = LightType.Point;
+                _light.color = Cyan;
+                _light.range = 9f;
+                _light.shadows = LightShadows.None;
+                _light.intensity = 0f;
+                _light.enabled = false;
+            }
         }
 
         public override void SetNetworkState(IStatefulPartState state)
@@ -67,7 +84,12 @@ namespace Mining.Content
             _level = Mathf.MoveTowards(_level, _target, Time.deltaTime / (_target > _level ? 3f : 2f));
             float t = Time.time + _phase;
             float pulse = 1f + 0.25f * Mathf.Sin(t * 2.2f) + 0.08f * Mathf.Sin(t * 13f);
-            SetEmission(_body, ref _bodyColor, Cyan * (_level * 3.5f * pulse));
+            SetEmission(_body, ref _bodyColor, Cyan * (_level * _bodyGlow * pulse));
+            if (_light != null)
+            {
+                _light.enabled = _level > 0.01f;
+                _light.intensity = _level * 2.5f * pulse;
+            }
             SetEmission(_core, ref _coreColor, Cyan * (0.05f + _level * 1.3f * pulse));
             float spin = _level * Time.deltaTime;
             if (spin > 0f)

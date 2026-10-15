@@ -71,10 +71,21 @@ namespace Mining.Blueprints
             }
         }
 
+        private static readonly Dictionary<uint, string> Names = new Dictionary<uint, string>();
+
         internal static string ItemName(uint id)
         {
+            if (Names.TryGetValue(id, out string name))
+            {
+                return name;
+            }
             ItemSettings item = Resources.FindObjectsOfTypeAll<ItemSettings>().FirstOrDefault(i => i != null && i.id == id);
-            return item != null ? item.itemName : $"item {id}";
+            if (item == null)
+            {
+                return $"item {id}";
+            }
+            Names[id] = item.itemName;
+            return item.itemName;
         }
 
         internal static string Describe(IEnumerable<(uint item, int need, int have)> missing) =>

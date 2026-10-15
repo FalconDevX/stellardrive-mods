@@ -254,6 +254,7 @@ namespace Mining.Blueprints
     {
         private static readonly List<BlueprintGhost> Ghosts = new List<BlueprintGhost>();
         private static string _loadedFor;
+        private static Type _loadDataType;
 
         internal static IReadOnlyList<BlueprintGhost> All => Ghosts;
 
@@ -283,12 +284,11 @@ namespace Mining.Blueprints
             {
                 return;
             }
-            string key = WorldKey();
-            if (_loadedFor != key)
+            if (_loadedFor == null)
             {
                 foreach (BlueprintGhost g in Ghosts) g.Destroy();
                 Ghosts.Clear();
-                _loadedFor = key;
+                _loadedFor = WorldKey();
                 Load();
             }
             foreach (BlueprintGhost g in Ghosts) g.Update();
@@ -313,7 +313,7 @@ namespace Mining.Blueprints
         {
             try
             {
-                Type type = AccessTools.TypeByName("MainGameSceneLoadData");
+                Type type = _loadDataType ?? (_loadDataType = AccessTools.TypeByName("MainGameSceneLoadData"));
                 object value = type != null ? (AccessTools.Property(type, "SaveFileFullName")?.GetValue(null) ?? AccessTools.Field(type, "SaveFileFullName")?.GetValue(null)) : null;
                 string name = value as string;
                 if (!string.IsNullOrEmpty(name))

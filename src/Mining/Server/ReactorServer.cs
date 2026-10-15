@@ -21,6 +21,7 @@ namespace Mining.Server
     {
         private const float WoodPerSecond = 0.1f, WoodPower = 4000f;
         private const float WaterPerSecond = 0.05f;
+        private const float IdleLevel = 0.35f;
         private static bool _loggedError;
 
         [HarmonyPrefix]
@@ -60,7 +61,9 @@ namespace Mining.Server
                     bool reactor = Reactor.Is(part.Settings);
                     float scale = Reactor.Scale(part.Settings);
                     float maxPower = deltaTime * (reactor ? MiningMod.ReactorPower.Value * scale : WoodPower);
-                    float level = Capacity(____ship, part, deltaTime) / maxPower * group.NormalizedGeneratorRate;
+                    float capacity = Capacity(____ship, part, deltaTime);
+                    float level = capacity / maxPower * group.NormalizedGeneratorRate;
+                    float shown = reactor && capacity > 0f ? IdleLevel + (1f - IdleLevel) * level : level;
                     float fuelPerSecond = reactor ? scale / Mathf.Max(1f, MiningMod.ReactorSecondsPerUranium.Value) : WoodPerSecond;
                     uint fuelItem = reactor ? Uranium.ItemId : ItemsConstants.WoodItemId;
                     float left = Mathf.Max(Fuel(state, reactor) - level * deltaTime * fuelPerSecond, 0f);
@@ -70,7 +73,7 @@ namespace Mining.Server
                     {
                         water.RemoveFluid(Mathf.Min(level * WaterPerSecond * scale * deltaTime, water.Available));
                     }
-                    ____ship.UpdatePartState(part.Id, state with { ItemSlot = slot, NormalizedProductionLevel = level, PartialItemConsumptionLevel = left - whole });
+                    ____ship.UpdatePartState(part.Id, state with { ItemSlot = slot, NormalizedProductionLevel = shown, PartialItemConsumptionLevel = left - whole });
                 }
             }
             catch (Exception e)
