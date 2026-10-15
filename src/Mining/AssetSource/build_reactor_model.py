@@ -1,5 +1,4 @@
 import bpy, bmesh, math, os, struct, sys, zlib
-import numpy as np
 from mathutils import Vector, Matrix
 
 argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
@@ -14,8 +13,7 @@ PALETTE = [
 ]
 GLOW = {'glow', 'screen'}
 NAMES = [n for n, _ in PALETTE]
-CELLS, CELL_PX = 4, 256
-MARGIN = 6.0 / CELL_PX
+CELLS, CELL_PX = 4, 64
 SOCKETS = [(-0.70, 0.45, 'yellow'), (-0.25, 0.45, 'yellow'), (0.25, 0.45, 'blue'), (0.70, 0.45, 'white')]
 
 C = Matrix(((0, 0, -1), (1, 0, 0), (0, 1, 0)))
@@ -385,18 +383,9 @@ def build_rotor():
     return m.to_object('ReactorRotor')
 
 
-def cell_uv(index, u01=0.5, v01=0.5):
+def cell_uv(index):
     cx, cy = index % CELLS, index // CELLS
-    span = 1.0 - 2.0 * MARGIN
-    return ((cx + MARGIN + u01 * span) / CELLS, 1.0 - (cy + MARGIN + (1.0 - v01) * span) / CELLS)
-
-
-def projected_uv(index, p, fn, lo, hi):
-    axis = max(range(3), key=lambda k: abs(fn[k]))
-    a, b = {0: (2, 1), 1: (0, 2), 2: (0, 1)}[axis]
-    u = (p[a] - lo[a]) / max(1e-6, hi[a] - lo[a])
-    v = (p[b] - lo[b]) / max(1e-6, hi[b] - lo[b])
-    return cell_uv(index, min(1.0, max(0.0, u)), min(1.0, max(0.0, v)))
+    return ((cx + 0.5) / CELLS, 1.0 - (cy + 0.5) / CELLS)
 
 
 def export(obj, path, glow=None):
@@ -404,13 +393,10 @@ def export(obj, path, glow=None):
     me.calc_loop_triangles()
     mw = obj.matrix_world
     verts, index, lookup = [], [], {}
-    world = [mw @ v.co for v in me.vertices]
-    conv = [(c.y, c.z, -c.x) for c in world]
-    lo = [min(c[k] for c in conv) for k in range(3)]
-    hi = [max(c[k] for c in conv) for k in range(3)]
     for tri in me.loop_triangles:
         if glow is not None and (NAMES[tri.material_index] in GLOW) != glow:
             continue
+        uv = cell_uv(tri.material_index)
         pts = []
         for li in tri.loops:
             co = mw @ me.vertices[me.loops[li].vertex_index].co
@@ -423,7 +409,6 @@ def export(obj, path, glow=None):
         if (b - a).cross(c - a).dot(fn) < 0:
             pts = [pts[0], pts[2], pts[1]]
         for p, n in pts:
-            uv = projected_uv(tri.material_index, p, fn, lo, hi)
             key = tuple(round(x, 5) for x in p + n + uv)
             if key not in lookup:
                 lookup[key] = len(verts)
@@ -439,68 +424,15 @@ def export(obj, path, glow=None):
     print(os.path.basename(path), len(verts), 'vertices', len(index) // 3, 'triangles', 'bounds', bounds)
 
 
-def value_noise(rng, n, cells):
-    grid = rng.random((cells + 1, cells + 1))
-    t = np.linspace(0, cells, n, endpoint=False)
-    i = t.astype(int)
-    f = t - i
-    f = f * f * (3 - 2 * f)
-    g00 = grid[i[:, None], i[None, :]]
-    g10 = grid[i[:, None] + 1, i[None, :]]
-    g01 = grid[i[:, None], i[None, :] + 1]
-    g11 = grid[i[:, None] + 1, i[None, :] + 1]
-    fy, fx = f[:, None], f[None, :]
-    return (g00 * (1 - fy) + g10 * fy) * (1 - fx) + (g01 * (1 - fy) + g11 * fy) * fx
-
-
-SEAMED = {'grey', 'steel', 'light', 'olive', 'white', 'dark'}
-PAINTED = {'yellow', 'blue', 'red', 'green', 'orange', 'white', 'olive'}
-
-
-def cell_texture(name, base, seed):
-    n = CELL_PX
-    rng = np.random.default_rng(seed)
-    y = np.arange(n)[:, None] / n
-    x = np.arange(n)[None, :] / n
-    col = np.ones((n, n, 3)) * np.array(base)[None, None, :]
-    if name in GLOW:
-        glow = 0.85 + 0.15 * np.cos((x - 0.5) * math.pi) * np.cos((y - 0.5) * math.pi)
-        if name == 'screen':
-            glow = glow * (0.9 + 0.1 * (np.arange(n)[:, None] % 4 < 2))
-        return np.clip(col * glow[..., None], 0, 1)
-    brushed = rng.normal(0, 1, (n, 1)) * 0.025 + rng.normal(0, 1, (n, n)) * 0.012
-    if name in ('steel', 'light', 'grey', 'copper'):
-        brushed = brushed * 1.8
-    big = value_noise(rng, n, 6)
-    grime = (0.10 + 0.10 * y) * big + 0.05 * value_noise(rng, n, 24)
-    shade = 1.0 + brushed - grime
-    if name in SEAMED:
-        step = n // 4
-        yy = np.arange(n)[:, None] % step
-        xx = np.arange(n)[None, :] % (step * 2)
-        seam = ((yy < 2) | (xx < 2)).astype(float)
-        high = ((yy == 2) | (xx == 2)).astype(float)
-        shade = shade - 0.22 * seam + 0.08 * high
-        ry = (np.arange(n)[:, None] % step) - step // 2
-        rx = (np.arange(n)[None, :] % (step * 2))
-        rivet = ((np.abs(ry) < 2) & ((np.abs(rx - 8) < 2) | (np.abs(rx - step * 2 + 8) < 2))).astype(float)
-        shade = shade + 0.12 * rivet
-    if name in PAINTED:
-        chips = (value_noise(rng, n, 40) > 0.82).astype(float) * (value_noise(rng, n, 9) > 0.55)
-        col = col * (1 - chips[..., None]) + np.array([0.33, 0.34, 0.35])[None, None, :] * chips[..., None]
-    streak = (rng.random((1, n)) > 0.97) * (0.06 * y)
-    shade = shade - streak
-    return np.clip(col * shade[..., None], 0, 1)
-
-
-def write_png(path, pixel=None):
+def write_png(path, pixel):
     size = CELLS * CELL_PX
-    img = np.zeros((size, size, 3))
-    for i, (name, c) in enumerate(PALETTE):
-        cy, cx = i // CELLS, i % CELLS
-        img[cy * CELL_PX:(cy + 1) * CELL_PX, cx * CELL_PX:(cx + 1) * CELL_PX] = cell_texture(name, c, 1000 + i)
-    data = (np.clip(img, 0, 1) * 255 + 0.5).astype(np.uint8)
-    raw = b''.join(bytes(1) + data[r].tobytes() for r in range(size))
+    rows = []
+    for y in range(size):
+        row = bytearray([0])
+        for x in range(size):
+            row += bytes(pixel(min(CELLS * CELLS - 1, (y // CELL_PX) * CELLS + x // CELL_PX)))
+        rows.append(bytes(row))
+    raw = b''.join(rows)
 
     def chunk(tag, data):
         return struct.pack('>I', len(data)) + tag + data + struct.pack('>I', zlib.crc32(tag + data) & 0xffffffff)
@@ -542,7 +474,7 @@ rotor = build_rotor()
 export(body, os.path.join(OUT, 'reactor_body.bin'), False)
 export(body, os.path.join(OUT, 'reactor_glow.bin'), True)
 export(rotor, os.path.join(OUT, 'reactor_rotor.bin'))
-write_png(os.path.join(OUT, 'reactor_palette.png'))
+write_png(os.path.join(OUT, 'reactor_palette.png'), lambda i: srgb(PALETTE[i][1]))
 if PREVIEW:
     rotor.location = B((0, 1.44, 0))
     render_previews([body, rotor], PREVIEW)
