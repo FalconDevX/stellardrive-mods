@@ -15,7 +15,8 @@ namespace Mining.Content
         internal const ushort PartId = 235;
         private const ushort BedPartId = 43;
         private const int Steps = 8;
-        private const float Width = 1f, Rise = 2f, Run = 2f, Tread = Run / Steps, StepHeight = Rise / Steps;
+        internal const float Rise = 2f, Run = 2f;
+        private const float Width = 1f, Tread = Run / Steps, StepHeight = Rise / Steps;
         private const float Side = Width / 2f - 0.04f, RailHeight = 0.9f;
         private static PartSettings _part;
         private static bool _failed;
