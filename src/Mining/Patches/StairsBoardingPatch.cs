@@ -25,6 +25,19 @@ namespace Mining.Patches
             foreach (StatefulPart part in StairsOf(ship))
             {
                 Vector3 local = Quaternion.Inverse(part.LocalRotation) * (playerRelativeFeetPos - part.LocalPosition);
+                if (part.Settings.id == RetractableStairs.PartId)
+                {
+                    float run = RetractableStairs.Run(ship.Id, part.Id);
+                    float ramp = RetractableStairs.Surface(local.z, run);
+                    if (run > 0.1f && Mathf.Abs(local.x) < RetractableStairs.Width / 2f + SideMargin &&
+                        local.z > RetractableStairs.Front - EndMargin && local.z < RetractableStairs.Front + run + EndMargin &&
+                        local.y > ramp - Below && local.y < ramp + Above)
+                    {
+                        __result = true;
+                        return;
+                    }
+                    continue;
+                }
                 float surface = Mathf.Clamp(local.z + Stairs.Run / 2f, 0f, Stairs.Run) * (Stairs.Rise / Stairs.Run);
                 if (Mathf.Abs(local.x) < 0.5f + SideMargin && Mathf.Abs(local.z) < Stairs.Run / 2f + EndMargin &&
                     local.y > surface - Below && local.y < surface + Above)
@@ -44,7 +57,7 @@ namespace Mining.Patches
             var stairs = new List<StatefulPart>();
             foreach (StatefulPart part in ship.StatefulParts)
             {
-                if (part.Settings != null && part.Settings.id == Stairs.PartId)
+                if (part.Settings != null && (part.Settings.id == Stairs.PartId || part.Settings.id == RetractableStairs.PartId))
                 {
                     stairs.Add(part);
                 }

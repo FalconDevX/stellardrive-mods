@@ -26,6 +26,11 @@ namespace Mining.Patches
                 __result.gameObject.AddComponent<BarrierCollider>();
                 return;
             }
+            if (part.Settings.id == RetractableStairs.PartId)
+            {
+                __result.gameObject.AddComponent<RetractableStairsCollider>();
+                return;
+            }
             if (part.Settings.id != Stairs.PartId)
             {
                 return;
