@@ -84,7 +84,12 @@ namespace Mining.Blueprints
             if (material.HasProperty("_Color")) material.SetColor("_Color", Color.white);
             if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", Color.white);
             BlueprintToolModel.Shader = template.sharedMaterial != null ? template.sharedMaterial.shader.name : "-";
-            foreach (MeshRenderer r in renderers) r.enabled = false;
+            foreach (MeshRenderer r in renderers)
+            {
+                MeshFilter filter = r.GetComponent<MeshFilter>();
+                Object.DestroyImmediate(r);
+                if (filter != null) Object.DestroyImmediate(filter);
+            }
             var model = new GameObject("BlueprintToolModel") { layer = template.gameObject.layer };
             model.transform.SetParent(prefab.transform, false);
             Bounds bounds = total ?? new Bounds(Vector3.zero, Vector3.one * 0.3f);

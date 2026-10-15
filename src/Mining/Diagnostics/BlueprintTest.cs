@@ -50,6 +50,9 @@ namespace Mining.Diagnostics
             yield return null;
             thumb = thumbs?.GetThumbnail(BlueprintToolItem.ItemId) ?? thumb;
             if (thumb != null) DevTools.SaveTexture(thumb, Path.Combine(DevTools.OutDir, "test_bp_tool_icon.png"));
+            Texture2D paintThumb = thumbs?.GetThumbnail(BlueprintToolItem.PaintToolItemId);
+            yield return null;
+            if (paintThumb != null) DevTools.SaveTexture(paintThumb, Path.Combine(DevTools.OutDir, "test_bp_paint_icon.png"));
             if (cam == null || ships == null || player == null)
             {
                 yield break;
