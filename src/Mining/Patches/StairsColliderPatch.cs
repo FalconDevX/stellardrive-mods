@@ -22,7 +22,7 @@ namespace Mining.Patches
             if (part.Settings.id == Barrier.PartId && __result.GetComponent<BoxCollider>() is BoxCollider wall)
             {
                 wall.center = new Vector3(0f, 0.6f, 0f);
-                wall.size = new Vector3(Barrier.HalfLength * 2f, 1.2f, 0.3f);
+                wall.size = new Vector3(Barrier.HalfLength * 2f, 1.2f, 0.1f);
                 __result.gameObject.AddComponent<BarrierCollider>();
                 return;
             }
