@@ -61,7 +61,7 @@ namespace PickBlock.Patches
             }
             Quaternion ship = snappedPlacement.Rotation * Quaternion.Inverse(hull.Rotation);
             Camera cam = Camera.main;
-            foreach (Vector3Int offset in Offsets(hull.Position.Type))
+            foreach (Vector3Int offset in Offsets(hull))
             {
                 if (cam != null && HitsPlayer(snappedPlacement.Position + ship * (Vector3)offset, cam.transform.position, ship * Vector3.up))
                 {
@@ -91,8 +91,8 @@ namespace PickBlock.Patches
             }
             TryGetHull(placement, out HullPartPlacement hull, out _);
             Quaternion ship = placement.Rotation * Quaternion.Inverse(hull.Rotation);
-            Axes(hull.Position.Type, out Vector3Int a, out Vector3Int b);
-            Vector3 normal = Vector3.Cross(a, b);
+            Axes(hull, out Vector3Int a, out Vector3Int b);
+            Vector3 normal = Vector3.Cross(a, b).normalized;
             float half = _size * 0.5f;
             Vector3 center = placement.Position + ship * (normal * 0.03f);
             Vector3 u = ship * (Vector3)a * half, v = ship * (Vector3)b * half;
@@ -134,7 +134,7 @@ namespace PickBlock.Patches
             }
             hull = snapped.HullPartPlacement.Value;
             type = hull.Position.Type;
-            return type != VoxelPartType.Interior;
+            return Axes(hull, out _, out _);
         }
 
         private static bool HitsPlayer(Vector3 cell, Vector3 head, Vector3 up)
@@ -145,9 +145,9 @@ namespace PickBlock.Patches
             return (cell - (feet + along * t)).magnitude < PlayerClearance;
         }
 
-        private static void Axes(VoxelPartType type, out Vector3Int a, out Vector3Int b)
+        private static bool Axes(HullPartPlacement hull, out Vector3Int a, out Vector3Int b)
         {
-            switch (type)
+            switch (hull.Position.Type)
             {
                 case VoxelPartType.ForwardWall:
                     a = Vector3Int.right;
@@ -157,16 +157,37 @@ namespace PickBlock.Patches
                     a = new Vector3Int(0, 0, 1);
                     b = Vector3Int.up;
                     break;
-                default:
+                case VoxelPartType.Floor:
                     a = Vector3Int.right;
                     b = new Vector3Int(0, 0, 1);
                     break;
+                default:
+                    return Diagonal(hull.ForwardOrientation.GetVector3(), out a, out b);
             }
+            return true;
         }
 
-        private static IEnumerable<Vector3Int> Offsets(VoxelPartType type)
+        private static bool Diagonal(Vector3 normal, out Vector3Int a, out Vector3Int b)
         {
-            Axes(type, out Vector3Int a, out Vector3Int b);
+            a = b = Vector3Int.zero;
+            var n = new Vector3Int(Sign(normal.x), Sign(normal.y), Sign(normal.z));
+            int flat = n.x == 0 ? 0 : n.y == 0 ? 1 : n.z == 0 ? 2 : -1;
+            if (flat < 0 || Mathf.Abs(n.x) + Mathf.Abs(n.y) + Mathf.Abs(n.z) != 2)
+            {
+                return false;
+            }
+            a[flat] = 1;
+            int i = (flat + 1) % 3, j = (flat + 2) % 3;
+            b[i] = n[j];
+            b[j] = -n[i];
+            return true;
+        }
+
+        private static int Sign(float value) => value > 0.1f ? 1 : value < -0.1f ? -1 : 0;
+
+        private static IEnumerable<Vector3Int> Offsets(HullPartPlacement hull)
+        {
+            Axes(hull, out Vector3Int a, out Vector3Int b);
             int r = _size / 2;
             for (int ring = 0; ring <= r; ring++)
             for (int i = -ring; i <= ring; i++)
