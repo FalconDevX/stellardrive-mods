@@ -152,9 +152,9 @@ namespace Mining.Content
             Transform visual = root.transform.Find("Visual");
             MeshRenderer look = visual.GetComponentInChildren<MeshRenderer>(true);
             Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("reactor_palette.png"), name);
-            material.SetTexture("_EmissionMap", ModAssets.LoadTexture("reactor_glow.png"));
-            material.SetColor("_EmissionColor", Color.black);
-            material.EnableKeyword("_EMISSION");
+            Material glowMaterial = new Material(material) { name = name + "Glow" };
+            glowMaterial.SetColor("_EmissionColor", Color.black);
+            glowMaterial.EnableKeyword("_EMISSION");
             var lookCopy = new GameObject("look").AddComponent<MeshRenderer>();
             lookCopy.gameObject.layer = look.gameObject.layer;
             lookCopy.shadowCastingMode = look.shadowCastingMode;
@@ -166,6 +166,7 @@ namespace Mining.Content
             Object.DestroyImmediate(visual.GetComponent<DefaultShipPartVisuals>());
             visual.gameObject.AddComponent<ReactorVisuals>();
             PartFactory.CreateRenderer("Body", visual, body, material, lookCopy).transform.localScale = Vector3.one * size;
+            PartFactory.CreateRenderer("Glow", visual, ModAssets.LoadMesh("reactor_glow.bin"), glowMaterial, lookCopy).transform.localScale = Vector3.one * size;
             Transform spinner = PartFactory.CreateRenderer("Rotor", visual, rotor, material, lookCopy).transform;
             spinner.localPosition = RotorPosition * size;
             spinner.localScale = Vector3.one * size;

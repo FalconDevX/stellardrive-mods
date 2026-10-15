@@ -218,55 +218,100 @@ def build_body():
         m.box(tuple(mid), (0.42, 0.05, 0.06), 'grey', rot=r, bevel=0.006)
 
     m.lathe([(0, 0.13), (0.64, 0.13), (0.64, 0.19), (0.58, 0.21), (0.56, 0.24), (0, 0.24)], 'grey')
-    m.lathe([(0.56, 0.24), (0.555, 0.25), (0.555, 1.12), (0.535, 1.18), (0.47, 1.26), (0.41, 1.30), (0, 1.30)], 'light', seg=64)
-    m.lathe([(0, 1.30), (0.41, 1.30), (0.41, 1.36), (0.46, 1.37), (0.46, 1.47), (0.385, 1.47), (0.385, 1.40), (0, 1.40)], 'grey', seg=64)
-    m.lathe([(0.47, 1.49), (0.49, 1.49), (0.49, 1.54), (0.47, 1.54)], 'steel', seg=64)
+    m.lathe([(0.56, 0.24), (0.555, 0.25), (0.555, 1.10), (0.54, 1.13), (0.0, 1.13)], 'light', seg=64)
+    m.lathe([(0.0, 1.13), (0.57, 1.13), (0.57, 1.18), (0.0, 1.18)], 'grey', seg=64)
+    for x, z in ring_points(0.53, 32, math.pi / 32):
+        m.cyl((x, 1.18, z), (x, 1.215, z), 0.012, 'steel', 6)
+        m.cyl((x, 1.215, z), (x, 1.225, z), 0.018, 'dark', 6)
+    dome = [(0.0, 1.18)]
+    for i in range(13):
+        a = math.radians(i * 90 / 12)
+        dome.append((0.44 * math.cos(a), 1.18 + 0.2 * math.sin(a)))
+    dome[-1] = (0.0, 1.38)
+    m.lathe(dome[1:], 'steel', seg=64)
     for y in (0.36, 0.58, 0.80, 1.02):
         m.torus((0, y, 0), (0, 1, 0), 0.556, 0.016, 'steel', 64, 8)
+    for y in (0.30, 0.55, 0.80, 1.05):
+        for x, z in ring_points(0.557, 12, math.pi / 12):
+            m.box((x, y, z), (0.03, 0.03, 0.03), 'dark')
     for x, z in ring_points(0.60, 24):
         m.cyl((x, 0.19, z), (x, 0.215, z), 0.013, 'steel', 6)
-    for x, z in ring_points(0.43, 16):
-        m.cyl((x, 1.47, z), (x, 1.485, z), 0.01, 'steel', 6)
 
+    rods = []
+    for ix in range(-3, 4):
+        for iz in range(-3, 4):
+            x, z = ix * 0.075, iz * 0.075
+            if math.hypot(x, z) < 0.27:
+                rods.append((x, z))
+    for x, z in rods:
+        r = math.hypot(x, z)
+        base = 1.18 + 0.2 * math.sqrt(max(0.0, 1 - (r / 0.44) ** 2))
+        m.cyl((x, base - 0.01, z), (x, 1.40, z), 0.022, 'grey', 10)
+        m.cyl((x, 1.40, z), (x, 1.415, z), 0.028, 'dark', 10)
+        m.cyl((x, base + 0.05, z), (x, base + 0.07, z), 0.03, 'steel', 10)
+    m.box((0, 1.42, 0), (0.62, 0.012, 0.62), 'dark')
+    for k in (-1, 1):
+        m.pipe([(0.30 * k, 1.42, 0.0), (0.42 * k, 1.42, 0.0), (0.48 * k, 1.20, 0.30)], 0.02, 'dark', 10)
+    m.lathe([(0.40, 1.43), (0.43, 1.43), (0.43, 1.50), (0.40, 1.50)], 'steel', seg=64)
     for k in range(-4, 5):
         z = k * 0.085
         half = math.sqrt(max(0.0, 0.385 ** 2 - z ** 2))
         if half > 0.02:
             m.box((0, 1.56, z), (half * 2, 0.012, 0.018), 'dark')
     m.torus((0, 1.56, 0), (0, 1, 0), 0.40, 0.014, 'dark', 48, 8)
+    for deg in (0, 90, 180, 270):
+        r = yaw(deg)
+        c = r @ Vector((0.415, 1.53, 0))
+        m.box(tuple(c), (0.04, 0.06, 0.04), 'steel', rot=r)
 
     for deg in (45, 135, 225, 315):
         r = yaw(deg)
         out = r @ Vector((1, 0, 0))
         side = r @ Vector((0, 0, 1))
-        c = r @ Vector((0.565, 0.72, 0))
-        m.box(tuple(c), (0.04, 0.80, 0.17), 'dark', rot=r, bevel=0.008)
-        m.box(tuple(c + out * 0.012), (0.03, 0.72, 0.11), 'glow', rot=r)
-        for y in (0.48, 0.72, 0.96):
+        c = r @ Vector((0.565, 0.70, 0))
+        m.box(tuple(c), (0.04, 0.70, 0.17), 'dark', rot=r, bevel=0.008)
+        m.box(tuple(c + out * 0.012), (0.03, 0.62, 0.11), 'glow', rot=r)
+        for y in (0.48, 0.70, 0.92):
             m.box(tuple(Vector((c.x, y, c.z)) + out * 0.03), (0.016, 0.02, 0.15), 'steel', rot=r)
-        for s in (-1, 1):
-            base = c + out * 0.06 + side * (0.13 * s)
-            m.cyl((base.x, 0.30, base.z), (base.x, 1.10, base.z), 0.024, 'glow', 14)
-            for y in (0.34, 0.72, 1.06):
-                m.torus((base.x, y, base.z), (0, 1, 0), 0.03, 0.009, 'steel', 14, 6)
 
     for s in (-1, 1):
-        x = 0.70 * s
-        m.box((x, 0.66, 0), (0.16, 0.95, 1.1), 'grey', bevel=0.01)
-        m.box((x + 0.081 * s, 0.66, 0), (0.004, 0.88, 1.02), 'dark')
-        for i in range(12):
-            z = -0.48 + i * (0.96 / 11)
-            m.box((0.86 * s, 0.66, z), (0.2, 0.84, 0.012), 'steel', bevel=0.002)
-        m.cyl((0.80 * s, 1.15, -0.52), (0.80 * s, 1.15, 0.52), 0.045, 'orange', 18)
-        m.cyl((0.80 * s, 0.19, -0.52), (0.80 * s, 0.19, 0.52), 0.045, 'blue', 18)
-        for z in (-0.52, 0.52):
-            m.cyl((0.80 * s, 1.15, z), (0.80 * s, 1.15, z + 0.03 * (1 if z > 0 else -1)), 0.06, 'dark', 18)
-            m.cyl((0.80 * s, 0.19, z), (0.80 * s, 0.19, z + 0.03 * (1 if z > 0 else -1)), 0.06, 'dark', 18)
-        m.pipe([(0.40 * s, 1.27, 0), (0.80 * s, 1.27, 0), (0.80 * s, 1.15, 0)], 0.05, 'orange')
-        m.pipe([(0.80 * s, 0.19, 0), (0.80 * s, 0.32, 0), (0.54 * s, 0.32, 0)], 0.05, 'blue')
-        for y in (1.27,):
-            m.cyl((0.58 * s, y, 0), (0.62 * s, y, 0), 0.065, 'dark', 18)
-        m.cyl((0.62 * s, 0.32, 0), (0.66 * s, 0.32, 0), 0.065, 'dark', 18)
+        sx, sz = 0.74 * s, 0.30
+        m.cyl((sx, 0.13, sz), (sx, 0.25, sz), 0.12, 'dark', 24, 0.006)
+        for a in range(4):
+            leg = yaw(45 + a * 90) @ Vector((0.13, 0, 0))
+            m.box((sx + leg.x, 0.19, sz + leg.z), (0.03, 0.12, 0.03), 'steel', rot=yaw(45 + a * 90))
+        m.lathe([(0.0, 0.25), (0.15, 0.25), (0.15, 1.05), (0.16, 1.12), (0.16, 1.32), (0.13, 1.39), (0.07, 1.42), (0.0, 1.43)], 'light', center=(sx, 0, sz), seg=40)
+        for y in (0.42, 0.66, 0.90, 1.12):
+            m.torus((sx, y, sz), (0, 1, 0), 0.152 if y < 1.1 else 0.162, 0.009, 'steel', 40, 6)
+        m.cyl((sx, 0.55, sz + 0.14), (sx, 0.55, sz + 0.175), 0.04, 'dark', 16)
+        m.box((sx - 0.12 * s, 0.75, sz), (0.004, 0.12, 0.08), 'yellow', rot=yaw(0))
+        m.pipe([(0.52 * s, 0.92, 0.22), (0.66 * s, 0.92, 0.26)], 0.055, 'orange', 18)
+        m.cyl((0.53 * s, 0.92, 0.22), (0.57 * s, 0.92, 0.23), 0.075, 'dark', 18)
+        m.cyl((0.62 * s, 0.92, 0.25), (0.585 * s, 0.92, 0.24), 0.075, 'dark', 18)
+        m.pipe([(sx, 1.40, sz), (sx, 1.46, sz), (sx, 1.46, 0.58), (sx, 0.98, 0.58)], 0.03, 'steel', 12)
+        m.cyl((sx, 0.98, 0.58), (sx, 0.94, 0.58), 0.05, 'dark', 14)
+
+        px, pz = 0.74 * s, -0.36
+        m.cyl((px, 0.13, pz), (px, 0.20, pz), 0.13, 'dark', 24, 0.006)
+        m.lathe([(0.0, 0.20), (0.11, 0.20), (0.12, 0.26), (0.12, 0.40), (0.09, 0.45), (0.0, 0.45)], 'blue', center=(px, 0, pz), seg=32)
+        m.cyl((px, 0.45, pz), (px, 0.52, pz), 0.06, 'steel', 16)
+        m.cyl((px, 0.52, pz), (px, 0.80, pz), 0.085, 'olive', 24, 0.008)
+        for y in (0.56, 0.61, 0.66, 0.71, 0.76):
+            m.torus((px, y, pz), (0, 1, 0), 0.088, 0.008, 'grey', 24, 6)
+        m.cyl((px, 0.80, pz), (px, 0.84, pz), 0.06, 'dark', 16)
+        m.box((px, 0.30, pz + 0.125), (0.12, 0.08, 0.01), 'yellow')
+        m.pipe([(sx, 0.30, sz - 0.14), (sx, 0.30, pz + 0.12)], 0.05, 'blue', 16)
+        m.pipe([(px - 0.11 * s, 0.33, pz), (0.50 * s, 0.33, pz + 0.05), (0.43 * s, 0.33, -0.22)], 0.05, 'blue', 16)
+        m.cyl((0.47 * s, 0.33, -0.25), (0.505 * s, 0.33, -0.27), 0.07, 'dark', 16)
+        m.pipe([(px, 0.84, pz), (px, 0.95, pz), (0.86 * s, 0.95, pz)], 0.012, 'black', 8)
+
+    pzx, pzz = -0.10, -0.68
+    m.lathe([(0.0, 0.14), (0.09, 0.14), (0.09, 1.15), (0.07, 1.21), (0.0, 1.23)], 'light', center=(pzx, 0, pzz), seg=32)
+    for y in (0.35, 0.65, 0.95):
+        m.torus((pzx, y, pzz), (0, 1, 0), 0.092, 0.007, 'steel', 32, 6)
+    m.box((pzx, 0.8, pzz - 0.09), (0.08, 0.16, 0.006), 'yellow')
+    m.pipe([(pzx, 1.23, pzz), (pzx, 1.30, pzz), (pzx, 1.30, -0.40), (pzx * 0.5, 1.26, -0.25)], 0.02, 'steel', 10)
+    m.pipe([(pzx, 0.18, pzz + 0.09), (pzx, 0.18, -0.50)], 0.025, 'orange', 10)
 
     m.box((0.42, 0.40, -0.80), (0.62, 0.54, 0.2), 'dark', bevel=0.012)
     tilt = axis_rot((1, 0, 0), -35)
@@ -343,12 +388,14 @@ def cell_uv(index):
     return ((cx + 0.5) / CELLS, 1.0 - (cy + 0.5) / CELLS)
 
 
-def export(obj, path):
+def export(obj, path, glow=None):
     me = obj.data
     me.calc_loop_triangles()
     mw = obj.matrix_world
     verts, index, lookup = [], [], {}
     for tri in me.loop_triangles:
+        if glow is not None and (NAMES[tri.material_index] in GLOW) != glow:
+            continue
         uv = cell_uv(tri.material_index)
         pts = []
         for li in tri.loops:
@@ -424,10 +471,10 @@ def render_previews(objs, path):
 bpy.ops.wm.read_factory_settings(use_empty=True)
 body = build_body()
 rotor = build_rotor()
-export(body, os.path.join(OUT, 'reactor_body.bin'))
+export(body, os.path.join(OUT, 'reactor_body.bin'), False)
+export(body, os.path.join(OUT, 'reactor_glow.bin'), True)
 export(rotor, os.path.join(OUT, 'reactor_rotor.bin'))
 write_png(os.path.join(OUT, 'reactor_palette.png'), lambda i: srgb(PALETTE[i][1]))
-write_png(os.path.join(OUT, 'reactor_glow.png'), lambda i: (255, 255, 255) if PALETTE[i][0] in GLOW else (0, 0, 0))
 if PREVIEW:
     rotor.location = B((0, 1.44, 0))
     render_previews([body, rotor], PREVIEW)

@@ -53,7 +53,7 @@ namespace Mining.Server
                 {
                     foreach (ushort id in ShipPartIndex.Get(__instance, variant.Id))
                     {
-                        if (!__instance.TryGetStatefulPart(id, out StatefulPart part) || !(part.State is DoorState))
+                        if (!__instance.TryGetStatefulPart(id, out StatefulPart part) || !(part.State is DoorState || part.State is BeaconState))
                         {
                             continue;
                         }
@@ -72,10 +72,17 @@ namespace Mining.Server
         {
             bool powered = power.TryGetGroupFromSocket(new EntityPartSocket(ship.Id, part.Id, variant.PowerSocket), out PowerGroupServerState group) &&
                            group.NormalizedConsumerRate >= 0.5f;
-            var state = (DoorState)part.State;
-            if (state.IsOpen != powered)
+            if (part.State is BeaconState beacon)
             {
-                ship.UpdatePartState(part.Id, state with { IsOpen = powered });
+                string name = InfoPanels.Encode(powered, InfoPanels.Clean(InfoPanels.Decode(beacon.Name).text));
+                if (beacon.Name != name)
+                {
+                    ship.UpdatePartState(part.Id, beacon with { Name = name });
+                }
+            }
+            else
+            {
+                ship.UpdatePartState(part.Id, new BeaconState { IsInUse = false, Name = InfoPanels.Encode(powered, "") });
             }
         }
 

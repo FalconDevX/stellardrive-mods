@@ -38,12 +38,14 @@ namespace Mining.Content
             var body = bodyTransform != null ? bodyTransform.GetComponent<MeshRenderer>() : null;
             if (body != null)
             {
-                _body = body.material;
                 _scale = bodyTransform.localScale.x;
             }
             _rotor = transform.Find("Rotor");
-            var rotor = _rotor != null ? _rotor.GetComponent<MeshRenderer>() : null;
-            if (rotor != null && _body != null) rotor.sharedMaterial = _body;
+            var glow = transform.Find("Glow")?.GetComponent<MeshRenderer>();
+            if (glow != null)
+            {
+                _body = glow.material;
+            }
             _phase = Random.value * 10f;
             Transform existing = transform.Find("Glow");
             _light = existing != null ? existing.GetComponent<Light>() : new GameObject("Glow").AddComponent<Light>();
@@ -75,7 +77,7 @@ namespace Mining.Content
             _level = Mathf.MoveTowards(_level, _target, Time.deltaTime / (_target > _level ? 3f : 2f));
             float t = Time.time + _phase;
             float pulse = 1f + 0.25f * Mathf.Sin(t * 2.2f) + 0.08f * Mathf.Sin(t * 13f);
-            SetEmission(_body, ref _bodyColor, Cyan * (0.04f + _level * Glow * pulse));
+            SetEmission(_body, ref _bodyColor, Cyan * (0.15f + _level * Glow * pulse));
             if (_light != null)
             {
                 _light.enabled = _level > 0.01f;

@@ -17,7 +17,8 @@ namespace Mining.Patches
             GameObject ___interactionTipPrefab, InteractionCanvas ____instantiatedCanvas)
         {
             string text = ReferenceEquals(localizedString, WaterPumpInteraction.LowerLabel) ? "Lower hose" :
-                          ReferenceEquals(localizedString, WaterPumpInteraction.RaiseLabel) ? "Raise hose" : null;
+                          ReferenceEquals(localizedString, WaterPumpInteraction.RaiseLabel) ? "Raise hose" :
+                          ReferenceEquals(localizedString, InfoPanelInteraction.EditLabel) ? "Edit text" : null;
             if (text == null || ___interactionTipPrefab == null || ____instantiatedCanvas == null)
             {
                 return true;

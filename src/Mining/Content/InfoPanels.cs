@@ -7,9 +7,12 @@ using MelonLoader;
 using Ships.Cables;
 using Ships.Interface.Model.Parts;
 using Ships.Interface.Model.Parts.Common;
+using Ships.Interface.Model.Parts.State;
 using Ships.Interface.Model.Parts.StateTypes;
 using Ships.Interface.Settings;
 using Ships.Parts.Common;
+using Ships.Parts.Constant;
+using Players.Interface.Model;
 using Ships.Parts.SignalDisplay;
 using TMPro;
 using UnityEngine;
@@ -57,6 +60,32 @@ namespace Mining.Content
 
         internal static bool Is(PartSettings settings) => settings != null && Find(settings.id) != null;
 
+        internal const int MaxText = 200;
+        private const char PoweredMark = '\u0001', UnpoweredMark = '\u0002';
+
+        internal static string Encode(bool powered, string text) => (powered ? PoweredMark : UnpoweredMark) + (text ?? "");
+
+        internal static (bool powered, string text) Decode(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return (false, "");
+            }
+            if (name[0] == PoweredMark || name[0] == UnpoweredMark)
+            {
+                return (name[0] == PoweredMark, name.Substring(1));
+            }
+            return (false, name);
+        }
+
+        internal static string Clean(string text)
+        {
+            string clean = new string((text ?? "").Where(c => !char.IsControl(c)).ToArray()).Trim();
+            return clean.Length > MaxText ? clean.Substring(0, MaxText) : clean;
+        }
+
+        internal static string[] Labels(string text) => (text ?? "").Split(';').Select(l => l.Trim()).ToArray();
+
         internal static PartSettings GetOrCreate(ushort id, IEnumerable<PartSettings> gameParts)
         {
             if (Parts.TryGetValue(id, out PartSettings existing) || Failed.Contains(id))
@@ -66,6 +95,7 @@ namespace Mining.Content
             List<PartSettings> parts = gameParts.ToList();
             PartSettings display = parts.FirstOrDefault(p => p?.part != null && p.part.GetComponentInChildren<SignalDisplayVisuals>(true) != null);
             PartSettings generator = PartFactory.Find(parts, GeneratorPartId);
+            PartSettings constant = parts.FirstOrDefault(p => p?.part != null && p.part.GetComponentInChildren<ConstantVisuals>(true) != null);
             if (display == null || generator?.part == null)
             {
                 return null;
@@ -73,7 +103,7 @@ namespace Mining.Content
             DisplayPartId = display.id;
             try
             {
-                PartSettings built = Build(display, generator, Find(id));
+                PartSettings built = Build(display, generator, constant, Find(id));
                 Parts[id] = built;
                 Melon<MiningMod>.Logger.Msg($"Added part '{built.fullLabel}' (id {id})");
                 return built;
@@ -106,7 +136,7 @@ namespace Mining.Content
             }
         }
 
-        private static PartSettings Build(PartSettings display, PartSettings generator, Variant v)
+        private static PartSettings Build(PartSettings display, PartSettings generator, PartSettings constant, Variant v)
         {
             GameObject root = Object.Instantiate(display.part, PartFactory.Holder);
             root.name = v.Label.Replace(" ", "");
@@ -229,7 +259,9 @@ namespace Mining.Content
                 line.text = "";
             }
             text.gameObject.SetActive(false);
+            AddTextInput(visual, constant, visual.TransformPoint(frame.Point(0f, screenY, Depth + 0.008f)), visual.rotation * textRot, screenW - 0.08f);
             visual.gameObject.AddComponent<InfoPanelVisuals>();
+            ReplaceInteractions(root);
 
             Bounds newBounds = bodyMesh.bounds;
             Vector3 rootCenter = root.transform.InverseTransformPoint(visual.TransformPoint(newBounds.center));
@@ -277,11 +309,12 @@ namespace Mining.Content
             settings.hideFlags = HideFlags.DontUnloadUnusedAsset;
             settings.id = v.Id;
             settings.fullLabel = v.Label;
-            settings.internalStateClass = "DoorState";
+            settings.internalStateClass = "BeaconState";
             settings.snappingStyle = display.snappingStyle;
             string inputs = v.Lines == 1 ? "one signal input (A)" : $"{v.Lines} signal inputs ({string.Join(", ", Letters.Take(v.Lines))})";
             settings.description = $"{v.Width:0}x{v.Height:0} display panel. Shows the values of its {inputs}, one per line. " +
-                                   $"Needs power: {v.Watts:0} W, the screen stays dark without it. Sockets on the bottom edge, so cables come from below: signals A-D from the left, power (yellow mark) on the right.";
+                                   $"Needs power: {v.Watts:0} W, the screen stays dark without it. Sockets on the bottom edge, so cables come from below: signals A-D from the left, power (yellow mark) on the right. " +
+                                   "Press E to write your own text: one label per line, separated by ';' (e.g. 'Fuel;Oxygen'). A line with a signal shows its label and value, a line without a signal shows only the text.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
             settings.thumbnailRotation = display.thumbnailRotation;
@@ -289,6 +322,67 @@ namespace Mining.Content
             settings.size = size;
             PartFactory.SetCost(settings, (Items.Model.ItemsConstants.IronItemId, v.Iron), (112, v.Copper), (Items.Model.ItemsConstants.GlassItemId, v.Glass));
             return settings;
+        }
+
+        private static void AddTextInput(Transform visual, PartSettings constant, Vector3 center, Quaternion facing, float width)
+        {
+            TMP_InputField source = constant?.part.GetComponentInChildren<ConstantVisuals>(true)?.InputField;
+            if (source == null)
+            {
+                Melon<MiningMod>.Logger.Warning("No text input to copy - info panels without editable text");
+                return;
+            }
+            Transform top = source.transform;
+            Canvas canvas = source.GetComponentInParent<Canvas>(true);
+            if (canvas != null && canvas.transform.IsChildOf(constant.part.transform))
+            {
+                top = canvas.transform;
+            }
+            var rect = (RectTransform)source.transform;
+            float sourceWidth = Mathf.Max(1e-4f, rect.rect.width * Mathf.Abs(source.transform.lossyScale.x));
+            Quaternion inner = Quaternion.Inverse(top.rotation) * source.transform.rotation;
+            Vector3 innerOffset = Quaternion.Inverse(top.rotation) * (source.transform.TransformPoint(rect.rect.center) - top.position);
+
+            GameObject copy = Object.Instantiate(top.gameObject);
+            copy.name = "TextInput";
+            copy.transform.SetParent(visual, true);
+            float k = width / sourceWidth;
+            copy.transform.localScale *= k;
+            copy.transform.rotation = facing * Quaternion.Inverse(inner);
+            copy.transform.position = center - copy.transform.rotation * (innerOffset * k);
+            foreach (TMP_InputField field in copy.GetComponentsInChildren<TMP_InputField>(true))
+            {
+                field.contentType = TMP_InputField.ContentType.Standard;
+                field.lineType = TMP_InputField.LineType.SingleLine;
+                field.characterValidation = TMP_InputField.CharacterValidation.None;
+                field.characterLimit = MaxText;
+                field.text = "";
+            }
+            Melon<MiningMod>.Logger.Msg($"Info panel text input copied from '{top.name}', scale {k:0.###}");
+        }
+
+        private static void ReplaceInteractions(GameObject root)
+        {
+            Transform interactions = root.transform.Find("Interactions");
+            PartInteraction[] found = interactions != null ? interactions.GetComponentsInChildren<PartInteraction>(true) : root.GetComponentsInChildren<PartInteraction>(true);
+            if (found.Length == 0)
+            {
+                Melon<MiningMod>.Logger.Warning("Info panel has no interaction to extend - text editing unavailable");
+                return;
+            }
+            foreach (PartInteraction original in found)
+            {
+                GameObject go = original.gameObject;
+                var fields = Traverse.Create(original);
+                bool active = fields.Field<bool>("isActive").Value;
+                float distance = fields.Field<float>("detectionDistance").Value;
+                List<PartInteractionConfig> configs = fields.Field<List<PartInteractionConfig>>("interactions").Value;
+                Object.DestroyImmediate(original);
+                var copy = Traverse.Create(go.AddComponent<InfoPanelInteraction>());
+                copy.Field("isActive").SetValue(active);
+                copy.Field("detectionDistance").SetValue(distance);
+                copy.Field("interactions").SetValue(configs ?? new List<PartInteractionConfig>());
+            }
         }
 
         private static int Dominant(Vector3 v)
@@ -300,7 +394,32 @@ namespace Mining.Content
         private static Vector3 Abs(Vector3 v) => new Vector3(Mathf.Abs(v.x), Mathf.Abs(v.y), Mathf.Abs(v.z));
     }
 
-    internal class InfoPanelVisuals : DefaultShipPartVisuals, Ships.Parts.Common.Model.IContextAwarePart
+    internal class InfoPanelInteraction : PartInteraction
+    {
+        internal static readonly UnityEngine.Localization.LocalizedString EditLabel = new UnityEngine.Localization.LocalizedString();
+
+        public override IReadOnlyCollection<PartInteractionConfig> Interactions
+        {
+            get
+            {
+                var list = new List<PartInteractionConfig> { new PartInteractionConfig { type = InteractionType.Interact, localizedLabel = EditLabel } };
+                list.AddRange(base.Interactions.Where(c => c.type != InteractionType.Interact));
+                return list;
+            }
+        }
+
+        public override bool Interact(InteractionType type)
+        {
+            if (type != InteractionType.Interact)
+            {
+                return base.Interact(type);
+            }
+            InteractionService.StartInteractWithPart(new Managers.Interface.Model.PartInteractNetworkRequest { ShipId = PartContext.ShipId, PartId = PartContext.PartId });
+            return true;
+        }
+    }
+
+    internal class InfoPanelVisuals : DefaultShipPartVisuals, Ships.Parts.Common.Model.IContextAwarePart, Ships.Parts.Common.Model.IPartVisualWritable
     {
         internal static readonly Color ScreenOff = new Color(0.01f, 0.012f, 0.015f);
         internal static readonly Color ScreenOn = new Color(0.03f, 0.12f, 0.16f);
@@ -313,6 +432,11 @@ namespace Mining.Content
         private int _lines;
         private TMP_Text[] _texts = new TMP_Text[0];
         private Material _screen;
+        private TMP_InputField _input;
+        private bool _editing, _shownEditing = true;
+        private string[] _labels = new string[0];
+
+        public TMP_InputField InputField => _input;
 
         public void SetContext(Ships.Parts.Common.Utils.ShipPartContext context)
         {
@@ -331,24 +455,62 @@ namespace Mining.Content
             _texts = list.ToArray();
             _lines = _texts.Length;
             _screen = transform.Find("Screen")?.GetComponent<Renderer>()?.material;
+            _input = GetComponentInChildren<TMP_InputField>(true);
             Apply();
         }
 
         public override void SetNetworkState(IStatefulPartState state)
         {
-            _powered = state is IDoorState door && door.IsOpen;
+            Read(state);
             Apply();
         }
 
         public override void ReactToNetworkStateChange(StatefulPartStateChangeEvent change)
         {
-            _powered = change.NewState is IDoorState door && door.IsOpen;
+            Read(change.NewState);
             Apply();
+        }
+
+        private void Read(IStatefulPartState state)
+        {
+            if (state is BeaconState beacon)
+            {
+                (bool powered, string text) = InfoPanels.Decode(beacon.Name);
+                _powered = powered;
+                _editing = beacon.IsInUse;
+                _labels = InfoPanels.Labels(text);
+                if (_input != null && !_input.isFocused && _input.text != text)
+                {
+                    _input.text = text;
+                }
+            }
+            else
+            {
+                _powered = state is IDoorState door && door.IsOpen;
+                _editing = false;
+            }
+        }
+
+        private void ShowInput(bool show)
+        {
+            if (_input == null || _shownEditing == show)
+            {
+                return;
+            }
+            _shownEditing = show;
+            foreach (Renderer r in _input.GetComponentsInChildren<Renderer>(true)) r.enabled = show;
+            foreach (UnityEngine.UI.Graphic g in _input.GetComponentsInChildren<UnityEngine.UI.Graphic>(true)) g.enabled = show;
         }
 
         private void Update()
         {
-            if (!_powered || Time.time < _next)
+            bool editing = _editing || (_input != null && _input.isFocused);
+            ShowInput(editing);
+            foreach (TMP_Text t in _texts)
+            {
+                if (t.gameObject.activeSelf != (_powered && !editing)) t.gameObject.SetActive(_powered && !editing);
+            }
+            if (!_powered || editing || Time.time < _next)
             {
                 return;
             }
@@ -356,8 +518,19 @@ namespace Mining.Content
             var connections = ServiceLocator.GetService<ConnectionsClientTracker>();
             for (int i = 0; i < _lines; i++)
             {
-                double value = connections != null ? connections.GetSignalValue(new EntityPartSocket(_shipId, _partId, (byte)i)) : 0.0;
-                string line = $"{InfoPanels.Letters[i]}  {value:0.##}";
+                var socket = new EntityPartSocket(_shipId, _partId, (byte)i);
+                string label = i < _labels.Length ? _labels[i] : "";
+                bool wired = connections != null && connections.TryGetSignalGroupId(socket, out _);
+                string line;
+                if (wired)
+                {
+                    double value = connections.GetSignalValue(socket);
+                    line = $"{(label.Length > 0 ? label : InfoPanels.Letters[i].ToString())}  {value:0.##}";
+                }
+                else
+                {
+                    line = label;
+                }
                 if (_texts[i].text != line)
                 {
                     _texts[i].text = line;
