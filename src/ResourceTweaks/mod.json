@@ -2,6 +2,6 @@
   "id": "stellardrive-resourcetweaks",
   "name": "Resource Tweaks",
   "author": "mateu",
-  "version": "0.3.2",
-  "description": "More resources from mining (x3, iron x10), stacks up to 100, faster mining (trees 50%, the rest 25%). The host needs the mod."
+  "version": "0.4.0",
+  "description": "More resources from mining (x3, iron x10), stacks up to 100, faster mining (trees 50%, the rest 25%), a bigger personal inventory (45 slots, scrolled with the mouse wheel). The host needs the mod."
 }

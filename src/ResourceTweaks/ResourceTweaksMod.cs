@@ -1,7 +1,7 @@
 using MelonLoader;
 using ResourceTweaks;
 
-[assembly: MelonInfo(typeof(ResourceTweaksMod), "Resource Tweaks", "0.3.2", "mateu")]
+[assembly: MelonInfo(typeof(ResourceTweaksMod), "Resource Tweaks", "0.4.0", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace ResourceTweaks
@@ -14,6 +14,7 @@ namespace ResourceTweaks
         internal static MelonPreferences_Entry<bool> LogDrops;
         internal static MelonPreferences_Entry<float> TreeMiningTime;
         internal static MelonPreferences_Entry<float> OtherMiningTime;
+        internal static MelonPreferences_Entry<int> InventorySlots;
 
         public override void OnInitializeMelon()
         {
@@ -28,11 +29,14 @@ namespace ResourceTweaks
                 description: "Tree mining time relative to normal (0.5 = 50% shorter, 1 = unchanged)");
             OtherMiningTime = category.CreateEntry("OtherMiningTime", 0.75f,
                 description: "Mining time of other resources relative to normal (0.75 = 25% shorter)");
+            InventorySlots = category.CreateEntry("InventorySlots", 45,
+                description: "Personal inventory slots (15-250, the game has 15). Scroll the inventory window with the mouse wheel. All players must use the same value");
             LogDrops = category.CreateEntry("LogDrops", true,
                 description: "Logs every drop to MelonLoader\\Latest.log (for checking, turn off after testing)");
             category.SaveToFile(false);
+            Patches.InventorySize.Apply();
 
-            LoggerInstance.Msg($"Resources x{DropMultiplier.Value}, iron x{IronDropMultiplier.Value}, stack up to {MaxStackSize.Value}");
+            LoggerInstance.Msg($"Resources x{DropMultiplier.Value}, iron x{IronDropMultiplier.Value}, stack up to {MaxStackSize.Value}, inventory {Patches.InventorySize.Slots} slots");
         }
     }
 }
