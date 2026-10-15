@@ -81,7 +81,7 @@ namespace Mining.Content
             {
                 float top = (i + 1) * StepHeight, front = Front(i), center = front + Tread / 2f;
                 b.Box(new Vector3(0f, top - 0.025f, center + 0.01f), new Vector3(tread, 0.05f, Tread + 0.02f), "steel");
-                b.Box(new Vector3(0f, top - 0.012f, front + 0.025f), new Vector3(tread, 0.026f, 0.05f), "yellow");
+                b.Box(new Vector3(0f, top - 0.011f, front + 0.0235f), new Vector3(tread + 0.006f, 0.028f, 0.051f), "yellow");
                 for (int g = 1; g <= 3; g++)
                 {
                     b.Box(new Vector3(0f, top + 0.002f, front + 0.05f + g * 0.045f), new Vector3(tread - 0.08f, 0.006f, 0.014f), "dark");
