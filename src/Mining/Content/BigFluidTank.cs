@@ -117,7 +117,7 @@ namespace Mining.Content
                 _housingMaterial = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("door_albedo.png"), "TankSocketHousing");
             }
             inward = new Vector3(0f, 0f, Mathf.Sign(inward.z == 0f ? 1f : inward.z));
-            float width = 0.1f * scale, depth = 0.1f * scale, height = socket.y + 0.05f * scale;
+            float width = 0.1f * scale, depth = Mathf.Clamp(DistanceToBody(root, look, socket, inward, width) + 0.05f * scale, 0.1f * scale, 0.6f * scale), height = socket.y + 0.05f * scale;
             float radius = width / 2f;
             Vector3 front = new Vector3(socket.x, 0f, socket.z) + inward * 0.01f;
             Vector3 center = front + inward * (depth / 2f);
@@ -132,6 +132,31 @@ namespace Mining.Content
             housing.transform.position = root.transform.position;
             housing.transform.rotation = root.transform.rotation;
             housing.transform.localScale = Vector3.one;
+        }
+
+        private static float DistanceToBody(GameObject root, MeshRenderer look, Vector3 socket, Vector3 inward, float width)
+        {
+            Mesh mesh = look.GetComponent<MeshFilter>()?.sharedMesh;
+            float best = float.MaxValue;
+            if (mesh != null && mesh.isReadable)
+            {
+                foreach (Vector3 v in mesh.vertices)
+                {
+                    Vector3 p = root.transform.InverseTransformPoint(look.transform.TransformPoint(v));
+                    float along = Vector3.Dot(p - socket, inward);
+                    if (along > 0f && Mathf.Abs(p.x - socket.x) < width / 2f && p.y > 0.05f && along < best) best = along;
+                }
+            }
+            if (best < float.MaxValue)
+            {
+                return best;
+            }
+            Bounds b = look.bounds;
+            Vector3 center = root.transform.InverseTransformPoint(b.center);
+            float radius = Mathf.Min(b.extents.x, b.extents.z);
+            float dx = Mathf.Abs(socket.x - center.x) + width / 2f;
+            float surface = dx < radius ? Mathf.Sqrt(radius * radius - dx * dx) : 0f;
+            return Mathf.Max(0f, Mathf.Abs(socket.z - center.z) - surface);
         }
 
         private static void AddMirroredSockets(GameObject root, int scale)
