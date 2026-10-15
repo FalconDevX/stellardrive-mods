@@ -18,6 +18,7 @@ namespace Mining.Content
         {
             (219, "Medium Chest", 2, 30, 15, 30),
             (220, "Large Chest", 3, 60, 20, 70),
+            (232, "Huge Chest", 4, 120, 20, 140),
         };
 
         private static readonly Dictionary<ushort, PartSettings> Parts = new Dictionary<ushort, PartSettings>();

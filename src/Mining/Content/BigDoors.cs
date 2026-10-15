@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using HarmonyLib;
 using MelonLoader;
@@ -73,6 +74,7 @@ namespace Mining.Content
             RebuildColliders(root);
             CoverInteraction(root);
             ReplaceLook(root, chest);
+            SetupColliderTimer(root);
 
             HullPartSettings settings = Object.Instantiate(door);
             settings.name = root.name;
@@ -107,6 +109,27 @@ namespace Mining.Content
             model.localPosition = inv.GetColumn(3);
             model.localRotation = inv.rotation;
             model.localScale = inv.lossyScale;
+        }
+
+        private static void SetupColliderTimer(GameObject root)
+        {
+            DoorDynamicColliders dynamic = root.GetComponentInChildren<DoorDynamicColliders>(true);
+            GameObject leaf = dynamic != null ? Traverse.Create(dynamic).Field<GameObject>("doorCollider").Value : null;
+            if (leaf == null)
+            {
+                return;
+            }
+            float travel = 0f;
+            foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+            {
+                string[] p = t.name.Split('|');
+                if (p.Length == 7 && p[0] == "P" && float.TryParse(p[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float distance))
+                {
+                    travel = Mathf.Max(travel, distance);
+                }
+            }
+            leaf.name = BigDoorColliderTimer.LeafPrefix + (1.2f + 0.5f * travel).ToString(CultureInfo.InvariantCulture);
+            dynamic.gameObject.AddComponent<BigDoorColliderTimer>();
         }
 
         private static void CoverInteraction(GameObject root)

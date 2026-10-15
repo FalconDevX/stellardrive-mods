@@ -35,6 +35,8 @@ namespace Mining.Patches
             (BigFluidTank.Variants[1].id, p => BigFluidTank.GetOrCreate(BigFluidTank.Variants[1].id, p), () => BigFluidTank.Get(BigFluidTank.Variants[1].id), BigFluidTank.TankPartId),
             (BigChest.Variants[0].id, p => BigChest.GetOrCreate(BigChest.Variants[0].id, p), () => BigChest.Get(BigChest.Variants[0].id), BigChest.ChestPartId),
             (BigChest.Variants[1].id, p => BigChest.GetOrCreate(BigChest.Variants[1].id, p), () => BigChest.Get(BigChest.Variants[1].id), BigChest.ChestPartId),
+            (Blueprints.Workbench.PartId, Blueprints.Workbench.GetOrCreatePart, () => Blueprints.Workbench.Part, Blueprints.Workbench.ResearchTablePartId),
+            (BigChest.Variants[2].id, p => BigChest.GetOrCreate(BigChest.Variants[2].id, p), () => BigChest.Get(BigChest.Variants[2].id), BigChest.ChestPartId),
             (BigDoors.Variants[0].id, p => BigDoors.GetOrCreate(BigDoors.Variants[0].id, p), () => BigDoors.Get(BigDoors.Variants[0].id), BigDoors.DoorPartId),
             (BigDoors.Variants[1].id, p => BigDoors.GetOrCreate(BigDoors.Variants[1].id, p), () => BigDoors.Get(BigDoors.Variants[1].id), BigDoors.DoorPartId),
             (BigDoors.Variants[2].id, p => BigDoors.GetOrCreate(BigDoors.Variants[2].id, p), () => BigDoors.Get(BigDoors.Variants[2].id), BigDoors.DoorPartId),
@@ -48,6 +50,10 @@ namespace Mining.Patches
         internal static readonly ModResearch LargeDoorsResearch = new ModResearch(BigDoors.ResearchId, "Large Doors", new Vector2Int(3, 6), 16,
             () => BigDoors.All,
             (Items.Model.ItemsConstants.IronItemId, 30), (112, 10));
+
+        internal static readonly ModResearch ToolCraftingResearch = new ModResearch(Blueprints.Workbench.ResearchId, "Tool Crafting", new Vector2Int(5, 7), 14,
+            () => new[] { Blueprints.Workbench.Part },
+            (Items.Model.ItemsConstants.IronItemId, 25), (112, 10));
 
         internal static readonly ModResearch LargeStorageResearch = new ModResearch(BigChest.ResearchId, "Large Storage", new Vector2Int(2, 0), 17,
             () => BigChest.All,
@@ -118,6 +124,7 @@ namespace Mining.Patches
             LargeDoorsResearch.Ensure();
             LargeTanksResearch.Ensure();
             LargeStorageResearch.Ensure();
+            ToolCraftingResearch.Ensure();
         }
     }
 
@@ -186,7 +193,7 @@ namespace Mining.Patches
             ("Power", new ushort[] { 61, 65, 60, 203, Reactor.LargePartId }),
             ("Fluids", new ushort[] { 24, 81, 57, 23, 218, 215, 79, 66, 67, 202, 214, 80 }),
             ("Doors", new ushort[] { DoorPartId, 42, 217, 210, 211, 212, 213, 216, 223, 224 }),
-            ("Utility", new ushort[] { 22, 15, 38, 30, 219, 220, 43, 41, 200, 221, 55 }),
+            ("Utility", new ushort[] { 22, Blueprints.Workbench.PartId, 15, 38, 30, 219, 220, 232, 43, 41, 200, 221, 55 }),
         };
 
         private static void Prefix(ref BuildMenuTabConfig[] ___tabsConfig)

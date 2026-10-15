@@ -38,10 +38,10 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Mining](#mining)** | 0.12.0 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels and more | All players |
+| **[Mining](#mining)** | 0.13.0 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
 | **[Water](#water)** | 0.4.2 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.2 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
-| **[Ship Safety](#ship-safety)** | 0.5.3 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
+| **[Ship Safety](#ship-safety)** | 0.5.4 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
 | **[Resource Tweaks](#resource-tweaks)** | 0.3.2 | 3x resource yield, stacks of 100, faster mining | Host |
 | **[Warp Unlock](#warp-unlock)** | 0.1.2 | Reveals the hidden Warp Drive research in the demo | All players |
 | **[Planet Unlock](#planet-unlock)** | 0.1.1 | *Experimental:* loads every planet of the 442 Otrera system | All players |
@@ -56,7 +56,7 @@ Current versions are always listed in [`dist/VERSIONS.txt`](dist/VERSIONS.txt).
 
 ## Highlights
 
-- **New progression:** over a dozen new research nodes (Mining, Hydrogen Propulsion, Heavy Hydrogen Engines, Nuclear Power, Large Reactor, Mechanics, Laser Weapons, Jetpack, Info Panels, Large Doors, Large Tanks, Large Storage), with the research tree grouped into colored category rows.
+- **New progression:** over a dozen new research nodes (Mining, Hydrogen Propulsion, Heavy Hydrogen Engines, Nuclear Power, Large Reactor, Mechanics, Laser Weapons, Jetpack, Info Panels, Large Doors, Large Tanks, Large Storage, Tool Crafting), with the research tree grouped into colored category rows.
 - **Industrial chain:** mine ore and uranium, electrolyze ice or water into hydrogen and oxygen, and power ships with chemical, hydrogen or nuclear energy.
 - **Living lakes:** ships float on inflatable pontoons, sink without them, and players can swim and drown.
 - **Faster building:** pick parts like in Minecraft, hold to place in a row, place whole squares of hull at once.
@@ -174,11 +174,23 @@ The largest mod in the collection. It adds resource extraction, new power source
 <summary><b>Building parts and storage</b></summary>
 
 - **Rotor** (research *Mechanics*): rotates the structure on its plate. A lever works out of the box (`0` = home, `1` = 90°); signals above 1 are interpreted as degrees.
-- **Large doors and gates** (research *Large Doors*): doors 3x2, 3x3, 4x4, 6x3 and gates 10x5, 16x8, 24x8, 32x8, with heavy opening animation and custom sound.
-- **Large tanks** (research *Large Tanks*): Tank 2x2 (800) and Tank 4x4 (6400).
-- **Large chests** (research *Large Storage*): Medium Chest (2x2x2, 30 slots) and Large Chest (3x3x3, 60 slots).
+- **Large doors and gates** (research *Large Doors*): doors 3x2, 3x3, 4x4, 6x3 and gates 10x5, 16x8, 24x8, 32x8, with heavy opening animation and custom sound. They block passage until fully open.
+- **Large tanks** (research *Large Tanks*): Tank 2x2 (800) and Tank 4x4 (6400), with mirrored pipe sockets at floor level.
+- **Large chests** (research *Large Storage*): Medium Chest (2x2x2, 30 slots), Large Chest (3x3x3, 60 slots) and Huge Chest (4x4x4, 120 slots). All use the same slot size; scroll the mouse wheel over the grid to see more rows.
 - **Info panels** (research *Info Panels*): S, M and L displays that show signal values from inputs A-D.
 - The build menu (**Tab**) is wider and split into tabs: Control, Propulsion, Power, Fluids, Doors and Utility.
+
+</details>
+
+<details>
+<summary><b>Tool crafting and blueprints</b></summary>
+
+- **Tool Workbench** (research *Tool Crafting*, Utility tab): press **F** to craft the Build Tool, Recycler Tool, Mining Laser, Paint Tool and Blueprint Tool from materials in your inventory.
+- **Blueprint Tool:** LMB on one corner of a ship area, LMB on the opposite corner, LMB again to save it (hull, parts, colors and cables). RMB cancels.
+- **B** opens the blueprint catalog with a top-down preview, size, parts and material cost; rename or delete blueprints there. Files are stored in `UserData/Blueprints`.
+- Pick a blueprint in the catalog, then with the Blueprint Tool aim at a ship (to extend it) or at the ground (to create a new ship): scroll rotates, Shift+scroll changes height, LMB places a blue hologram, RMB on a hologram removes it.
+- Aim the **Build Tool** at a hologram and click to build it at once if your inventory holds all materials; parts that already exist are skipped.
+- Crafting and blueprints work for the host.
 
 </details>
 

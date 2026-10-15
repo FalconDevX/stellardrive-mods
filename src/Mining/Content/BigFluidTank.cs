@@ -80,7 +80,17 @@ namespace Mining.Content
         {
             GameObject root = Object.Instantiate(tank.part, PartFactory.Holder);
             root.name = "MiningTank" + v.scale;
+            Dictionary<byte, float> socketHeights = root.GetComponentsInChildren<SocketObject>(true).Where(x => x.Type == CableType.Fluid)
+                .ToDictionary(x => x.Id, x => root.transform.InverseTransformPoint(x.transform.position).y);
             PartFactory.ScaleUniform(root, tank.size, v.scale, "Tank");
+            foreach (SocketObject socket in root.GetComponentsInChildren<SocketObject>(true))
+            {
+                if (socketHeights.TryGetValue(socket.Id, out float y) && socket.Type == CableType.Fluid)
+                {
+                    Vector3 p = root.transform.InverseTransformPoint(socket.transform.position);
+                    socket.transform.position = root.transform.TransformPoint(new Vector3(p.x, y, p.z));
+                }
+            }
             AddMirroredSockets(root, v.scale);
             float capacity = Capacity(v.scale);
             foreach (FluidTankVisuals visuals in root.GetComponentsInChildren<FluidTankVisuals>(true))
@@ -121,8 +131,10 @@ namespace Mining.Content
                 Vector3 p = root.transform.InverseTransformPoint(source.transform.position);
                 var pos = new Vector3(2f * mirrorX - p.x, p.y, p.z);
                 SocketObject copy = PartFactory.CloneSocket(source, root.transform, nextId, pos, 0f);
-                copy.transform.rotation = source.transform.rotation;
-                copy.transform.localScale = source.transform.lossyScale;
+                Quaternion r = Quaternion.Inverse(root.transform.rotation) * source.transform.rotation;
+                copy.transform.localRotation = new Quaternion(r.x, -r.y, -r.z, r.w);
+                Vector3 size = source.transform.lossyScale;
+                copy.transform.localScale = new Vector3(-size.x, size.y, size.z);
                 ids.Add(nextId);
                 fluids.Add(copy);
             }

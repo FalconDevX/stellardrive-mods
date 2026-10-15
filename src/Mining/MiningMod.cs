@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.12.0", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.13.0", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -106,6 +106,7 @@ namespace Mining
             Server.ExcavatorServer.Reset();
             Server.WaterPumpServer.Reset();
             Server.ShipPartIndex.Reset();
+            Blueprints.BlueprintGhosts.Clear();
             Diagnostics.DevTools.OnSceneLoaded(sceneName);
         }
 
@@ -114,6 +115,7 @@ namespace Mining
             try
             {
                 Sites.MiningSiteVisuals.Update();
+                Blueprints.BlueprintGhosts.Update();
                 Diagnostics.DetailCuller.Update();
                 Keyboard kb = Keyboard.current;
                 if (kb != null && kb.nKey.wasPressedThisFrame && !Diagnostics.DevTools.IsTyping())
@@ -127,6 +129,11 @@ namespace Mining
                 if (kb != null && kb.kKey.wasPressedThisFrame && !Diagnostics.DevTools.IsTyping())
                 {
                     ShowMessage(Sites.MiningSiteVisuals.DescribeNearest(Items.Model.ItemsConstants.GlassItemId, 5000f, "No glass deposits within 5 km."));
+                }
+                if (kb != null && kb.bKey.wasPressedThisFrame && !Diagnostics.DevTools.IsTyping() && !Blueprints.BlueprintCatalog.IsTyping
+                    && (Blueprints.BlueprintCatalog.IsOpen || Cursor.lockState == CursorLockMode.Locked))
+                {
+                    Blueprints.BlueprintCatalog.Toggle();
                 }
                 if (kb != null && kb.f11Key.wasPressedThisFrame)
                 {

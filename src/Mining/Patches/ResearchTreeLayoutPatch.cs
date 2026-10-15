@@ -36,7 +36,7 @@ namespace Mining.Patches
             { 6, (1, 4) }, { 18, (2, 4) }, { 16, (3, 4) }, { 206, (4, 4) }, { 203, (5, 4) },
             { 7, (2, 5) },
             { 17, (1, 6) }, { 208, (2, 6) },
-            { 14, (2, 7) }, { 205, (3, 7) }, { 209, (4, 7) },
+            { 14, (2, 7) }, { 205, (3, 7) }, { 209, (4, 7) }, { 214, (5, 7) },
         };
 
         private static void Postfix(RectTransform ___buttonsContainer, List<ResearchSelectButton> ____buttons)

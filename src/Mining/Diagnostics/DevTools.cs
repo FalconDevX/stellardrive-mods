@@ -223,6 +223,10 @@ namespace Mining.Diagnostics
             {
                 yield return RunSeatTest();
             }
+            else if (HasArg("blueprint"))
+            {
+                yield return BlueprintTest.Run();
+            }
             ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, "screen.png"));
             if (HasArg("quit") || MiningMod.DevQuitAfterDump.Value)
             {
@@ -700,12 +704,12 @@ namespace Mining.Diagnostics
             if (mainData != null) data.renderPostProcessing = mainData.renderPostProcessing;
 
             var holdReactor = reactorShip != null ? reactorShip.PhysicsState : holdBig;
-            for (int shot = 0; shot < 7; shot++)
+            for (int shot = 0; shot < 11; shot++)
             {
                 for (int frame = 0; frame < (shot == 4 ? 240 : 90); frame++)
                 {
                     if (reactorShip != null) reactorShip.SetPhysicsState(new Ships.Interface.Model.State.ShipPhysicsState(holdReactor.SpaceId, holdReactor.Position, holdReactor.Rotation, Vector3.zero));
-                    if (shot >= 4)
+                    if (shot >= 4 && shot < 7)
                     {
                         if (reactorShip != null && shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(reactorId, reactorShip.StatefulParts.First().Id), out var rv))
                         {
@@ -728,6 +732,16 @@ namespace Mining.Diagnostics
                     {
                         Transform t = visual.GameObject.transform;
                         Vector3 center = t.TransformPoint(Content.BigFluidTank.Get(Content.BigFluidTank.LargeId).part.GetComponent<Ships.Interface.Model.Parts.ShipPartBounds>().center);
+                        if (shot >= 7)
+                        {
+                            float sx = (shot - 7) % 2 == 0 ? -1f : 1f, sz = (shot - 7) < 2 ? -1f : 1f;
+                            Vector3 corner = center + t.right * (sx * 1.6f) + t.forward * (sz * 1.6f) - t.up * 1.6f;
+                            testCam.transform.position = corner + (t.right * sx + t.forward * sz) * 1.8f + t.up * 0.9f;
+                            testCam.transform.rotation = Quaternion.LookRotation(corner - testCam.transform.position, t.up);
+                            cam.enabled = false;
+                            yield return null;
+                            continue;
+                        }
                         Vector3 offset = shot == 0 ? (-t.forward * 9f - t.right * 3f + t.up * 1.5f)
                             : shot == 1 ? (t.forward * 9f + t.right * 4f + t.up * 2f)
                             : shot == 2 ? (-t.right * 9f + t.up * 6f)
@@ -786,7 +800,7 @@ namespace Mining.Diagnostics
                 }
                 try
                 {
-                    Patches.BigChestMenuPatch.Expand(menu, 60, 20);
+                    Patches.BigChestMenuPatch.Expand(menu, int.TryParse(Arg("chestslots"), out int chestSlots) ? chestSlots : 120, 20);
                 }
                 catch (Exception e)
                 {

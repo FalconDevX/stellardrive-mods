@@ -39,6 +39,7 @@ namespace ShipSafety.Patches
     {
         private static readonly AccessTools.FieldRef<object, float> QuantityRef = AccessTools.FieldRefAccess<float>(FluidClamp.PartContainer, "_fluidQuantity");
         private static readonly AccessTools.FieldRef<object, StatefulPart> PartRef = AccessTools.FieldRefAccess<StatefulPart>(FluidClamp.PartContainer, "_part");
+        private static readonly System.Reflection.MethodInfo MaxFluid = AccessTools.PropertyGetter(FluidClamp.PartContainer, "MaxFluid");
 
         private static System.Reflection.MethodBase TargetMethod() => AccessTools.Method(FluidClamp.PartContainer, "CommitChanges");
 
@@ -49,7 +50,12 @@ namespace ShipSafety.Patches
             {
                 return;
             }
-            if (FluidClamp.TryFix(__instance, "part", quantity, state.FluidCapacity, out float fixedQuantity))
+            float capacity = state.FluidCapacity;
+            if (MaxFluid != null && MaxFluid.Invoke(__instance, null) is float max)
+            {
+                capacity = Mathf.Max(capacity, max);
+            }
+            if (FluidClamp.TryFix(__instance, "part", quantity, capacity, out float fixedQuantity))
             {
                 quantity = fixedQuantity;
             }

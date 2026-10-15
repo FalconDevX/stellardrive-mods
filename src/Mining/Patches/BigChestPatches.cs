@@ -13,6 +13,7 @@ using Ships.Interface.Model.Parts.StateTypes;
 using Ships.Interface.Settings;
 using UI.Inventory;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace Mining.Patches
@@ -93,6 +94,35 @@ namespace Mining.Patches
         }
     }
 
+    internal class BigChestScroll : MonoBehaviour
+    {
+        internal RectTransform Content;
+        internal float Step, MaxOffset;
+        private float _offset;
+
+        private void Update()
+        {
+            Mouse mouse = Mouse.current;
+            if (mouse == null || Content == null || MaxOffset <= 0f)
+            {
+                return;
+            }
+            float wheel = mouse.scroll.ReadValue().y;
+            if (Mathf.Abs(wheel) < 0.01f)
+            {
+                return;
+            }
+            Canvas canvas = GetComponentInParent<Canvas>();
+            Camera camera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+            if (!RectTransformUtility.RectangleContainsScreenPoint((RectTransform)transform, mouse.position.ReadValue(), camera))
+            {
+                return;
+            }
+            _offset = Mathf.Clamp(_offset - Mathf.Sign(wheel) * Step, 0f, MaxOffset);
+            Content.anchoredPosition = new Vector2(0f, _offset);
+        }
+    }
+
     [HarmonyPatch(typeof(StorageMenuActivator), nameof(StorageMenuActivator.ShowMenu))]
     internal static class BigChestMenuPatch
     {
@@ -121,9 +151,12 @@ namespace Mining.Patches
             }
         }
 
+        internal const string ViewportName = "BigChestViewport";
+        private const float CellScale = 0.8f, MaxFrameWidth = 3600f, MaxExtraHeight = 120f;
+        private const int MaxVisibleRows = 3;
+
         internal static void Expand(GameObject menu, int slots, int columns)
         {
-            const float MaxGridWidth = 3300f;
             InventoryGrid grid = menu.GetComponentsInChildren<InventoryGrid>(true)
                 .FirstOrDefault(g => g.GetComponentsInChildren<InventorySlotUI>(true).Any(s => s.origin == InventoryType.Chest));
             if (grid == null)
@@ -140,21 +173,29 @@ namespace Mining.Patches
                 copy.name = template.name.Split('(')[0].Trim() + " " + i;
                 copy.id = i;
             }
-            if (layout != null)
+            if (layout != null && gridRect.parent.name != ViewportName)
             {
-                int rows = Mathf.CeilToInt(slots / (float)columns);
-                float cellStep = layout.cellSize.x + layout.spacing.x;
-                int oldColumns = Mathf.Max(1, Mathf.FloorToInt((gridRect.rect.width - layout.padding.horizontal + layout.spacing.x) / cellStep));
+                float stepX = layout.cellSize.x + layout.spacing.x, stepY = layout.cellSize.y + layout.spacing.y;
+                float margin = -gridRect.sizeDelta.x;
+                int oldColumns = Mathf.Max(1, Mathf.FloorToInt((gridRect.rect.width - layout.padding.horizontal + layout.spacing.x) / stepX));
                 int oldRows = Mathf.CeilToInt(existing.Length / (float)oldColumns);
-                float oldRowsHeight = oldRows * layout.cellSize.y + (oldRows - 1) * layout.spacing.y + layout.padding.vertical;
-                float oldHeight = gridRect.sizeDelta.y;
+                float baseHeight = oldRows * layout.cellSize.y + (oldRows - 1) * layout.spacing.y + layout.padding.vertical;
+                float gridTop = gridRect.anchoredPosition.y + (1f - gridRect.pivot.y) * gridRect.rect.height;
+
+                Canvas canvas = gridRect.GetComponentInParent<Canvas>();
+                float screenWidth = canvas != null ? ((RectTransform)canvas.rootCanvas.transform).rect.width : MaxFrameWidth;
+                float maxGridWidth = (Mathf.Min(MaxFrameWidth, screenWidth - 240f) - margin) / CellScale;
+                columns = Mathf.Clamp(Mathf.FloorToInt((maxGridWidth - layout.padding.horizontal + layout.spacing.x) / stepX), 1, slots);
+                int rows = Mathf.CeilToInt(slots / (float)columns);
+                int shownRows = Mathf.Min(rows, MaxVisibleRows);
                 layout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
                 layout.constraintCount = columns;
                 float width = columns * layout.cellSize.x + (columns - 1) * layout.spacing.x + layout.padding.horizontal;
                 float height = rows * layout.cellSize.y + (rows - 1) * layout.spacing.y + layout.padding.vertical;
-                float scale = Mathf.Min(1f, MaxGridWidth / width, oldRowsHeight / height);
-                float margin = -gridRect.sizeDelta.x;
-                gridRect.localScale = Vector3.one * scale;
+                float shownHeight = (shownRows * layout.cellSize.y + (shownRows - 1) * layout.spacing.y + layout.padding.vertical) * CellScale;
+                float extra = Mathf.Clamp(shownHeight - baseHeight, 0f, MaxExtraHeight);
+                float visibleHeight = baseHeight + extra;
+
                 RectTransform frame = gridRect.parent as RectTransform;
                 while (frame != null && frame.anchorMin != frame.anchorMax)
                 {
@@ -162,10 +203,31 @@ namespace Mining.Patches
                 }
                 if (frame != null)
                 {
-                    float frameWidth = Mathf.Max(frame.sizeDelta.x, width * scale + margin);
-                    frame.sizeDelta = new Vector2(frameWidth, frame.sizeDelta.y);
-                    gridRect.sizeDelta = new Vector2(width - frameWidth, oldHeight / scale);
+                    frame.sizeDelta = new Vector2(Mathf.Max(frame.sizeDelta.x, width * CellScale + margin), frame.sizeDelta.y + extra);
                 }
+
+                var parent = (RectTransform)gridRect.parent;
+                var viewport = new GameObject(ViewportName, typeof(RectTransform), typeof(RectMask2D)).GetComponent<RectTransform>();
+                viewport.gameObject.layer = gridRect.gameObject.layer;
+                viewport.SetParent(parent, false);
+                viewport.SetSiblingIndex(gridRect.GetSiblingIndex());
+                viewport.anchorMin = gridRect.anchorMin;
+                viewport.anchorMax = gridRect.anchorMax;
+                viewport.pivot = new Vector2(0.5f, 1f);
+                viewport.anchoredPosition = new Vector2(gridRect.anchoredPosition.x, gridTop + extra / 2f);
+                Vector2 stretch = Vector2.Scale(parent.rect.size, gridRect.anchorMax - gridRect.anchorMin);
+                viewport.sizeDelta = new Vector2(width * CellScale, visibleHeight) - stretch;
+
+                gridRect.SetParent(viewport, false);
+                gridRect.anchorMin = gridRect.anchorMax = gridRect.pivot = new Vector2(0.5f, 1f);
+                gridRect.anchoredPosition = Vector2.zero;
+                gridRect.sizeDelta = new Vector2(width, height);
+                gridRect.localScale = Vector3.one * CellScale;
+
+                var scroll = viewport.gameObject.AddComponent<BigChestScroll>();
+                scroll.Content = gridRect;
+                scroll.Step = stepY * CellScale;
+                scroll.MaxOffset = Mathf.Max(0f, height * CellScale - visibleHeight);
             }
             LoadSlots.Invoke(grid, null);
             UpdateInventory.Invoke(grid, null);
