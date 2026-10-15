@@ -49,26 +49,32 @@ namespace Mining.Content
         private static Mesh BuildMesh()
         {
             var b = new MeshBuilder();
-            float half = Width / 2f - Post / 2f;
+            float half = Width / 2f;
+            float postRadius = Post / 2f;
             foreach (float x in new[] { -half, half })
             {
-                b.Box(new Vector3(x, Height / 2f, 0f), new Vector3(Post, Height, Post), "yellow");
-                b.Box(new Vector3(x, 0.01f, 0f), new Vector3(0.16f, 0.02f, 0.16f), "dark");
-                b.Box(new Vector3(x, Height + 0.01f, 0f), new Vector3(Post + 0.02f, 0.02f, Post + 0.02f), "black");
+                b.Cylinder(new Vector3(x, 0.03f, 0f), new Vector3(x, Height - 0.02f, 0f), postRadius, "yellow", 20);
+                b.Sphere(new Vector3(x, Height - 0.02f, 0f), postRadius * 1.15f, "yellow", 16);
+                b.Cylinder(new Vector3(x, 0.03f, 0f), new Vector3(x, 0.09f, 0f), postRadius * 1.35f, "black", 20);
+                b.Box(new Vector3(x, 0.015f, 0f), new Vector3(0.14f, 0.03f, 0.14f), "dark");
+                foreach (float y in new[] { Height - 0.05f, 0.55f, 0.15f })
+                {
+                    b.Cylinder(new Vector3(x, y - 0.035f, 0f), new Vector3(x, y + 0.035f, 0f), postRadius * 1.3f, "dark", 20);
+                }
             }
-            Rail(b, Height - 0.05f, 0.07f, Depth);
-            Rail(b, 0.55f, 0.06f, Depth * 0.8f);
-            Rail(b, 0.1f, 0.12f, 0.02f);
+            Rail(b, Height - 0.05f, 0.03f);
+            Rail(b, 0.55f, 0.025f);
+            Rail(b, 0.15f, 0.02f);
             return b.Build("YellowBarrier");
         }
 
-        private static void Rail(MeshBuilder b, float y, float height, float depth)
+        private static void Rail(MeshBuilder b, float y, float radius)
         {
             const int stripes = 8;
-            float start = -Width / 2f + Post, length = Width - 2f * Post, step = length / stripes;
+            float start = -Width / 2f + Post / 2f, length = Width - Post, step = length / stripes;
             for (int i = 0; i < stripes; i++)
             {
-                b.Box(new Vector3(start + step * (i + 0.5f), y, 0f), new Vector3(step, height, depth), i % 2 == 0 ? "yellow" : "black");
+                b.Cylinder(new Vector3(start + step * i, y, 0f), new Vector3(start + step * (i + 1), y, 0f), radius, i % 2 == 0 ? "yellow" : "black", 16);
             }
         }
 
@@ -103,13 +109,13 @@ namespace Mining.Content
             Mesh mesh = BuildMesh();
             PartFactory.CreateRenderer("Body", visual, mesh, material, lookCopy);
             Object.DestroyImmediate(lookCopy.gameObject);
-            var bounds = new Bounds(new Vector3(0f, (Height + 0.02f) / 2f, 0f), new Vector3(Width, Height + 0.02f, 0.16f));
+            var bounds = new Bounds(new Vector3(0f, Height / 2f, 0f), new Vector3(Width * 0.9f, Height, 0.12f));
             PartFactory.SetBounds(root, bounds);
             Transform interactions = PartFactory.RemoveInteract(root);
             foreach (BoxCollider box in interactions.GetComponentsInChildren<BoxCollider>(true))
             {
                 box.center = box.transform.InverseTransformPoint(root.transform.TransformPoint(bounds.center));
-                box.size = bounds.size + Vector3.one * 0.02f;
+                box.size = bounds.size;
             }
 
             PartSettings settings = Object.Instantiate(bed);
@@ -117,7 +123,7 @@ namespace Mining.Content
             settings.hideFlags = HideFlags.DontUnloadUnusedAsset;
             settings.id = PartId;
             settings.fullLabel = "Yellow Barrier";
-            settings.description = "A 1 m yellow safety barrier with hazard stripes. It always stands upright on the floor; rotate it to line up railings along an edge.";
+            settings.description = "A 1 m yellow safety barrier with hazard stripes. It always stands upright on the floor; barriers placed side by side share their posts and form one railing.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
             settings.snappingStyle = SnappingStyle.PreciseOnFloor;

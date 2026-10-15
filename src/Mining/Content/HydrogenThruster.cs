@@ -140,7 +140,7 @@ namespace Mining.Content
             return settings;
         }
 
-        private static readonly Color FlameColor = new Color(0.62f, 0.82f, 1f);
+        private static readonly Color FlameColor = new Color(0.22f, 0.62f, 1f);
 
         private static Color Tint(Color c)
         {
