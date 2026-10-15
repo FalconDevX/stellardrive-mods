@@ -115,6 +115,14 @@ namespace Mining.Content
             {
                 flame.transform.position = root.transform.TransformPoint(main.Exit);
                 HydrogenThruster.TintFlame(flame.gameObject);
+                if (v.Scale >= 20f)
+                {
+                    foreach (ParticleSystem ps in flame.GetComponentsInChildren<ParticleSystem>(true))
+                    {
+                        ParticleSystem.MainModule mainModule = ps.main;
+                        mainModule.startLifetimeMultiplier *= 1.8f;
+                    }
+                }
                 float scale = main.Radius / BaseNozzleRadius;
                 var fields = Traverse.Create(flame);
                 foreach (string field in new[] { "highSpeed", "lowSpeed", "highSize", "lowSize" })

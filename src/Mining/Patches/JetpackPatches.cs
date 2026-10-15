@@ -45,11 +45,21 @@ namespace Mining.Patches
     [HarmonyPatch(typeof(PlayerWalkingPhysics), "ProcessAirForces")]
     internal static class JetpackPhysicsPatch
     {
+        private const float HoldBraking = 4f;
+
         private static void Postfix(ref PlayerPhysicsState __0, PlayerControlInput __1, Vector3 ____currentUp, Vector3 ____currentGravity, float ____deltaTime)
         {
             if (Jetpack.CurrentIsLocalPrediction)
             {
                 Jetpack.LocalHasGravity = ____currentGravity != Vector3.zero;
+            }
+            if (Jetpack.Hold && __1.VerticalInput <= 0f && ____currentGravity != Vector3.zero && (Jetpack.CurrentServerPlayer != null || Jetpack.CurrentIsLocalPrediction)
+                && Jetpack.Enabled && Jetpack.IsUnlocked() && Jetpack.HasFuel())
+            {
+                Vector3 still = __0.Velocity - ____currentGravity * ____deltaTime;
+                __0.Velocity = Vector3.MoveTowards(still, Vector3.zero, HoldBraking * ____deltaTime);
+                Jetpack.Burn(____deltaTime);
+                return;
             }
             if ((__1.VerticalInput <= 0f && !(Jetpack.TestForceUp && Jetpack.CurrentServerPlayer != null)) || ____currentGravity == Vector3.zero || (Jetpack.CurrentServerPlayer == null && !Jetpack.CurrentIsLocalPrediction))
             {
@@ -350,7 +360,17 @@ namespace Mining.Patches
             }
             ISpace space = ____spaces.GetSpace(__0.SpaceId);
             bool onPlanet = space is PlanetSurfaceSpace || space is ShipRelativeSpace;
-            bool wants = unlocked && ____state.PressedKeys.Up && !__0.IsOnGround;
+            if (Jetpack.Hold && !__0.IsOnGround)
+            {
+                Jetpack.HoldAirborne = true;
+            }
+            if (Jetpack.Hold && Jetpack.HoldAirborne && __0.IsOnGround && ____state.ClientState.Type == PlayerStateType.Walking)
+            {
+                Jetpack.Hold = false;
+                Jetpack.HoldAirborne = false;
+                MiningMod.ShowMessage("Jetpack hold OFF (landed)", 1.5f);
+            }
+            bool wants = unlocked && (____state.PressedKeys.Up || Jetpack.Hold) && !__0.IsOnGround;
             bool fuel = !wants || HasLocalFuel();
             bool flying = wants && onPlanet && fuel && Jetpack.Enabled && ____state.ClientState.Type == PlayerStateType.Walking;
             if (wants)

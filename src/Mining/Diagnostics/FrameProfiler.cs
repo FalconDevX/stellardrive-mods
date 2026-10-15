@@ -198,6 +198,53 @@ namespace Mining.Diagnostics
         }
 
         internal static bool Measuring;
+        private static bool _watching;
+        private static readonly Dictionary<string, long> FrameTicks = new Dictionary<string, long>();
+        internal static readonly List<string> Hitches = new List<string>();
+
+        internal static void StartWatch(float thresholdMs)
+        {
+            if (_watching) return;
+            _watching = true;
+            try
+            {
+                PatchMods();
+            }
+            catch (Exception e)
+            {
+                Melon<MiningMod>.Logger.Warning($"[hitch] could not hook measurement: {e.Message}");
+            }
+            Measuring = true;
+            MelonCoroutines.Start(Watch(thresholdMs));
+        }
+
+        internal static void StopWatch()
+        {
+            _watching = false;
+        }
+
+        private static IEnumerator Watch(float thresholdMs)
+        {
+            int gc = GC.CollectionCount(0);
+            while (_watching)
+            {
+                yield return null;
+                float ms = Time.unscaledDeltaTime * 1000f;
+                int gcNow = GC.CollectionCount(0);
+                if (ms > thresholdMs)
+                {
+                    double toMs = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                    string top = string.Join(", ", FrameTicks.Where(kv => !kv.Key.StartsWith("game Assembly-CSharp: ClientVisualsUpdater")).OrderByDescending(kv => kv.Value).Take(6)
+                        .Select(kv => $"{kv.Key} {kv.Value * toMs:0.0}"));
+                    string line = $"{ms:0} ms (gc +{gcNow - gc}): {top}";
+                    Hitches.Add(line);
+                    Melon<MiningMod>.Logger.Msg("[hitch] " + line);
+                }
+                gc = gcNow;
+                FrameTicks.Clear();
+            }
+            Measuring = false;
+        }
 
         private static void PatchMods()
         {
@@ -343,6 +390,11 @@ namespace Mining.Diagnostics
             Ticks[key] = t + dt;
             Calls.TryGetValue(key, out int c);
             Calls[key] = c + 1;
+            if (_watching)
+            {
+                FrameTicks.TryGetValue(key, out long f);
+                FrameTicks[key] = f + dt;
+            }
         }
     }
 }

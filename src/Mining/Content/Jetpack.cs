@@ -19,6 +19,8 @@ namespace Mining.Content
         internal static bool CurrentIsLocalPrediction;
 
         internal static bool Enabled = true;
+        internal static bool Hold;
+        internal static bool HoldAirborne;
         internal static bool LocalHasGravity;
 
         private static readonly Dictionary<uint, float> Burned = new Dictionary<uint, float>();

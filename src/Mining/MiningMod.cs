@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.14.5", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.14.6", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -138,6 +138,13 @@ namespace Mining
                 if (kb != null && kb.f11Key.wasPressedThisFrame)
                 {
                     Diagnostics.FrameProfiler.Start();
+                }
+                if (kb != null && kb.lKey.wasPressedThisFrame && !Diagnostics.DevTools.IsTyping() && !Blueprints.BlueprintCatalog.IsTyping && Content.Jetpack.IsUnlocked()
+                    && Cursor.lockState == CursorLockMode.Locked)
+                {
+                    Content.Jetpack.Hold = !Content.Jetpack.Hold;
+                    Content.Jetpack.HoldAirborne = false;
+                    ShowMessage(Content.Jetpack.Hold ? "Jetpack hold ON - you stay in place" : "Jetpack hold OFF", 1.5f);
                 }
                 if (kb != null && kb.jKey.wasPressedThisFrame && !Diagnostics.DevTools.IsTyping() && Content.Jetpack.IsUnlocked())
                 {

@@ -38,7 +38,7 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Mining](#mining)** | 0.14.5 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
+| **[Mining](#mining)** | 0.14.6 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
 | **[Water](#water)** | 0.4.2 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.2 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.5.4 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
@@ -47,7 +47,7 @@
 | **[Planet Unlock](#planet-unlock)** | 0.1.1 | *Experimental:* loads every planet of the 442 Otrera system | All players |
 | **[Shared Piloting](#shared-piloting)** | 0.1.1 | Multiple pilot seats: whoever moves the mouse steers | Host |
 | **[Velocity Indicator](#velocity-indicator)** | 0.1.0 | Stable ship velocity readout when entering orbit | Each player |
-| **[Crouch](#crouch)** | 0.1.2 | Crouch with Left Ctrl | Each player |
+| **[Crouch](#crouch)** | 0.1.3 | Crouch with Left Ctrl | Each player |
 | **[Drop Items](#drop-items)** | 0.1.0 | Drop items from the toolbar or inventory | Each player |
 | **[Flora](#flora)** | 0.4.0 | Decorative flower fields on the planet | Each player |
 | **[FPS Counter](#fps-counter)** | 0.1.0 | FPS counter in the top-right corner (F3) | Each player |
@@ -158,7 +158,7 @@ The largest mod in the collection. It adds resource extraction, new power source
 - **Hydrogen thruster** (research *Hydrogen Propulsion*): needs hydrogen, oxygen and power, is 1.8x stronger than the chemical thruster and burns with a sky-blue flame.
 - **Electrolyzer:** turns ice or water plus power into hydrogen, oxygen and water. Hydrogen exits on the left by the orange tank, oxygen on the right by the light blue tank; power and water enter at the back, ice goes into the front container.
 - **Water pump (1x1):** above a lake on Otrera b it lowers a hose (up to 30 m, length controllable by signal) and pumps water to two outlets.
-- **Heavy hydrogen engines** (research *Heavy Hydrogen Engines*): sizes **M** (2x2x3, 4x thrust), **L** (3x3x4, 4 nozzles, 9x) and **XL** (4x4x6, large nozzle plus 6 small, 20x), with proportionally higher consumption. Every nozzle shows its own sky-blue flame.
+- **Heavy hydrogen engines** (research *Heavy Hydrogen Engines*): sizes **M** (2x2x3, 4x thrust), **L** (3x3x4, 4 nozzles, 9x) and **XL** (4x4x6, large nozzle plus 6 small, 20x), with proportionally higher consumption. Every nozzle shows its own sky-blue flame; the XL flame is longer.
 
 </details>
 
@@ -202,7 +202,7 @@ The largest mod in the collection. It adds resource extraction, new power source
 - **Inflatable pontoons:** feed oxygen into the inlet to inflate them. They slowly leak while air is supplied and deflate about 30 s after the supply is cut. With the Water mod each pontoon supports about 2000 kg; on land they act as skids.
 - **Laser cannon** (research *Laser Weapons*): fires while its signal is above 0, has recoil and overheats after about 6 s of continuous fire, with status lights and venting steam.
 - The advanced pilot seat gets extra **L** and **R** signal outputs for the mouse buttons.
-- **Jetpack** (research *Jetpack*): the last backpack slot holds wood as fuel; hold Jump in mid-air to fly. Shift-click wood to load it.
+- **Jetpack** (research *Jetpack*): the last backpack slot holds wood as fuel; hold Jump in mid-air to fly. Shift-click wood to load it. Press **L** in flight to hold position (hover); it turns off on landing.
 - **V** in a pilot seat toggles a chase camera behind the ship.
 
 </details>

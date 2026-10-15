@@ -227,6 +227,10 @@ namespace Mining.Diagnostics
             {
                 yield return BlueprintTest.Run();
             }
+            else if (HasArg("hitch"))
+            {
+                yield return HitchTest.Run();
+            }
             ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, "screen.png"));
             if (HasArg("quit") || MiningMod.DevQuitAfterDump.Value)
             {
