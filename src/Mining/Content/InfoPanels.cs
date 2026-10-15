@@ -433,7 +433,7 @@ namespace Mining.Content
         private TMP_Text[] _texts = new TMP_Text[0];
         private Material _screen;
         private TMP_InputField _input;
-        private bool _editing, _shownEditing = true;
+        private bool _editing, _shownEditing;
         private string[] _labels = new string[0];
 
         public TMP_InputField InputField => _input;
@@ -456,6 +456,7 @@ namespace Mining.Content
             _lines = _texts.Length;
             _screen = transform.Find("Screen")?.GetComponent<Renderer>()?.material;
             _input = GetComponentInChildren<TMP_InputField>(true);
+            HideInput();
             Apply();
         }
 
@@ -491,26 +492,35 @@ namespace Mining.Content
             }
         }
 
-        private void ShowInput(bool show)
+        private void HideInput()
         {
-            if (_input == null || _shownEditing == show)
+            if (_input == null)
             {
                 return;
             }
-            _shownEditing = show;
-            foreach (Renderer r in _input.GetComponentsInChildren<Renderer>(true)) r.enabled = show;
-            foreach (UnityEngine.UI.Graphic g in _input.GetComponentsInChildren<UnityEngine.UI.Graphic>(true)) g.enabled = show;
+            Transform top = _input.GetComponentInParent<Canvas>(true)?.transform ?? _input.transform;
+            if (!top.IsChildOf(transform))
+            {
+                top = _input.transform;
+            }
+            (top.GetComponent<CanvasGroup>() ?? top.gameObject.AddComponent<CanvasGroup>()).alpha = 0f;
+            foreach (Renderer r in top.GetComponentsInChildren<Renderer>(true)) r.enabled = false;
         }
 
         private void Update()
         {
-            bool editing = _editing || (_input != null && _input.isFocused);
-            ShowInput(editing);
-            foreach (TMP_Text t in _texts)
+            bool editing = _input != null && (_editing || _input.isFocused);
+            if (editing != _shownEditing)
             {
-                if (t.gameObject.activeSelf != (_powered && !editing)) t.gameObject.SetActive(_powered && !editing);
+                _shownEditing = editing;
+                Apply();
             }
-            if (!_powered || editing || Time.time < _next)
+            if (editing)
+            {
+                ShowTyping();
+                return;
+            }
+            if (!_powered || Time.time < _next)
             {
                 return;
             }
@@ -531,22 +541,48 @@ namespace Mining.Content
                 {
                     line = label;
                 }
-                if (_texts[i].text != line)
+                SetLine(i, line);
+            }
+        }
+
+        private void ShowTyping()
+        {
+            string text = _input.text ?? "";
+            string[] parts = text.Split(';');
+            int caret = Mathf.Clamp(_input.isFocused ? _input.caretPosition : text.Length, 0, text.Length);
+            int current = text.Substring(0, caret).Count(c => c == ';');
+            int first = Mathf.Max(0, current - _lines + 1);
+            bool blink = Mathf.Repeat(Time.time, 1f) < 0.5f;
+            for (int i = 0; i < _lines; i++)
+            {
+                int index = first + i;
+                string line = index < parts.Length ? parts[index].Trim() : "";
+                if (index == current)
                 {
-                    _texts[i].text = line;
+                    line += blink ? "_" : " ";
                 }
+                SetLine(i, line);
+            }
+        }
+
+        private void SetLine(int i, string line)
+        {
+            if (_texts[i].text != line)
+            {
+                _texts[i].text = line;
             }
         }
 
         private void Apply()
         {
+            bool lit = _powered || _shownEditing;
             foreach (TMP_Text t in _texts)
             {
-                t.gameObject.SetActive(_powered);
+                t.gameObject.SetActive(lit);
             }
             if (_screen != null)
             {
-                _screen.SetColor("_EmissionColor", _powered ? ScreenOn : ScreenOff);
+                _screen.SetColor("_EmissionColor", lit ? ScreenOn : ScreenOff);
             }
             _next = 0f;
         }
