@@ -10,7 +10,7 @@ using UI.Inventory;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(DropItemsMod), "Drop Items", "0.1.0", "mateu")]
+[assembly: MelonInfo(typeof(DropItemsMod), "Drop Items", "0.1.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace DropItems
@@ -19,14 +19,34 @@ namespace DropItems
     {
         internal static MelonPreferences_Entry<Key> ToolbarKey;
         internal static MelonPreferences_Entry<Key> InventoryKey;
+        internal static MelonPreferences_Entry<bool> ItemsHitShips;
         internal static InventorySlotUI Hovered;
+        private static bool _collisionSet;
 
         public override void OnInitializeMelon()
         {
             var category = MelonPreferences.CreateCategory("DropItems");
             ToolbarKey = category.CreateEntry("ToolbarKey", Key.Q, description: "Drops the item from the selected toolbar slot (with Shift: half of the stack)");
             InventoryKey = category.CreateEntry("InventoryKey", Key.X, description: "Drops the item from the inventory slot under the cursor (with Shift: half of the stack)");
+            ItemsHitShips = category.CreateEntry("ItemsHitShips", true, description: "Dropped items land on ship floors instead of falling through ships. Host only");
             category.SaveToFile(false);
+        }
+
+        public override void OnSceneWasLoaded(int buildIndex, string sceneName)
+        {
+            if (!ItemsHitShips.Value || _collisionSet)
+            {
+                return;
+            }
+            int item = LayerMask.NameToLayer("WorldObject"), ship = LayerMask.NameToLayer("Ship");
+            if (item < 0 || ship < 0)
+            {
+                return;
+            }
+            _collisionSet = true;
+            bool ignored = Physics.GetIgnoreLayerCollision(item, ship);
+            Physics.IgnoreLayerCollision(item, ship, false);
+            LoggerInstance.Msg($"Dropped items collide with ships (was {(ignored ? "off" : "already on")})");
         }
 
         public override void OnUpdate()

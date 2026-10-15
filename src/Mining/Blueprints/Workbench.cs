@@ -106,7 +106,9 @@ namespace Mining.Blueprints
             return _part;
         }
 
-        internal static bool Craft(uint itemId, out string message)
+        internal static bool Craft(uint itemId, out string message) => Craft(ServerInventory.LocalPlayer(), itemId, out message);
+
+        internal static bool Craft(TrackedPlayerServer player, uint itemId, out string message)
         {
             var recipe = Recipes.FirstOrDefault(r => r.item == itemId);
             if (recipe.cost == null)
@@ -114,10 +116,9 @@ namespace Mining.Blueprints
                 message = "Unknown recipe";
                 return false;
             }
-            TrackedPlayerServer player = ServerInventory.LocalPlayer();
             if (player == null)
             {
-                message = "Only the host can craft at the workbench";
+                message = "Player not found";
                 return false;
             }
             var cost = recipe.cost.GroupBy(c => c.item).ToDictionary(g => g.Key, g => g.Sum(c => c.count));

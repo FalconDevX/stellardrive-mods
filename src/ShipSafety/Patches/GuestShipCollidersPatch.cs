@@ -196,6 +196,19 @@ namespace ShipSafety.Patches
             entry.StateSyncs = null;
         }
 
+        internal static bool IsGuestOf(Collider collider, HashSet<uint> shipIds)
+        {
+            Transform root = collider.transform.root;
+            foreach (Guest entry in Guests.Values)
+            {
+                if (entry.Colliders != null && entry.Colliders.transform == root && entry.Ship != null && shipIds.Contains(entry.Ship.Id))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         internal static void SetActive(bool active)
         {
             foreach (Guest entry in Guests.Values)

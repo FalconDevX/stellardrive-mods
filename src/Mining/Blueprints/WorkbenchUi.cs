@@ -1,7 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using Core.Services;
+using FishNet.Connection;
 using HarmonyLib;
+using Managers.Interface.Services;
+using Players;
+using Players.Services;
 using Items.Model;
 using MelonLoader;
 using Mining.Content;
@@ -42,6 +48,15 @@ namespace Mining.Blueprints
         internal static bool IsRecipe(ResearchSettings research) => research != null && Items.ContainsKey(research);
 
         internal static uint ItemOf(ResearchSettings research) => Items[research];
+
+        internal static ushort RecipeIdOf(uint itemId) => (ushort)(FirstRecipeId + Array.FindIndex(Workbench.Recipes, r => r.item == itemId));
+
+        internal static bool TryGetRecipeItem(ushort researchId, out uint itemId)
+        {
+            int index = researchId - FirstRecipeId;
+            itemId = index >= 0 && index < Workbench.Recipes.Length ? Workbench.Recipes[index].item : 0;
+            return index >= 0 && index < Workbench.Recipes.Length;
+        }
 
         internal static IReadOnlyList<ResearchSettings> Recipes
         {
@@ -125,10 +140,46 @@ namespace Mining.Blueprints
             {
                 return true;
             }
-            Workbench.Craft(WorkbenchUi.ItemOf(____selectedResearch), out string message);
-            MiningMod.ShowMessage(message, 3f);
+            uint item = WorkbenchUi.ItemOf(____selectedResearch);
+            if (ServerInventory.IsHost)
+            {
+                Workbench.Craft(item, out string message);
+                MiningMod.ShowMessage(message, 3f);
+            }
+            else
+            {
+                ServiceLocator.GetService<IResearchNetworkService>()?.ResearchTech(WorkbenchUi.RecipeIdOf(item));
+                MiningMod.ShowMessage($"Crafting {ServerInventory.ItemName(item)}...", 3f);
+            }
             Traverse.Create(__instance).Method("UpdateButtons").GetValue();
             Traverse.Create(__instance).Method("RefreshTechInfo").GetValue();
+            return false;
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class WorkbenchServerCraftPatch
+    {
+        private static MethodBase TargetMethod() =>
+            AccessTools.GetDeclaredMethods(AccessTools.TypeByName("Managers.Server.Services.ResearchNetworkService"))
+                .FirstOrDefault(m => m.Name.StartsWith("RpcLogic___ResearchTech_ServerRpc"));
+
+        private static bool Prefix(ushort __0, NetworkConnection __1)
+        {
+            if (!WorkbenchUi.TryGetRecipeItem(__0, out uint item))
+            {
+                return true;
+            }
+            try
+            {
+                TrackedPlayerServer player = __1 != null ? ServiceLocator.GetService<PlayersServerTracker>()?.GetTrackedPlayerFromConnectionId(__1.ClientId) : null;
+                Workbench.Craft(player, item, out string message);
+                Melon<MiningMod>.Logger.Msg($"Workbench (player {player?.Id}): {message}");
+            }
+            catch (Exception e)
+            {
+                Melon<MiningMod>.Logger.Error($"Workbench craft for a player: {e}");
+            }
             return false;
         }
     }
