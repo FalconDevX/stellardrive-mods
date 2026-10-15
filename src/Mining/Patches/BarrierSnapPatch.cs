@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Core.Services;
 using HarmonyLib;
 using MelonLoader;
@@ -34,42 +36,43 @@ namespace Mining.Patches
                 }
                 Vector3 axis = placement.Rotation * Vector3.right * Barrier.HalfLength;
                 Vector3[] mine = { placement.Coord - axis, placement.Coord + axis };
-                Vector3 best = Vector3.zero;
-                float bestDistance = Reach * Reach;
-                foreach (StatefulPart part in ship.StatefulParts)
+                var candidates = new List<Vector3>();
+                var segments = new List<(Vector3 center, Vector3 axis)>();
+                void Consider(Vector3 end)
                 {
-                    if (part.Settings != null && part.Settings.id == Stairs.PartId && part.Placement is FloatingPartPlacement stairs)
+                    foreach (Vector3 own in mine)
                     {
-                        foreach (Vector3 anchor in Stairs.Anchors)
-                        {
-                            Vector3 end = stairs.Coord + stairs.Rotation * anchor;
-                            foreach (Vector3 own in mine)
-                            {
-                                Vector3 delta = end - own;
-                                if (Mathf.Abs(delta.y) > 0.3f || delta.sqrMagnitude >= bestDistance) continue;
-                                bestDistance = delta.sqrMagnitude;
-                                best = delta;
-                            }
-                        }
-                        continue;
-                    }
-                    if (part.Settings == null || part.Settings.id != Barrier.PartId || !(part.Placement is FloatingPartPlacement other)) continue;
-                    Vector3 otherAxis = other.Rotation * Vector3.right * Barrier.HalfLength;
-                    foreach (Vector3 end in new[] { other.Coord - otherAxis, other.Coord + otherAxis })
-                    {
-                        foreach (Vector3 own in mine)
-                        {
-                            Vector3 delta = end - own;
-                            if (Mathf.Abs(delta.y) > 0.3f || (placement.Coord + delta - other.Coord).sqrMagnitude < 0.36f) continue;
-                            if (delta.sqrMagnitude < bestDistance)
-                            {
-                                bestDistance = delta.sqrMagnitude;
-                                best = delta;
-                            }
-                        }
+                        Vector3 delta = end - own;
+                        if (Mathf.Abs(delta.y) <= 0.3f && delta.sqrMagnitude < Reach * Reach) candidates.Add(delta);
                     }
                 }
-                if (bestDistance >= Reach * Reach || best == Vector3.zero)
+                foreach (StatefulPart part in ship.StatefulParts)
+                {
+                    if (part.Settings == null || !(part.Placement is FloatingPartPlacement other)) continue;
+                    if (part.Settings.id == Stairs.PartId)
+                    {
+                        foreach (Vector3 anchor in Stairs.Anchors) Consider(other.Coord + other.Rotation * anchor);
+                    }
+                    else if (part.Settings.id == Barrier.PartId)
+                    {
+                        Vector3 otherAxis = other.Rotation * Vector3.right * Barrier.HalfLength;
+                        segments.Add((other.Coord, otherAxis));
+                        Consider(other.Coord - otherAxis);
+                        Consider(other.Coord + otherAxis);
+                    }
+                }
+                Vector3 best = Vector3.zero;
+                bool found = false;
+                foreach (Vector3 delta in candidates.OrderBy(d => d.sqrMagnitude))
+                {
+                    if (!segments.Any(seg => Overlaps(placement.Coord + delta, axis, seg.center, seg.axis)))
+                    {
+                        best = delta;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found || best == Vector3.zero)
                 {
                     return;
                 }
@@ -81,6 +84,21 @@ namespace Mining.Patches
             {
                 Melon<MiningMod>.Logger.Error($"Barrier snap: {e}");
             }
+        }
+
+        private static bool Overlaps(Vector3 center, Vector3 axis, Vector3 otherCenter, Vector3 otherAxis)
+        {
+            Vector3 dir = axis.normalized, otherDir = otherAxis.normalized;
+            if (Mathf.Abs(Vector3.Dot(dir, otherDir)) < 0.97f)
+            {
+                return false;
+            }
+            Vector3 offset = otherCenter - center;
+            if (Mathf.Abs(offset.y) > 0.3f || Vector3.ProjectOnPlane(offset, dir).sqrMagnitude > 0.01f)
+            {
+                return false;
+            }
+            return Mathf.Abs(Vector3.Dot(offset, dir)) < axis.magnitude + otherAxis.magnitude - 0.05f;
         }
     }
 }

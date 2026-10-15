@@ -168,20 +168,35 @@ namespace Mining.Content
                 return;
             }
             _next = Time.time + 0.25f;
-            Vector3 mine = End(-1f);
-            bool shared = AtStairs(mine);
+            UpdatePost(_left, -1f);
+            UpdatePost(_right, 1f);
+        }
+
+        private int Rank(float side) => GetInstanceID() * 2 + (side < 0f ? 0 : 1);
+
+        private void UpdatePost(Transform post, float side)
+        {
+            if (post == null)
+            {
+                return;
+            }
+            Vector3 mine = End(side);
+            bool hidden = AtStairs(mine);
+            int rank = Rank(side);
             foreach (BarrierVisuals other in Active)
             {
+                if (hidden) break;
                 if (other == this || other == null) continue;
-                if ((other.End(-1f) - mine).sqrMagnitude < 0.0064f || (other.End(1f) - mine).sqrMagnitude < 0.0064f)
+                foreach (float s in new[] { -1f, 1f })
                 {
-                    shared = true;
-                    break;
+                    if ((other.End(s) - mine).sqrMagnitude < 0.0064f && other.Rank(s) < rank)
+                    {
+                        hidden = true;
+                        break;
+                    }
                 }
             }
-            if (_left.gameObject.activeSelf == shared) _left.gameObject.SetActive(!shared);
-            bool stairs = AtStairs(End(1f));
-            if (_right != null && _right.gameObject.activeSelf == stairs) _right.gameObject.SetActive(!stairs);
+            if (post.gameObject.activeSelf == hidden) post.gameObject.SetActive(!hidden);
         }
 
         private static bool AtStairs(Vector3 end)
