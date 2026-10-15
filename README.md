@@ -38,7 +38,7 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Mining](#mining)** | 0.14.4 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
+| **[Mining](#mining)** | 0.14.5 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
 | **[Water](#water)** | 0.4.2 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.2 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.5.4 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
@@ -179,7 +179,7 @@ The largest mod in the collection. It adds resource extraction, new power source
 - **Large tanks** (research *Large Tanks*): Tank 2x2 (800) and Tank 4x4 (6400), with four pipe sockets, each in its own housing on the frame.
 - **Large chests** (research *Large Storage*): Medium Chest (2x2x2, 30 slots), Large Chest (3x3x3, 60 slots) and Huge Chest (4x4x4, 120 slots). All use the same slot size; scroll the mouse wheel over the grid to see more rows.
 - **Info panels** (research *Info Panels*): S, M and L displays that show signal values from inputs A-D.
-- The **Paint Tool** menu shows a color palette (grey column plus 11 hues, light to dark rows) instead of HSV sliders.
+- The **Paint Tool** menu shows a color palette (grey column plus 11 hues, light to dark rows) instead of HSV sliders, and its toolbar icon is a painter's palette.
 - The build menu (**Tab**) is wider and split into tabs: Control, Propulsion, Power, Fluids, Doors and Utility.
 
 </details>
