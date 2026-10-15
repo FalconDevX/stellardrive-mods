@@ -223,6 +223,18 @@ namespace Mining.Diagnostics
             _watching = false;
         }
 
+        internal static IEnumerable<string> Totals(int frames)
+        {
+            double toMs = 1000.0 / System.Diagnostics.Stopwatch.Frequency / Math.Max(1, frames);
+            return Ticks.OrderByDescending(kv => kv.Value).Take(60).Select(kv => $"{kv.Value * toMs,8:0.000} ms/frame  {kv.Key} ({Calls[kv.Key] / Math.Max(1, frames)} calls/frame)");
+        }
+
+        internal static void ResetTotals()
+        {
+            Ticks.Clear();
+            Calls.Clear();
+        }
+
         private static IEnumerator Watch(float thresholdMs)
         {
             int gc = GC.CollectionCount(0);
