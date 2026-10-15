@@ -31,6 +31,20 @@ namespace Mining.Content
 
         internal static PartSettings Part => _part;
 
+        internal static readonly Dictionary<(uint ship, ushort part), (float limit, int frame)> Ground = new Dictionary<(uint, ushort), (float, int)>();
+
+        internal static float Limit(uint ship, ushort part) => Ground.TryGetValue((ship, part), out (float limit, int frame) g) && Time.frameCount - g.frame <= 3 ? g.limit : MaxRun;
+
+        internal static void ReportGround(uint ship, ushort part, float limit)
+        {
+            int frame = Time.frameCount;
+            if (Ground.TryGetValue((ship, part), out (float limit, int frame) g) && g.frame == frame)
+            {
+                limit = Mathf.Min(limit, g.limit);
+            }
+            Ground[(ship, part)] = (limit, frame);
+        }
+
         internal static float Run(uint ship, ushort part) => Extension.TryGetValue((ship, part), out float run) ? run : 0f;
 
         internal static float Surface(float z, float run) => Plate - Tread / 2f - Mathf.Clamp(z - Front, 0f, run);
@@ -261,11 +275,16 @@ namespace Mining.Content
                 return;
             }
             float before = _run, dt = Time.deltaTime;
+            float limit = RetractableStairs.Limit(_shipId, _partId);
             if (_open)
             {
-                if (!Blocked(_run))
+                if (_run > limit + 0.03f)
                 {
-                    _run = Mathf.Min(RetractableStairs.MaxRun, _run + RetractableStairs.Speed * dt);
+                    _run = Mathf.Max(limit, _run - RetractableStairs.Speed * dt);
+                }
+                else if (_run < limit && !Blocked(_run))
+                {
+                    _run = Mathf.Min(limit, _run + RetractableStairs.Speed * dt);
                 }
                 else if (_run > 0f && Blocked(_run - 0.06f))
                 {
@@ -362,13 +381,19 @@ namespace Mining.Content
         private void OnDestroy()
         {
             _sound.Stop();
-            if (_hasContext) RetractableStairs.Extension.Remove((_shipId, _partId));
+            if (_hasContext)
+            {
+                RetractableStairs.Extension.Remove((_shipId, _partId));
+                RetractableStairs.Ground.Remove((_shipId, _partId));
+            }
         }
     }
 
     internal sealed class RetractableStairsCollider : MonoBehaviour
     {
-        private const float Step = 0.05f;
+        private const float Step = 0.05f, GroundGap = 0.25f, Depth = 0.35f;
+        private static readonly RaycastHit[] RayHits = new RaycastHit[16];
+        private string _ownPrefix;
         private MeshCollider _ramp;
         private Mesh _mesh;
         private float _applied = -1f;
@@ -396,6 +421,7 @@ namespace Mining.Content
                 }
             }
             _partId = id.Id;
+            _ownPrefix = $"ship {_shipId} ";
             _resolved = true;
             Collider own = GetComponent<Collider>();
             _skip = own != null && own.attachedRigidbody != null && !own.attachedRigidbody.isKinematic;
@@ -415,7 +441,13 @@ namespace Mining.Content
 
         private void Update()
         {
-            if (!Resolve())
+            bool ramp = Resolve();
+            if (!_resolved)
+            {
+                return;
+            }
+            RetractableStairs.ReportGround(_shipId, _partId, ProbeGround());
+            if (!ramp)
             {
                 return;
             }
@@ -443,6 +475,44 @@ namespace Mining.Content
                 _mesh = null;
             }
             if (old != null) Destroy(old);
+        }
+
+        private float ProbeGround()
+        {
+            PhysicsScene scene = gameObject.scene.GetPhysicsScene();
+            Vector3 dir = transform.TransformDirection(new Vector3(0f, -1f, 1f).normalized);
+            Vector3 down = transform.TransformDirection(Vector3.down);
+            float reach = RetractableStairs.MaxRun * 1.4143f + Depth + 1f;
+            float best = RetractableStairs.MaxRun;
+            for (int i = -1; i <= 1; i++)
+            {
+                Vector3 origin = transform.TransformPoint(new Vector3(i * 0.4f, RetractableStairs.Plate - Depth, RetractableStairs.Front));
+                int count = scene.Raycast(origin, dir, RayHits, reach, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+                for (int k = 0; k < count; k++)
+                {
+                    RaycastHit hit = RayHits[k];
+                    if (hit.collider == null || hit.collider.CompareTag("Player") || IsOwn(hit.collider.transform)) continue;
+                    best = Mathf.Min(best, hit.distance / 1.4143f - GroundGap);
+                }
+                Vector3 tip = transform.TransformPoint(new Vector3(i * 0.4f, RetractableStairs.Plate - best, RetractableStairs.Front + best));
+                count = scene.Raycast(tip, down, RayHits, Depth + GroundGap, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+                for (int k = 0; k < count; k++)
+                {
+                    RaycastHit hit = RayHits[k];
+                    if (hit.collider == null || hit.collider.CompareTag("Player") || IsOwn(hit.collider.transform)) continue;
+                    best = Mathf.Max(0f, best - (Depth + GroundGap - hit.distance));
+                }
+            }
+            return Mathf.Max(0f, best);
+        }
+
+        private bool IsOwn(Transform t)
+        {
+            for (; t != null; t = t.parent)
+            {
+                if (t == transform || t.name.StartsWith(_ownPrefix, StringComparison.Ordinal)) return true;
+            }
+            return false;
         }
 
         private void OnDestroy()
