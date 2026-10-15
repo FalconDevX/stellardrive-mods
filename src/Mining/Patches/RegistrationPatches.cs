@@ -36,6 +36,7 @@ namespace Mining.Patches
             (BigChest.Variants[0].id, p => BigChest.GetOrCreate(BigChest.Variants[0].id, p), () => BigChest.Get(BigChest.Variants[0].id), BigChest.ChestPartId),
             (BigChest.Variants[1].id, p => BigChest.GetOrCreate(BigChest.Variants[1].id, p), () => BigChest.Get(BigChest.Variants[1].id), BigChest.ChestPartId),
             (Barrier.PartId, Barrier.GetOrCreatePart, () => Barrier.Part, BigDoors.DoorPartId),
+            (Stairs.PartId, Stairs.GetOrCreatePart, () => Stairs.Part, BigDoors.DoorPartId),
             (Blueprints.Workbench.PartId, Blueprints.Workbench.GetOrCreatePart, () => Blueprints.Workbench.Part, Blueprints.Workbench.ResearchTablePartId),
             (BigChest.Variants[2].id, p => BigChest.GetOrCreate(BigChest.Variants[2].id, p), () => BigChest.Get(BigChest.Variants[2].id), BigChest.ChestPartId),
             (BigDoors.Variants[0].id, p => BigDoors.GetOrCreate(BigDoors.Variants[0].id, p), () => BigDoors.Get(BigDoors.Variants[0].id), BigDoors.DoorPartId),
@@ -49,7 +50,7 @@ namespace Mining.Patches
         };
 
         internal static readonly ModResearch LargeDoorsResearch = new ModResearch(BigDoors.ResearchId, "Large Doors", new Vector2Int(3, 6), 16,
-            () => BigDoors.All.Concat(new[] { Barrier.Part }).Where(p => p != null).ToArray(),
+            () => BigDoors.All.Concat(new[] { Barrier.Part, Stairs.Part }).Where(p => p != null).ToArray(),
             (Items.Model.ItemsConstants.IronItemId, 30), (112, 10));
 
         internal static readonly ModResearch ToolCraftingResearch = new ModResearch(Blueprints.Workbench.ResearchId, "Tool Crafting", new Vector2Int(5, 7), 14,
@@ -193,7 +194,7 @@ namespace Mining.Patches
             ("Propulsion", new ushort[] { 69, 19, 201, 228, 229, 230, 53, 16, 58, 222 }),
             ("Power", new ushort[] { 61, 65, 60, 203, Reactor.LargePartId }),
             ("Fluids", new ushort[] { 24, 81, 57, 23, 218, 215, 79, 66, 67, 202, 214, 80 }),
-            ("Doors", new ushort[] { DoorPartId, 42, Barrier.PartId, 217, 210, 211, 212, 213, 216, 223, 224 }),
+            ("Doors", new ushort[] { DoorPartId, 42, Barrier.PartId, Stairs.PartId, 217, 210, 211, 212, 213, 216, 223, 224 }),
             ("Utility", new ushort[] { 22, Blueprints.Workbench.PartId, 15, 38, 30, 219, 220, 232, 43, 41, 200, 221, 55 }),
         };
 

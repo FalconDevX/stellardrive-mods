@@ -152,7 +152,7 @@ namespace Mining.Content
                 Vector3 p = root.transform.InverseTransformPoint(source.transform.position);
                 var pos = new Vector3(2f * mirrorX - p.x, p.y, p.z);
                 SocketObject copy = PartFactory.CloneSocket(source, root.transform, nextId, pos, 0f);
-                AddHousing(root, pos, source.transform.rotation * Vector3.forward, scale);
+                AddHousing(root, pos, new Vector3(0f, 0f, mirrorX - pos.z), scale);
                 Quaternion r = Quaternion.Inverse(root.transform.rotation) * source.transform.rotation;
                 copy.transform.localRotation = new Quaternion(r.x, -r.y, -r.z, r.w);
                 Vector3 size = source.transform.lossyScale;
