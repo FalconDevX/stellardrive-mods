@@ -22,8 +22,18 @@ namespace Mining.Content
         internal static bool Hold;
         internal static bool HoldAirborne;
         internal static bool LocalHasGravity;
+        internal static bool LocalHoldActive;
+        internal static Players.Network.PlayerNetworkState LocalState;
+
+        private const float HoldRollFlag = 100f;
 
         private static readonly Dictionary<uint, float> Burned = new Dictionary<uint, float>();
+
+        internal static float EncodeHold(float roll) => roll + HoldRollFlag;
+
+        internal static bool IsHoldInput(float roll) => roll > HoldRollFlag * 0.5f;
+
+        internal static float StripHold(float roll) => IsHoldInput(roll) ? roll - HoldRollFlag : roll;
 
         internal static bool IsUnlocked()
         {

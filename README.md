@@ -38,7 +38,7 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Mining](#mining)** | 0.14.7 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
+| **[Mining](#mining)** | 0.14.8 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
 | **[Water](#water)** | 0.4.2 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.2 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.5.4 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
@@ -203,7 +203,7 @@ The largest mod in the collection. It adds resource extraction, new power source
 - **Inflatable pontoons:** feed oxygen into the inlet to inflate them. They slowly leak while air is supplied and deflate about 30 s after the supply is cut. With the Water mod each pontoon supports about 2000 kg; on land they act as skids.
 - **Laser cannon** (research *Laser Weapons*): fires while its signal is above 0, has recoil and overheats after about 6 s of continuous fire, with status lights and venting steam.
 - The advanced pilot seat gets extra **L** and **R** signal outputs for the mouse buttons.
-- **Jetpack** (research *Jetpack*): the last backpack slot holds wood as fuel; hold Jump in mid-air to fly. Shift-click wood to load it. Press **L** in flight to hold position (hover); it turns off on landing.
+- **Jetpack** (research *Jetpack*): the last backpack slot holds wood as fuel; hold Jump in mid-air to fly. Shift-click wood to load it. Press **L** in flight for altitude hold: you hover at the current height and steer freely with WASD, Jump climbs and Crouch descends; it turns off on landing. Each player has their own hold.
 - **V** in a pilot seat toggles a chase camera behind the ship.
 
 </details>

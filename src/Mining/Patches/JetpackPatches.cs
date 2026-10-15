@@ -45,51 +45,124 @@ namespace Mining.Patches
     [HarmonyPatch(typeof(PlayerWalkingPhysics), "ProcessAirForces")]
     internal static class JetpackPhysicsPatch
     {
-        private const float HoldBraking = 4f;
+        private const float HoldWalkSpeed = 4f;
+        private const float HoldSprintSpeed = 8f;
+        private const float HoldHorizontalAccel = 8f;
+        private const float HoldVerticalAccel = 10f;
+        private const float HoldDescendSpeed = 3f;
 
         private static void Postfix(ref PlayerPhysicsState __0, PlayerControlInput __1, Vector3 ____currentUp, Vector3 ____currentGravity, float ____deltaTime)
         {
+            bool server = Jetpack.CurrentServerPlayer != null;
+            if (!server && !Jetpack.CurrentIsLocalPrediction)
+            {
+                return;
+            }
             if (Jetpack.CurrentIsLocalPrediction)
             {
                 Jetpack.LocalHasGravity = ____currentGravity != Vector3.zero;
             }
-            if (Jetpack.Hold && __1.VerticalInput <= 0f && ____currentGravity != Vector3.zero && (Jetpack.CurrentServerPlayer != null || Jetpack.CurrentIsLocalPrediction)
-                && Jetpack.Enabled && Jetpack.IsUnlocked() && Jetpack.HasFuel())
-            {
-                Vector3 still = __0.Velocity - ____currentGravity * ____deltaTime;
-                __0.Velocity = Vector3.MoveTowards(still, Vector3.zero, HoldBraking * ____deltaTime);
-                Jetpack.Burn(____deltaTime);
-                return;
-            }
-            if ((__1.VerticalInput <= 0f && !(Jetpack.TestForceUp && Jetpack.CurrentServerPlayer != null)) || ____currentGravity == Vector3.zero || (Jetpack.CurrentServerPlayer == null && !Jetpack.CurrentIsLocalPrediction))
+            if (____currentGravity == Vector3.zero)
             {
                 return;
             }
-            if (!Jetpack.IsUnlocked() || !Jetpack.HasFuel())
+            bool hold = Jetpack.IsHoldInput(__1.RollInput);
+            bool up = __1.VerticalInput > 0f || (Jetpack.TestForceUp && server);
+            if ((!hold && !up) || !Jetpack.IsUnlocked() || !Jetpack.HasFuel())
             {
                 return;
             }
-            float upSpeed = Vector3.Dot(__0.Velocity, ____currentUp);
-            float maxUp = MiningMod.JetpackMaxSpeed.Value;
-            if (upSpeed < maxUp)
+            if (hold)
             {
-                float accel = ____currentGravity.magnitude + MiningMod.JetpackAcceleration.Value;
-                __0.Velocity += ____currentUp * Mathf.Min(accel * ____deltaTime, maxUp - upSpeed + ____currentGravity.magnitude * ____deltaTime);
+                HoldAssist(ref __0, __1, up, ____currentUp, ____currentGravity, ____deltaTime);
+            }
+            if (up)
+            {
+                float upSpeed = Vector3.Dot(__0.Velocity, ____currentUp);
+                float maxUp = MiningMod.JetpackMaxSpeed.Value;
+                if (upSpeed < maxUp)
+                {
+                    float accel = ____currentGravity.magnitude + MiningMod.JetpackAcceleration.Value;
+                    __0.Velocity += ____currentUp * Mathf.Min(accel * ____deltaTime, maxUp - upSpeed + ____currentGravity.magnitude * ____deltaTime);
+                }
             }
             Jetpack.Burn(____deltaTime);
         }
+
+        private static void HoldAssist(ref PlayerPhysicsState state, PlayerControlInput input, bool up, Vector3 upDir, Vector3 gravity, float deltaTime)
+        {
+            float vertical = Vector3.Dot(state.Velocity, upDir);
+            Vector3 horizontal = state.Velocity - upDir * vertical;
+            Vector3 move = Vector3.ClampMagnitude(input.HorizontalMoveInput, 1f);
+            Vector3 wish = Vector3.ProjectOnPlane(input.CameraRotation * move, upDir);
+            wish = wish.sqrMagnitude > 1e-6f ? wish.normalized * (move.magnitude * (input.IsSprinting ? HoldSprintSpeed : HoldWalkSpeed)) : Vector3.zero;
+            horizontal = Vector3.MoveTowards(horizontal, wish, HoldHorizontalAccel * deltaTime);
+            if (!up)
+            {
+                vertical -= Vector3.Dot(gravity, upDir) * deltaTime;
+                float target = input.VerticalInput < 0f ? -HoldDescendSpeed : 0f;
+                vertical = Mathf.MoveTowards(vertical, target, HoldVerticalAccel * deltaTime);
+            }
+            state.Velocity = horizontal + upDir * vertical;
+        }
+    }
+
+    [HarmonyPatch(typeof(PlayerPhysicsCommon), nameof(PlayerPhysicsCommon.CalculateFloatingBodyRotation))]
+    internal static class JetpackRollStripPatch
+    {
+        private static void Prefix(ref float __2) => __2 = Jetpack.StripHold(__2);
     }
 
     [HarmonyPatch(typeof(TrackedPlayerLocalClient), "SetInputs")]
     internal static class JetpackToggleInputPatch
     {
+        private static TrackedPlayerLocalClient _player;
+
         private static void Prefix(TrackedPlayerLocalClient __instance, ref PlayerControlInput __0)
         {
-            if (Jetpack.Enabled || __0.MoveInput.y <= 0f || !Jetpack.LocalHasGravity || __instance.PhysicsState.IsOnGround)
+            Jetpack.LocalHoldActive = false;
+            if (!Jetpack.IsUnlocked())
             {
                 return;
             }
-            __0.MoveInput.y = 0f;
+            if (_player != __instance)
+            {
+                _player = __instance;
+                Jetpack.LocalState = Traverse.Create(__instance).Property("NetworkState").GetValue<PlayerNetworkState>();
+            }
+            bool grounded = __instance.PhysicsState.IsOnGround;
+            if (Jetpack.Hold && !grounded)
+            {
+                Jetpack.HoldAirborne = true;
+            }
+            if (Jetpack.Hold && Jetpack.HoldAirborne && grounded && Jetpack.LocalState != null && Jetpack.LocalState.ClientState.Type == PlayerStateType.Walking)
+            {
+                Jetpack.Hold = false;
+                Jetpack.HoldAirborne = false;
+                MiningMod.ShowMessage("Jetpack hold OFF (landed)", 1.5f);
+            }
+            if (!Jetpack.Enabled && __0.MoveInput.y > 0f && Jetpack.LocalHasGravity && !grounded)
+            {
+                __0.MoveInput.y = 0f;
+            }
+            if (Jetpack.Hold && Jetpack.Enabled && Jetpack.LocalHasGravity)
+            {
+                __0.RollInput = Jetpack.EncodeHold(__0.RollInput);
+                Jetpack.LocalHoldActive = !grounded;
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(PlayerNetworkState), nameof(PlayerNetworkState.ClientSetKeyPresses))]
+    internal static class JetpackHoldKeysPatch
+    {
+        private static void Prefix(PlayerNetworkState __instance, ref PlayerPressedKeysState __0)
+        {
+            if (Jetpack.LocalHoldActive && ReferenceEquals(__instance, Jetpack.LocalState))
+            {
+                __0.Up = true;
+                __0.Down = true;
+            }
         }
     }
 
@@ -360,22 +433,13 @@ namespace Mining.Patches
             }
             ISpace space = ____spaces.GetSpace(__0.SpaceId);
             bool onPlanet = space is PlanetSurfaceSpace || space is ShipRelativeSpace;
-            if (Jetpack.Hold && !__0.IsOnGround)
+            bool local = ReferenceEquals(____state, Jetpack.LocalState);
+            bool wants = unlocked && ____state.PressedKeys.Up && !__0.IsOnGround;
+            bool fuel = !wants || !local || HasLocalFuel();
+            bool flying = wants && onPlanet && fuel && ____state.ClientState.Type == PlayerStateType.Walking;
+            if (wants && local)
             {
-                Jetpack.HoldAirborne = true;
-            }
-            if (Jetpack.Hold && Jetpack.HoldAirborne && __0.IsOnGround && ____state.ClientState.Type == PlayerStateType.Walking)
-            {
-                Jetpack.Hold = false;
-                Jetpack.HoldAirborne = false;
-                MiningMod.ShowMessage("Jetpack hold OFF (landed)", 1.5f);
-            }
-            bool wants = unlocked && (____state.PressedKeys.Up || Jetpack.Hold) && !__0.IsOnGround;
-            bool fuel = !wants || HasLocalFuel();
-            bool flying = wants && onPlanet && fuel && Jetpack.Enabled && ____state.ClientState.Type == PlayerStateType.Walking;
-            if (wants)
-            {
-                Diagnose(flying ? "flying" : !fuel ? "no wood in the fuel slot" : !Jetpack.Enabled ? "turned off with J" : !onPlanet ? $"not on a planet ({space?.GetType().Name})" :
+                Diagnose(flying ? "flying" : !fuel ? "no wood in the fuel slot" : !onPlanet ? $"not on a planet ({space?.GetType().Name})" :
                     $"player state {____state.ClientState.Type}", !fuel);
             }
             var audio = ServiceLocator.GetService<IAudioPlayer>();

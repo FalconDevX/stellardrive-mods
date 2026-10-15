@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.14.7", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.14.8", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -146,7 +146,7 @@ namespace Mining
                 {
                     Content.Jetpack.Hold = !Content.Jetpack.Hold;
                     Content.Jetpack.HoldAirborne = false;
-                    ShowMessage(Content.Jetpack.Hold ? "Jetpack hold ON - you stay in place" : "Jetpack hold OFF", 1.5f);
+                    ShowMessage(Content.Jetpack.Hold ? "Jetpack hold ON - altitude locked, Space up / Crouch down" : "Jetpack hold OFF", 1.5f);
                 }
                 if (kb != null && kb.jKey.wasPressedThisFrame && !Diagnostics.DevTools.IsTyping() && Content.Jetpack.IsUnlocked())
                 {
