@@ -17,7 +17,7 @@ namespace Mining.Content
         private const int Steps = 8;
         internal const float Rise = 2f, Run = 2f;
         private const float Width = 1f, Tread = Run / Steps, StepHeight = Rise / Steps;
-        private const float Side = Width / 2f - 0.04f, RailHeight = 0.9f;
+        private const float Side = Width / 2f - 0.04f;
         private static PartSettings _part;
         private static bool _failed;
         private static Mesh _collider;
@@ -50,7 +50,25 @@ namespace Mining.Content
             return _part;
         }
 
+        internal const float PostHeight = 1f;
+        internal static readonly Vector3[] Anchors =
+        {
+            new Vector3(-Width / 2f + 0.04f, 0f, -Run / 2f), new Vector3(Width / 2f - 0.04f, 0f, -Run / 2f),
+            new Vector3(-Width / 2f + 0.04f, Rise, Run / 2f), new Vector3(Width / 2f - 0.04f, Rise, Run / 2f),
+        };
+
         private static float Front(int step) => -Run / 2f + step * Tread;
+
+        private static float RailY(float z) => z + Run / 2f + PostHeight - 0.05f;
+
+        private static void Post(MeshBuilder b, Vector3 foot)
+        {
+            const float radius = 0.035f;
+            b.Cylinder(foot + Vector3.up * 0.03f, foot + Vector3.up * (PostHeight - 0.02f), radius, "yellow", 20);
+            b.Sphere(foot + Vector3.up * (PostHeight - 0.02f), radius * 1.15f, "yellow", 16);
+            b.Cylinder(foot + Vector3.up * 0.03f, foot + Vector3.up * 0.09f, radius * 1.35f, "black", 20);
+            b.Box(foot + Vector3.up * 0.015f, new Vector3(0.14f, 0.03f, 0.14f), "dark");
+        }
 
         private static Mesh BuildBody()
         {
@@ -75,20 +93,21 @@ namespace Mining.Content
                 b.Box(new Vector3(x, Rise / 2f - 0.06f, 0.06f), new Vector3(0.06f, 0.22f, length), "grey", slope);
                 b.Box(new Vector3(x, 0.02f, -Run / 2f + 0.12f), new Vector3(0.12f, 0.04f, 0.2f), "dark");
                 b.Box(new Vector3(x, Rise - 0.06f, Run / 2f - 0.05f), new Vector3(0.1f, 0.12f, 0.1f), "dark");
-                foreach (int step in new[] { 0, 3, 6 })
+                foreach (int step in new[] { 2, 5 })
                 {
                     Vector3 foot = new Vector3(x, (step + 1) * StepHeight, Front(step) + Tread / 2f);
-                    b.Cylinder(foot, foot + Vector3.up * RailHeight, 0.022f, "steel", 14);
+                    b.Cylinder(foot, new Vector3(x, RailY(foot.z), foot.z), 0.022f, "steel", 14);
                     b.Cylinder(foot, foot + Vector3.up * 0.05f, 0.032f, "dark", 14);
                 }
-                Vector3 low = new Vector3(x, StepHeight + RailHeight, Front(0) + Tread / 2f);
-                Vector3 high = new Vector3(x, 7 * StepHeight + RailHeight, Front(6) + Tread / 2f);
-                Vector3 along = (high - low).normalized;
-                b.Cylinder(low - along * 0.06f, high + along * 0.18f, 0.03f, "yellow", 16);
-                b.Sphere(low - along * 0.06f, 0.03f, "yellow", 12);
-                b.Sphere(high + along * 0.18f, 0.03f, "yellow", 12);
-                Vector3 mid = Vector3.up * (RailHeight * 0.5f);
-                b.Cylinder(low - mid, high - mid, 0.016f, "steel", 12);
+                foreach (Vector3 end in new[] { new Vector3(x, 0f, -Run / 2f), new Vector3(x, Rise, Run / 2f) })
+                {
+                    Post(b, end);
+                }
+                Vector3 low = new Vector3(x, RailY(-Run / 2f), -Run / 2f);
+                Vector3 high = new Vector3(x, RailY(Run / 2f), Run / 2f);
+                b.Cylinder(low, high, 0.03f, "yellow", 16);
+                Vector3 mid = Vector3.up * 0.45f;
+                b.Cylinder(low - mid, high - mid, 0.02f, "yellow", 12);
             }
             return b.Build("MetalStairs");
         }
@@ -144,6 +163,7 @@ namespace Mining.Content
                 visual.gameObject.AddComponent<DefaultShipPartVisuals>();
             }
             PartFactory.CreateRenderer("Body", visual, BuildBody(), material, lookCopy);
+            visual.gameObject.AddComponent<StairsVisuals>();
             Object.DestroyImmediate(lookCopy.gameObject);
             var bounds = new Bounds(new Vector3(0f, Rise / 2f, 0f), new Vector3(Width * 0.98f, Rise * 0.98f, Run * 0.98f));
             PartFactory.SetBounds(root, bounds);
@@ -168,6 +188,24 @@ namespace Mining.Content
             settings.thumbnailRotation = Quaternion.Euler(0f, 60f, 0f);
             PartFactory.SetCost(settings, (Items.Model.ItemsConstants.IronItemId, 12));
             return settings;
+        }
+    }
+
+    internal sealed class StairsVisuals : MonoBehaviour
+    {
+        internal static readonly HashSet<StairsVisuals> Active = new HashSet<StairsVisuals>();
+
+        private void OnEnable() => Active.Add(this);
+
+        private void OnDisable() => Active.Remove(this);
+
+        internal bool Touches(Vector3 world)
+        {
+            foreach (Vector3 anchor in Stairs.Anchors)
+            {
+                if ((transform.TransformPoint(anchor) - world).sqrMagnitude < 0.0064f) return true;
+            }
+            return false;
         }
     }
 }

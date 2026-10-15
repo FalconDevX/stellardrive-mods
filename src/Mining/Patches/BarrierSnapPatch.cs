@@ -38,6 +38,21 @@ namespace Mining.Patches
                 float bestDistance = Reach * Reach;
                 foreach (StatefulPart part in ship.StatefulParts)
                 {
+                    if (part.Settings != null && part.Settings.id == Stairs.PartId && part.Placement is FloatingPartPlacement stairs)
+                    {
+                        foreach (Vector3 anchor in Stairs.Anchors)
+                        {
+                            Vector3 end = stairs.Coord + stairs.Rotation * anchor;
+                            foreach (Vector3 own in mine)
+                            {
+                                Vector3 delta = end - own;
+                                if (Mathf.Abs(delta.y) > 0.3f || delta.sqrMagnitude >= bestDistance) continue;
+                                bestDistance = delta.sqrMagnitude;
+                                best = delta;
+                            }
+                        }
+                        continue;
+                    }
                     if (part.Settings == null || part.Settings.id != Barrier.PartId || !(part.Placement is FloatingPartPlacement other)) continue;
                     Vector3 otherAxis = other.Rotation * Vector3.right * Barrier.HalfLength;
                     foreach (Vector3 end in new[] { other.Coord - otherAxis, other.Coord + otherAxis })

@@ -146,13 +146,14 @@ namespace Mining.Content
     {
         internal const string LeftPost = "PostLeft", RightPost = "PostRight";
         private static readonly HashSet<BarrierVisuals> Active = new HashSet<BarrierVisuals>();
-        private Transform _left;
+        private Transform _left, _right;
         private float _next;
 
         private void OnEnable()
         {
             Active.Add(this);
             _left = transform.Find(LeftPost);
+            _right = transform.Find(RightPost);
             _next = 0f;
         }
 
@@ -168,7 +169,7 @@ namespace Mining.Content
             }
             _next = Time.time + 0.25f;
             Vector3 mine = End(-1f);
-            bool shared = false;
+            bool shared = AtStairs(mine);
             foreach (BarrierVisuals other in Active)
             {
                 if (other == this || other == null) continue;
@@ -179,6 +180,17 @@ namespace Mining.Content
                 }
             }
             if (_left.gameObject.activeSelf == shared) _left.gameObject.SetActive(!shared);
+            bool stairs = AtStairs(End(1f));
+            if (_right != null && _right.gameObject.activeSelf == stairs) _right.gameObject.SetActive(!stairs);
+        }
+
+        private static bool AtStairs(Vector3 end)
+        {
+            foreach (StairsVisuals stairs in StairsVisuals.Active)
+            {
+                if (stairs != null && stairs.Touches(end)) return true;
+            }
+            return false;
         }
     }
 }
