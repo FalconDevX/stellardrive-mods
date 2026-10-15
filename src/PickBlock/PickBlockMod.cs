@@ -2,7 +2,7 @@
 using UnityEngine;
 using PickBlock;
 
-[assembly: MelonInfo(typeof(PickBlockMod), "Pick Block", "0.3.3", "mateu")]
+[assembly: MelonInfo(typeof(PickBlockMod), "Pick Block", "0.3.4", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace PickBlock

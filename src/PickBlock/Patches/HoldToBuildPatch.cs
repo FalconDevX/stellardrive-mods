@@ -72,6 +72,17 @@ namespace PickBlock.Patches
             {
                 return null;
             }
+            if (placement is SnappedPreviewPlacement snapped)
+            {
+                if (snapped.HullPartPlacement.HasValue)
+                {
+                    var hull = snapped.HullPartPlacement.Value;
+                    return $"{snapped.ShipId}|{hull.Coord}|{hull.Position.Type}|{hull.ForwardOrientation}|{hull.UpOrientation}";
+                }
+                var floating = snapped.FloatingPartPlacement.Value;
+                Vector3 c = floating.Coord * 20f;
+                return $"{snapped.ShipId}|{Mathf.RoundToInt(c.x)},{Mathf.RoundToInt(c.y)},{Mathf.RoundToInt(c.z)}|{floating.ForwardOrientation}|{floating.UpOrientation}";
+            }
             Vector3 p = placement.Position * 20f;
             Vector3 r = placement.Rotation.eulerAngles;
             return $"{Mathf.RoundToInt(p.x)},{Mathf.RoundToInt(p.y)},{Mathf.RoundToInt(p.z)}|{Mathf.RoundToInt(r.x)},{Mathf.RoundToInt(r.y)},{Mathf.RoundToInt(r.z)}";

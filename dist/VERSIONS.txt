@@ -1,7 +1,7 @@
 ﻿Resource Tweaks 0.3.2
 Crouch 0.1.3
 Flora 0.4.0
-Pick Block 0.3.3
+Pick Block 0.3.4
 Shared Piloting 0.1.1
 Ship Safety 0.5.5
 Velocity Indicator 0.1.0
