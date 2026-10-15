@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Ships.Interface.Model.Parts;
 using Ships.Interface.Model.Parts.State;
@@ -36,6 +37,12 @@ namespace Mining.Content
         private float _scale = 1f;
         private float _target, _level;
         private float _phase;
+        private static readonly Color BeaconColor = new Color(1f, 0.45f, 0.08f);
+        private const float BeaconSpeed = 300f;
+        private Transform[] _beacons = new Transform[0];
+        private Light[] _beaconLights = new Light[0];
+        private Material _beaconMaterial;
+        private Color _beaconColor = Unset;
         private readonly Audio.LoopEmitter _sound = new Audio.LoopEmitter("reactor", 30f, MiningMod.ReactorVolume);
 
         private void Awake()
@@ -63,6 +70,62 @@ namespace Mining.Content
             _light.shadows = LightShadows.None;
             _light.intensity = 0f;
             _light.enabled = false;
+            SetUpBeacons();
+        }
+
+        private void SetUpBeacons()
+        {
+            var beacons = new List<Transform>();
+            for (int i = 0; i < Reactor.BeaconPositions.Length; i++)
+            {
+                Transform beacon = transform.Find("Beacon" + i);
+                if (beacon != null) beacons.Add(beacon);
+            }
+            _beacons = beacons.ToArray();
+            _beaconLights = new Light[_beacons.Length];
+            MeshRenderer first = _beacons.Length > 0 ? _beacons[0].GetComponent<MeshRenderer>() : null;
+            _beaconMaterial = first != null ? first.material : null;
+            for (int i = 0; i < _beacons.Length; i++)
+            {
+                MeshRenderer renderer = _beacons[i].GetComponent<MeshRenderer>();
+                if (renderer != null && _beaconMaterial != null) renderer.sharedMaterial = _beaconMaterial;
+                Transform existing = _beacons[i].Find("BeaconLight");
+                Light light = existing != null ? existing.GetComponent<Light>() : null;
+                if (light == null)
+                {
+                    light = new GameObject("BeaconLight").AddComponent<Light>();
+                    light.transform.SetParent(_beacons[i], false);
+                }
+                light.transform.localPosition = new Vector3(0f, 0.05f, 0f);
+                light.transform.localRotation = Quaternion.LookRotation(new Vector3(1f, -0.18f, 0f));
+                light.type = LightType.Spot;
+                light.spotAngle = 50f;
+                light.range = 8f * _scale;
+                light.color = BeaconColor;
+                light.shadows = LightShadows.None;
+                light.intensity = 0f;
+                light.enabled = false;
+                _beaconLights[i] = light;
+            }
+        }
+
+        private void UpdateBeacons(float dt)
+        {
+            bool on = _level > 0.05f;
+            SetEmission(_beaconMaterial, ref _beaconColor, on ? Color.white * 2.2f : Color.black);
+            for (int i = 0; i < _beacons.Length; i++)
+            {
+                if (on)
+                {
+                    _beacons[i].Rotate(Vector3.up, BeaconSpeed * dt, Space.Self);
+                }
+                Light light = _beaconLights[i];
+                if (light != null)
+                {
+                    light.enabled = on;
+                    light.intensity = on ? 3f * _scale : 0f;
+                }
+            }
         }
 
         public override void SetNetworkState(IStatefulPartState state)
@@ -114,6 +177,7 @@ namespace Mining.Content
                 _rotor.Rotate(Vector3.up, -_spin * dt, Space.Self);
             }
             UpdateSteam();
+            UpdateBeacons(dt);
             _sound.Update(transform.position + transform.up * 0.8f * _scale, Mathf.SmoothStep(0f, 1f, _level), 0.75f + 0.3f * _level);
         }
 

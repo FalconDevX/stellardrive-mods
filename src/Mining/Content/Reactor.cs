@@ -22,6 +22,10 @@ namespace Mining.Content
         internal const float LargeModelScale = 2f;
         internal static bool HasSignalSocket;
         internal static readonly Vector3 RotorPosition = new Vector3(0f, 1.44f, 0f);
+        internal static readonly Vector3[] BeaconPositions =
+        {
+            new Vector3(0.86f, 1.612f, 0.86f), new Vector3(-0.86f, 1.612f, 0.86f), new Vector3(-0.86f, 1.612f, -0.86f), new Vector3(0.86f, 1.612f, -0.86f),
+        };
         private static readonly Vector2[] SocketLayout = { new Vector2(-0.70f, 0.45f), new Vector2(-0.25f, 0.45f), new Vector2(0.25f, 0.45f), new Vector2(0.70f, 0.45f) };
         private const ushort ChestPartId = 30, GeneratorPartId = 60, DistillerPartId = 80;
         private static PartSettings _part, _large;
@@ -170,6 +174,18 @@ namespace Mining.Content
             Transform spinner = PartFactory.CreateRenderer("Rotor", visual, rotor, material, lookCopy).transform;
             spinner.localPosition = RotorPosition * size;
             spinner.localScale = Vector3.one * size;
+            Material beaconMaterial = new Material(material) { name = name + "Beacon" };
+            beaconMaterial.SetTexture("_EmissionMap", ModAssets.LoadTexture("reactor_palette.png"));
+            beaconMaterial.SetColor("_EmissionColor", Color.black);
+            beaconMaterial.EnableKeyword("_EMISSION");
+            Mesh beacon = ModAssets.LoadMesh("reactor_beacon.bin");
+            for (int i = 0; i < BeaconPositions.Length; i++)
+            {
+                Transform lamp = PartFactory.CreateRenderer("Beacon" + i, visual, beacon, beaconMaterial, lookCopy).transform;
+                lamp.localPosition = BeaconPositions[i] * size;
+                lamp.localRotation = Quaternion.Euler(0f, 90f * i, 0f);
+                lamp.localScale = Vector3.one * size;
+            }
             Object.DestroyImmediate(lookCopy.gameObject);
 
             var bounds = new Bounds(body.bounds.center * size, body.bounds.size * size);

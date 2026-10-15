@@ -206,8 +206,7 @@ def build_body():
             for y in (0.45, 0.85, 1.25):
                 m.box((x, y, z), (0.15, 0.03, 0.15), 'grey', bevel=0.004)
             m.box((x, 1.575, z), (0.17, 0.05, 0.17), 'yellow', bevel=0.008)
-            m.cyl((x, 1.6, z), (x, 1.645, z), 0.035, 'orange', 16)
-            m.sphere((x, 1.645, z), 0.035, 'orange', 10)
+            m.cyl((x, 1.6, z), (x, 1.612, z), 0.05, 'dark', 12)
 
     for s in (-1, 1):
         m.box((0, 1.53, 0.86 * s), (1.6, 0.08, 0.08), 'steel', bevel=0.008)
@@ -383,6 +382,15 @@ def build_rotor():
     return m.to_object('ReactorRotor')
 
 
+def build_beacon():
+    m = Builder()
+    m.cyl((0, 0, 0), (0, 0.05, 0), 0.042, 'orange', 10)
+    m.sphere((0, 0.05, 0), 0.042, 'orange', 8)
+    m.box((0.036, 0.04, 0), (0.014, 0.07, 0.034), 'yellow')
+    m.box((-0.036, 0.04, 0), (0.014, 0.07, 0.034), 'yellow')
+    return m.to_object('ReactorBeacon')
+
+
 def cell_uv(index):
     cx, cy = index % CELLS, index // CELLS
     return ((cx + 0.5) / CELLS, 1.0 - (cy + 0.5) / CELLS)
@@ -474,6 +482,7 @@ rotor = build_rotor()
 export(body, os.path.join(OUT, 'reactor_body.bin'), False)
 export(body, os.path.join(OUT, 'reactor_glow.bin'), True)
 export(rotor, os.path.join(OUT, 'reactor_rotor.bin'))
+export(build_beacon(), os.path.join(OUT, 'reactor_beacon.bin'))
 write_png(os.path.join(OUT, 'reactor_palette.png'), lambda i: srgb(PALETTE[i][1]))
 if PREVIEW:
     rotor.location = B((0, 1.44, 0))
