@@ -36,7 +36,7 @@ namespace Mining.Server
                 try
                 {
                     var shipServer = ____ship as Ships.TrackedShipServer;
-                    if (RotorObstacles.IsBlocked(shipServer, part, state, angle))
+                    if (MiningMod.RotorCollision.Value && RotorObstacles.IsBlocked(shipServer, part, state, angle))
                     {
                         continue;
                     }

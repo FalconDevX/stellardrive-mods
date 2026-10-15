@@ -38,7 +38,7 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Mining](#mining)** | 0.14.6 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
+| **[Mining](#mining)** | 0.14.7 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
 | **[Water](#water)** | 0.4.2 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.2 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.5.4 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
@@ -126,6 +126,7 @@ A few commonly tweaked options:
 | Mining | `HydrogenThrustMultiplier` | `1.8` | Hydrogen thruster strength relative to the chemical one |
 | Mining | `ReactorPower` | `20000` | Reactor output in watts |
 | Mining | `RotorLeverAngle` | `90` | Rotor angle for a signal of 1 |
+| Mining | `RotorCollision` | `false` | Stop a turning rotor before its moving part hits something |
 | Mining | `DetailDistance` | `30` | Distance beyond which small ship details are hidden (m) |
 | Pick Block | `AreaMaxSize` | `9` | Largest square side for area building |
 | Ship Safety | `MaxSpeed` | `5000` | Ship speed limit (m/s) |
@@ -173,7 +174,7 @@ The largest mod in the collection. It adds resource extraction, new power source
 <details>
 <summary><b>Building parts and storage</b></summary>
 
-- **Rotor** (research *Mechanics*): rotates the structure on its plate. A lever works out of the box (`0` = home, `1` = 90Â°); signals above 1 are interpreted as degrees.
+- **Rotor** (research *Mechanics*): rotates the structure on its plate. A lever works out of the box (`0` = home, `1` = 90°); signals above 1 are interpreted as degrees. The turning part passes through obstacles unless `RotorCollision` is enabled.
 - **Large doors and gates** (research *Large Doors*): doors 3x2, 3x3, 4x4, 6x3 and gates 10x5, 16x8, 24x8, 32x8, with heavy opening animation and custom sound. They block passage until fully open.
 - **Yellow Barrier** (research *Large Doors*, Doors tab): a 1 m round safety railing with hazard stripes that always stands upright on the floor; a barrier placed near another snaps to its end, and joined barriers share one post.
 - **Large tanks** (research *Large Tanks*): Tank 2x2 (800) and Tank 4x4 (6400), with four pipe sockets, each in its own housing on the frame.
