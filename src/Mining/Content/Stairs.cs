@@ -57,6 +57,9 @@ namespace Mining.Content
             new Vector3(-Width / 2f + 0.04f, Rise, Run / 2f), new Vector3(Width / 2f - 0.04f, Rise, Run / 2f),
         };
 
+        internal static bool Contains(Vector3 local) =>
+            Mathf.Abs(local.x) < Width / 2f - 0.02f && local.y > 0.05f && local.y < Rise - 0.05f && Mathf.Abs(local.z) < Run / 2f - 0.02f;
+
         private static float Front(int step) => -Run / 2f + step * Tread;
 
         private static float RailY(float z) => z + Run / 2f + PostHeight - 0.05f;

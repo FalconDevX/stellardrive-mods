@@ -33,23 +33,43 @@ namespace Mining.Patches
 
         private static bool IsStairs(PartSettings settings) => settings != null && settings.id == Stairs.PartId;
 
+        private static bool IsBarrier(PartSettings settings) => settings != null && settings.id == Barrier.PartId;
+
+        private static readonly Collider[] Nearby = new Collider[1024];
+
+        private static void Hide(Collider collider)
+        {
+            collider.enabled = false;
+            Hidden.Add(collider);
+        }
+
         private static void Prefix(SnapDetectionState state, CameraPhysicsData cameraPhysics)
         {
-            if (state.partSettings == null || IsStairs(state.partSettings))
+            if (state.partSettings == null)
             {
                 return;
             }
             try
             {
-                for (int i = 0; i < 4; i++)
+                if (IsBarrier(state.partSettings))
+                {
+                    int count = ClientScene.PhysicsScene.OverlapSphere(cameraPhysics.CameraPos, Reach + 3f, Nearby, RaycastMasks.BuildDetectionLayer, QueryTriggerInteraction.Collide);
+                    for (int i = 0; i < count; i++)
+                    {
+                        Collider c = Nearby[i];
+                        if (c != null && c.enabled && (c.GetComponent<BarrierCollider>() != null || c.GetComponent<StairsCollider>() != null)) Hide(c);
+                    }
+                    return;
+                }
+                bool stairs = IsStairs(state.partSettings);
+                for (int i = 0; i < 8; i++)
                 {
                     if (!ClientScene.PhysicsScene.Raycast(cameraPhysics.CameraPos, cameraPhysics.Direction, out RaycastHit hit, Reach, RaycastMasks.BuildDetectionLayer)
-                        || hit.collider.GetComponent<StairsCollider>() == null)
+                        || !(hit.collider.GetComponent<BarrierCollider>() != null || (!stairs && hit.collider.GetComponent<StairsCollider>() != null)))
                     {
                         return;
                     }
-                    hit.collider.enabled = false;
-                    Hidden.Add(hit.collider);
+                    Hide(hit.collider);
                 }
             }
             catch (Exception e)
@@ -60,18 +80,24 @@ namespace Mining.Patches
 
         private static void Postfix(SnapDetectionState state, CameraPhysicsData cameraPhysics, ref SnapDetectionResults __result)
         {
-            Restore();
-            if (!IsStairs(state.partSettings))
-            {
-                return;
-            }
             try
             {
-                Continue(state, cameraPhysics, ref __result);
+                if (IsStairs(state.partSettings))
+                {
+                    Continue(state, cameraPhysics, ref __result);
+                }
+                else if (IsBarrier(state.partSettings))
+                {
+                    BarrierSnap.Apply(ref __result);
+                }
             }
             catch (Exception e)
             {
                 Melon<MiningMod>.Logger.Error($"Stairs snap: {e}");
+            }
+            finally
+            {
+                Restore();
             }
         }
 
