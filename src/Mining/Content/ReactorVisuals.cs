@@ -53,8 +53,8 @@ namespace Mining.Content
                 _body = glow.material;
             }
             _phase = Random.value * 10f;
-            Transform existing = transform.Find("Glow");
-            _light = existing != null ? existing.GetComponent<Light>() : new GameObject("Glow").AddComponent<Light>();
+            Transform existing = transform.Find("ReactorLight");
+            _light = existing != null && existing.GetComponent<Light>() != null ? existing.GetComponent<Light>() : new GameObject("ReactorLight").AddComponent<Light>();
             _light.transform.SetParent(transform, false);
             _light.transform.localPosition = new Vector3(0f, 0.75f * _scale, 0f);
             _light.type = LightType.Point;
@@ -69,6 +69,7 @@ namespace Mining.Content
         {
             Read(state);
             _level = _target;
+            MelonLoader.Melon<MiningMod>.Logger.Msg($"Reactor visuals: level {_target:0.00}, rotor {_rotor != null}, glow {_body != null}, light {_light != null}");
         }
 
         public override void ReactToNetworkStateChange(StatefulPartStateChangeEvent change) => Read(change.NewState);
