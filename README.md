@@ -38,7 +38,7 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Mining](#mining)** | 0.15.2 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
+| **[Mining](#mining)** | 0.15.3 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
 | **[Water](#water)** | 0.4.2 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.4 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.5.7 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
@@ -184,6 +184,7 @@ The largest mod in the collection. It adds resource extraction, new power source
 - **Larger vents, pumps and electrolyzers** (research *Large Tanks*, next to the small part in the build menu): Air Vent M / L (2x / 3x size, fill rooms with oxygen 4x / 9x faster), Fluid Pump M / L (20 / 45 units per second instead of 5) and Electrolyzer M / L (4x / 9x the output and power). They work exactly like the small parts.
 - **Large chests** (research *Large Storage*): Medium Chest (2x2x2, 30 slots), Large Chest (3x3x3, 60 slots) and Huge Chest (4x4x4, 120 slots). All use the same slot size; scroll the mouse wheel over the grid to see more rows.
 - **Info panels** (research *Info Panels*): S (1x1, 1 line), M (2x1, 2 lines) and L (3x2, 4 lines) screens that show signal values from inputs A-D. Each panel takes up exactly its real size on the wall, so panels sit next to each other without overlapping. A framed screen with a connector strip along the bottom; all sockets are on the bottom edge facing down, so cables come from below: signals A-D from the left, power (yellow mark) on the right. Without power the screen stays dark. Press **E** on a panel to write your own text: one label per line, separated by `;` (e.g. `Fuel;Oxygen`); a line with a connected signal shows the label and the value, a line without a signal shows only the text (e.g. `HANGAR 2`). The text is saved with the ship and synced to all players.
+- **Power Meter** (research *Info Panels*, Control tab): a small block with a power socket and a signal output. Plug it into a power network and it sends the network load in percent (power needed / generator capacity; 100 = fully used, above 100 = overloaded). Wire the signal to an info panel to see the load live. Uses no power itself.
 - The **Paint Tool** menu shows a color palette (grey column plus 11 hues, light to dark rows) instead of HSV sliders, and its toolbar icon is a painter's palette.
 - The build menu (**Tab**) is wider and split into tabs: Control, Propulsion, Power, Fluids, Doors and Utility.
 

@@ -55,6 +55,7 @@ namespace Mining.Patches
             (BigDoors.Variants[6].id, p => BigDoors.GetOrCreate(BigDoors.Variants[6].id, p), () => BigDoors.Get(BigDoors.Variants[6].id), BigDoors.DoorPartId),
             (BigDoors.Variants[7].id, p => BigDoors.GetOrCreate(BigDoors.Variants[7].id, p), () => BigDoors.Get(BigDoors.Variants[7].id), BigDoors.DoorPartId),
             (BigDoors.Variants[8].id, p => BigDoors.GetOrCreate(BigDoors.Variants[8].id, p), () => BigDoors.Get(BigDoors.Variants[8].id), BigDoors.DoorPartId),
+            (PowerMeter.PartId, PowerMeter.GetOrCreatePart, () => PowerMeter.Part, 0),
         };
 
         internal static readonly ModResearch LargeDoorsResearch = new ModResearch(BigDoors.ResearchId, "Large Doors", new Vector2Int(3, 6), 16,
@@ -98,7 +99,7 @@ namespace Mining.Patches
             (Items.Model.ItemsConstants.IronItemId, 20), (Items.Model.ItemsConstants.WoodItemId, 30));
 
         internal static readonly ModResearch InfoPanelsResearch = new ModResearch(InfoPanels.ResearchId, "Info Panels", new Vector2Int(6, 0), 5,
-            () => InfoPanels.All.ToArray(),
+            () => InfoPanels.All.Concat(new[] { PowerMeter.Part }).Where(p => p != null).ToArray(),
             (Items.Model.ItemsConstants.IronItemId, 15), (112, 10), (Items.Model.ItemsConstants.GlassItemId, 10));
 
         internal static readonly ModResearch NuclearResearch = new ModResearch(204, "Nuclear Power", new Vector2Int(6, 4), 201,
@@ -198,7 +199,7 @@ namespace Mining.Patches
 
         private static readonly (string name, ushort[] ids)[] Tabs =
         {
-            ("Control", new ushort[] { 3, 29, 17, 46, 18, 50, 54, 45, 48, 82, 56, 49, 68, 39, 225, 226, 227 }),
+            ("Control", new ushort[] { 3, 29, 17, 46, 18, 50, 54, 45, 48, 82, 56, 49, 68, 39, 225, 226, 227, PowerMeter.PartId }),
             ("Propulsion", new ushort[] { 69, 19, 201, 228, 229, 230, 53, 16, 58, 222 }),
             ("Power", new ushort[] { 61, 65, 60, 203, Reactor.LargePartId }),
             ("Fluids", new ushort[] { 24, 81, 57, 23, 218, 215, 79, 66, 67, 202, 214, 80 }),
