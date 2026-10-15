@@ -164,10 +164,25 @@ namespace Mining.Diagnostics
                 bench.transform.position = cam.transform.position + flat * 3.2f - benchUp * 1.6f;
                 bench.transform.rotation = Quaternion.LookRotation(flat, benchUp);
                 cam.transform.rotation = Quaternion.LookRotation(bench.transform.position + benchUp * 0.7f - cam.transform.position, benchUp);
+                var barriers = new System.Collections.Generic.List<GameObject>();
+                if (Content.Barrier.Part != null)
+                {
+                    Vector3 benchSide = Vector3.Cross(benchUp, flat);
+                    for (int i = 0; i < 3; i++)
+                    {
+                        GameObject barrier = Object.Instantiate(Content.Barrier.Part.part);
+                        barrier.SetActive(true);
+                        barrier.transform.rotation = Quaternion.LookRotation(flat, benchUp);
+                        barrier.transform.position = bench.transform.position + benchSide * (1.6f + i) - flat * 0.3f;
+                        barriers.Add(barrier);
+                    }
+                }
+                log.Msg($"[bp] barrier: {(Content.Barrier.Part != null ? "present" : "MISSING")}");
                 for (int i = 0; i < 5; i++) yield return null;
                 ScreenCapture.CaptureScreenshot(Path.Combine(DevTools.OutDir, "test_bp_bench.png"));
                 yield return null;
                 Object.Destroy(bench);
+                foreach (GameObject barrier in barriers) Object.Destroy(barrier);
                 cam.transform.rotation = Quaternion.LookRotation(fwd, up);
             }
             Ships.Interface.Settings.PartSettings bigTank = Content.BigFluidTank.Get(Content.BigFluidTank.LargeId);

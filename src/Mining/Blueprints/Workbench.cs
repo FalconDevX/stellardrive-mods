@@ -91,7 +91,7 @@ namespace Mining.Blueprints
                 settings.description = "Crafts tools from your inventory: Build Tool, Recycler, Mining Laser, Paint Tool and Blueprint Tool. Press F to open it.";
                 settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
                 settings.part = root;
-                settings.size = new Vector3(2f, 2f, 2f);
+                settings.size = new Vector3(2f, 2f, 1f);
                 settings.mass = 160f;
                 settings.thumbnailRotation = Quaternion.Euler(0f, 150f, 0f);
                 PartFactory.SetCost(settings, (ItemsConstants.IronItemId, 20), (112, 10), (ItemsConstants.GlassItemId, 5));

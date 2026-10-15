@@ -7,6 +7,7 @@ SRC, OUT, NAME, MODE = argv[0], argv[1], argv[2], argv[3]
 TARGET_TRIS = int(argv[4])
 FIT = float(argv[5])
 TEX_SIZE = int(argv[6]) if len(argv) > 6 else 1024
+CUT = float(argv[7]) if len(argv) > 7 else 0.0
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=SRC)
@@ -19,6 +20,20 @@ if len(meshes) > 1:
     bpy.ops.object.join()
 high = bpy.context.view_layer.objects.active
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+if CUT > 0:
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(high.data)
+    zs = [v.co.z for v in bm.verts]
+    limit = min(zs) + CUT * (max(zs) - min(zs))
+    doomed = [f for f in bm.faces if all(v.co.z < limit for v in f.verts)]
+    bmesh.ops.delete(bm, geom=doomed, context='FACES')
+    loose = [v for v in bm.verts if not v.link_faces]
+    bmesh.ops.delete(bm, geom=loose, context='VERTS')
+    bm.to_mesh(high.data)
+    bm.free()
+    print('CUT faces', len(doomed))
 
 bpy.ops.object.duplicate()
 obj = bpy.context.view_layer.objects.active
