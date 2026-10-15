@@ -9,12 +9,6 @@ THRUSTER = [
     ((0.42, 0.30, 0.05), 'x', 0.35, 'cyan'),
     ((0.0, 0.30, 0.44), 'z', 0.41, 'yellow'),
 ]
-REACTOR = [
-    ((-1.00, 0.50, -0.60), 'x', -0.95, 'yellow'),
-    ((1.00, 0.50, 0.55), 'x', 0.96, 'yellow'),
-    ((0.75, 0.50, 0.97), 'z', 0.81, 'blue'),
-    ((-0.75, 0.22, 0.97), 'z', 0.91, 'white'),
-]
 
 def mount(m, pos, axis, wall, color):
     k = 0 if axis == 'x' else 2
@@ -35,7 +29,7 @@ def mount(m, pos, axis, wall, color):
     c, s = at(outer - sign * 0.012, (0.15, 0.15, 0.03))
     m.box(c, s, color)
 
-for name, items in (('thruster_mounts.bin', THRUSTER), ('reactor_mounts.bin', REACTOR)):
+for name, items in (('thruster_mounts.bin', THRUSTER),):
     m = Mesh()
     for item in items:
         mount(m, *item)

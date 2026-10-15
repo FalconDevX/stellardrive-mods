@@ -19,9 +19,10 @@ namespace Mining.Content
         internal const ushort LargeResearchId = 213;
         internal const float LargeScale = 5f;
         internal const byte PowerSocket = 0, WaterSocket = 2, SignalSocket = 3;
-        internal static readonly Vector3[] CorePositions = { new Vector3(0f, 0.64f, -0.45f), new Vector3(0f, 0.64f, 0.45f) };
+        internal const float LargeModelScale = 2f;
         internal static bool HasSignalSocket;
-        internal static readonly Vector3 RotorPosition = new Vector3(0f, 1.525f, 0f);
+        internal static readonly Vector3 RotorPosition = new Vector3(0f, 1.44f, 0f);
+        private static readonly Vector2[] SocketLayout = { new Vector2(-0.70f, 0.45f), new Vector2(-0.25f, 0.45f), new Vector2(0.25f, 0.45f), new Vector2(0.70f, 0.45f) };
         private const ushort ChestPartId = 30, GeneratorPartId = 60, DistillerPartId = 80;
         private static PartSettings _part, _large;
         private static bool _failed, _largeFailed;
@@ -141,26 +142,19 @@ namespace Mining.Content
             return rects;
         }
 
-        private static PartSettings Build(PartSettings chest, PartSettings generator, PartSettings distiller)
+        private static GameObject BuildModel(PartSettings chest, PartSettings generator, PartSettings distiller, string name, float size, float detection)
         {
             GameObject root = Object.Instantiate(chest.part, PartFactory.Holder);
-            root.name = "NuclearReactor";
+            root.name = name;
             Mesh body = ModAssets.LoadMesh("reactor_body.bin");
-            Mesh core = ModAssets.LoadMesh("reactor_core.bin");
             Mesh rotor = ModAssets.LoadMesh("reactor_rotor.bin");
 
             Transform visual = root.transform.Find("Visual");
             MeshRenderer look = visual.GetComponentInChildren<MeshRenderer>(true);
-            Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("reactor_albedo.jpg"), "NuclearReactor");
-            material.SetTexture("_EmissionMap", ModAssets.LoadTexture("reactor_emission.png"));
+            Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("reactor_palette.png"), name);
+            material.SetTexture("_EmissionMap", ModAssets.LoadTexture("reactor_glow.png"));
             material.SetColor("_EmissionColor", Color.black);
             material.EnableKeyword("_EMISSION");
-            Texture2D parts = ModAssets.LoadTexture("reactor_parts.png");
-            Material partsMaterial = PartFactory.CreateMaterial(look.sharedMaterial, parts, "NuclearReactorParts");
-            Material coreMaterial = PartFactory.CreateMaterial(look.sharedMaterial, parts, "NuclearReactorCore");
-            coreMaterial.SetTexture("_EmissionMap", parts);
-            coreMaterial.SetColor("_EmissionColor", Color.black);
-            coreMaterial.EnableKeyword("_EMISSION");
             var lookCopy = new GameObject("look").AddComponent<MeshRenderer>();
             lookCopy.gameObject.layer = look.gameObject.layer;
             lookCopy.shadowCastingMode = look.shadowCastingMode;
@@ -171,42 +165,48 @@ namespace Mining.Content
             }
             Object.DestroyImmediate(visual.GetComponent<DefaultShipPartVisuals>());
             visual.gameObject.AddComponent<ReactorVisuals>();
-            PartFactory.CreateRenderer("Body", visual, body, material, lookCopy);
-            for (int i = 0; i < CorePositions.Length; i++)
-            {
-                PartFactory.CreateRenderer("Core" + i, visual, core, coreMaterial, lookCopy).transform.localPosition = CorePositions[i];
-            }
-            PartFactory.CreateRenderer("Rotor", visual, rotor, partsMaterial, lookCopy).transform.localPosition = RotorPosition;
-            PartFactory.CreateRenderer("Mounts", visual, ModAssets.LoadMesh("reactor_mounts.bin"), partsMaterial, lookCopy);
+            PartFactory.CreateRenderer("Body", visual, body, material, lookCopy).transform.localScale = Vector3.one * size;
+            Transform spinner = PartFactory.CreateRenderer("Rotor", visual, rotor, material, lookCopy).transform;
+            spinner.localPosition = RotorPosition * size;
+            spinner.localScale = Vector3.one * size;
             Object.DestroyImmediate(lookCopy.gameObject);
 
-            PartFactory.SetBounds(root, body.bounds);
+            var bounds = new Bounds(body.bounds.center * size, body.bounds.size * size);
+            PartFactory.SetBounds(root, bounds);
 
             var box = root.transform.Find("Interactions").GetComponentInChildren<BoxCollider>(true);
             var interaction = box.GetComponent<PartInteraction>();
             if (interaction != null)
             {
-                HarmonyLib.Traverse.Create(interaction).Field("detectionDistance").SetValue(3f);
+                HarmonyLib.Traverse.Create(interaction).Field("detectionDistance").SetValue(detection);
             }
-            BuildInteractionShell(box, body.bounds, new[] { new Vector2(-0.6f, 0.5f) }, new[] { new Vector2(0.55f, 0.5f) }, new[] { new Vector2(0.75f, 0.5f), new Vector2(-0.75f, 0.22f) });
+            Vector2[] sockets = SocketLayout.Select(p => p * size).ToArray();
+            BuildInteractionShell(box, bounds, new Vector2[0], new Vector2[0], sockets);
 
+            float face = bounds.max.z + 0.02f;
             SocketObject power = PartFactory.FindSocket(generator, CableType.Power);
             SocketObject fluid = PartFactory.FindSocket(distiller, CableType.Fluid);
-            SocketObject p0 = PartFactory.CloneSocket(power, root.transform, 0, new Vector3(-1.00f, 0.50f, -0.60f), 90f);
-            SocketObject p1 = PartFactory.CloneSocket(power, root.transform, 1, new Vector3(1.00f, 0.50f, 0.55f), 270f);
+            SocketObject p0 = PartFactory.CloneSocket(power, root.transform, 0, new Vector3(sockets[0].x, sockets[0].y, face), 180f);
+            SocketObject p1 = PartFactory.CloneSocket(power, root.transform, 1, new Vector3(sockets[1].x, sockets[1].y, face), 180f);
             HarmonyLib.Traverse.Create(p0).Field("relayedSockets").SetValue(new[] { p1 });
             HarmonyLib.Traverse.Create(p1).Field("relayedSockets").SetValue(new[] { p0 });
-            PartFactory.CloneSocket(fluid, root.transform, WaterSocket, new Vector3(0.75f, 0.50f, 0.97f), 180f);
+            PartFactory.CloneSocket(fluid, root.transform, WaterSocket, new Vector3(sockets[2].x, sockets[2].y, face), 180f);
             SocketObject signalSource = Resources.FindObjectsOfTypeAll<SocketObject>().FirstOrDefault(s => s.Type == CableType.Signal && s.visualObject != null && s.interactive != null);
             HasSignalSocket = signalSource != null;
             if (signalSource != null)
             {
-                PartFactory.CloneSocket(signalSource, root.transform, SignalSocket, new Vector3(-0.75f, 0.22f, 0.97f), 180f);
+                PartFactory.CloneSocket(signalSource, root.transform, SignalSocket, new Vector3(sockets[3].x, sockets[3].y, face), 180f);
             }
             else
             {
                 Melon<MiningMod>.Logger.Warning("No signal socket found to copy - reactor without a signal input (runs without it)");
             }
+            return root;
+        }
+
+        private static PartSettings Build(PartSettings chest, PartSettings generator, PartSettings distiller)
+        {
+            GameObject root = BuildModel(chest, generator, distiller, "NuclearReactor", 1f, 3f);
 
             var settings = ScriptableObject.CreateInstance<PartSettings>();
             settings.name = "MiningNuclearReactor";
@@ -215,8 +215,8 @@ namespace Mining.Content
             settings.fullLabel = "Nuclear Reactor";
             settings.internalStateClass = generator.internalStateClass;
             settings.snappingStyle = SnappingStyle.PreciseOnFloor;
-            settings.description = $"Makes {MiningMod.ReactorPower.Value:0} W of power from uranium (put it in the slot) while cooled by water from a pipe (socket on the back) " +
-                                   "and switched on by signal 1 (signal socket on the back, e.g. from a lever). Power sockets on both sides. Without water or signal it stops.";
+            settings.description = $"Makes {MiningMod.ReactorPower.Value:0} W of power from uranium (put it in the slot) while cooled by water from a pipe " +
+                                   "and switched on by signal 1 (e.g. from a lever). All four sockets are on the service panel on one side: two power sockets (yellow), water (blue) and signal (white). Without water or signal it stops.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
             settings.thumbnailRotation = Quaternion.Euler(0f, 150f, 0f);
@@ -226,55 +226,9 @@ namespace Mining.Content
             return settings;
         }
 
-        private const float LargeSocketHeight = 0.25f, LargeEdge = 1.99f;
-
         private static PartSettings BuildLarge(PartSettings chest, PartSettings generator, PartSettings distiller)
         {
-            GameObject root = Object.Instantiate(chest.part, PartFactory.Holder);
-            root.name = "LargeNuclearReactor";
-            Mesh body = ModAssets.LoadMesh("large_reactor_body.bin");
-            Transform visual = root.transform.Find("Visual");
-            MeshRenderer look = visual.GetComponentInChildren<MeshRenderer>(true);
-            Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("large_reactor_albedo.jpg"), "LargeNuclearReactor");
-            material.SetTexture("_EmissionMap", ModAssets.LoadTexture("large_reactor_emission.png"));
-            material.SetColor("_EmissionColor", Color.black);
-            material.EnableKeyword("_EMISSION");
-            var lookCopy = new GameObject("look").AddComponent<MeshRenderer>();
-            lookCopy.gameObject.layer = look.gameObject.layer;
-            lookCopy.shadowCastingMode = look.shadowCastingMode;
-            lookCopy.renderingLayerMask = look.renderingLayerMask;
-            foreach (Transform child in visual.Cast<Transform>().ToArray())
-            {
-                Object.DestroyImmediate(child.gameObject);
-            }
-            Object.DestroyImmediate(visual.GetComponent<DefaultShipPartVisuals>());
-            visual.gameObject.AddComponent<ReactorVisuals>();
-            PartFactory.CreateRenderer("Body", visual, body, material, lookCopy);
-            Object.DestroyImmediate(lookCopy.gameObject);
-
-            PartFactory.SetBounds(root, body.bounds);
-
-            var box = root.transform.Find("Interactions").GetComponentInChildren<BoxCollider>(true);
-            var interaction = box.GetComponent<PartInteraction>();
-            if (interaction != null)
-            {
-                HarmonyLib.Traverse.Create(interaction).Field("detectionDistance").SetValue(4f);
-            }
-            BuildInteractionShell(box, body.bounds, new[] { new Vector2(-1f, LargeSocketHeight) }, new[] { new Vector2(1f, LargeSocketHeight) },
-                new[] { new Vector2(1f, LargeSocketHeight), new Vector2(-1f, LargeSocketHeight) });
-
-            SocketObject power = PartFactory.FindSocket(generator, CableType.Power);
-            SocketObject fluid = PartFactory.FindSocket(distiller, CableType.Fluid);
-            SocketObject p0 = PartFactory.CloneSocket(power, root.transform, 0, new Vector3(-LargeEdge, LargeSocketHeight, -1f), 90f);
-            SocketObject p1 = PartFactory.CloneSocket(power, root.transform, 1, new Vector3(LargeEdge, LargeSocketHeight, 1f), 270f);
-            HarmonyLib.Traverse.Create(p0).Field("relayedSockets").SetValue(new[] { p1 });
-            HarmonyLib.Traverse.Create(p1).Field("relayedSockets").SetValue(new[] { p0 });
-            PartFactory.CloneSocket(fluid, root.transform, WaterSocket, new Vector3(1f, LargeSocketHeight, LargeEdge), 180f);
-            SocketObject signalSource = Resources.FindObjectsOfTypeAll<SocketObject>().FirstOrDefault(s => s.Type == CableType.Signal && s.visualObject != null && s.interactive != null);
-            if (signalSource != null)
-            {
-                PartFactory.CloneSocket(signalSource, root.transform, SignalSocket, new Vector3(-1f, LargeSocketHeight, LargeEdge), 180f);
-            }
+            GameObject root = BuildModel(chest, generator, distiller, "LargeNuclearReactor", LargeModelScale, 4f);
 
             var settings = ScriptableObject.CreateInstance<PartSettings>();
             settings.name = "MiningLargeNuclearReactor";
@@ -284,10 +238,10 @@ namespace Mining.Content
             settings.internalStateClass = generator.internalStateClass;
             settings.snappingStyle = SnappingStyle.PreciseOnFloor;
             settings.description = $"4 x 4 x 4 reactor: {MiningMod.ReactorPower.Value * LargeScale:0} W from uranium, {LargeScale:0}x the uranium and cooling water of the small one. " +
-                                   "Water pipe and signal 1 (e.g. from a lever) go into the sockets on the back, power sockets are on both sides. Without water or signal it stops.";
+                                   "All four sockets are on the service panel on one side: two power sockets (yellow), water (blue) and signal 1 (white, e.g. from a lever). Without water or signal it stops.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
-            settings.thumbnailRotation = Quaternion.Euler(0f, 330f, 0f);
+            settings.thumbnailRotation = Quaternion.Euler(0f, 150f, 0f);
             settings.mass = 2000f;
             settings.size = new Vector3(4f, 4f, 4f);
             PartFactory.SetCost(settings, (Items.Model.ItemsConstants.IronItemId, 200), (112, 100), (Items.Model.ItemsConstants.GlassItemId, 50));
