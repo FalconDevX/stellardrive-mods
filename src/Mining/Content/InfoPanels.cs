@@ -40,6 +40,7 @@ namespace Mining.Content
 
         internal static readonly Variant[] Variants =
         {
+            new Variant { Id = 247, Label = "Info Panel XS", Width = 1f, Height = 0.5f, Lines = 1, Watts = 8f, Iron = 2, Copper = 1, Glass = 1 },
             new Variant { Id = 225, Label = "Info Panel S", Width = 1f, Height = 1f, Lines = 1, Watts = 15f, Iron = 3, Copper = 2, Glass = 2 },
             new Variant { Id = 226, Label = "Info Panel M", Width = 2f, Height = 1f, Lines = 2, Watts = 40f, Iron = 5, Copper = 3, Glass = 4 },
             new Variant { Id = 227, Label = "Info Panel L", Width = 3f, Height = 2f, Lines = 4, Watts = 90f, Iron = 8, Copper = 5, Glass = 8 },
@@ -248,7 +249,12 @@ namespace Mining.Content
                 float y = screenY + screenH * 0.5f - lineH * (i + 0.5f);
                 line.transform.position = visual.TransformPoint(frame.Point(0f, y, Depth + 0.006f));
                 line.transform.rotation = visual.rotation * textRot;
-                line.rectTransform.sizeDelta = new Vector2((screenW - 0.08f) / sx, Mathf.Min(lineH * 0.8f, 0.3f) / sy);
+                RectTransform rect = line.rectTransform;
+                rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+                line.margin = Vector4.zero;
+                float lineW = screenW * 0.9f - 0.04f, lineTextH = Mathf.Min(lineH * 0.8f, 0.3f);
+                rect.sizeDelta = new Vector2(LocalLength(line.transform, visual, frame.Rotation * Vector3.right * lineW, sx, lineW),
+                                             LocalLength(line.transform, visual, frame.Rotation * Vector3.up * lineTextH, sy, lineTextH));
                 line.enableAutoSizing = true;
                 line.fontSizeMin = 0.01f;
                 line.fontSizeMax = 1000f;
@@ -259,6 +265,7 @@ namespace Mining.Content
                 line.text = "";
             }
             text.gameObject.SetActive(false);
+            Melon<MiningMod>.Logger.Msg($"{v.Label}: text rect {text.transform.parent.Find("Line0")?.GetComponent<RectTransform>()?.rect.size}, screen {screenW:0.00}x{screenH:0.00}");
             AddTextInput(visual, constant, visual.TransformPoint(frame.Point(0f, screenY, Depth + 0.008f)), visual.rotation * textRot, screenW - 0.08f);
             visual.gameObject.AddComponent<InfoPanelVisuals>();
             ReplaceInteractions(root);
@@ -312,7 +319,7 @@ namespace Mining.Content
             settings.internalStateClass = "BeaconState";
             settings.snappingStyle = display.snappingStyle;
             string inputs = v.Lines == 1 ? "one signal input (A)" : $"{v.Lines} signal inputs ({string.Join(", ", Letters.Take(v.Lines))})";
-            settings.description = $"{v.Width:0}x{v.Height:0} display panel. Shows the values of its {inputs}, one per line. " +
+            settings.description = $"{v.Width:0.##}x{v.Height:0.##} display panel. Shows the values of its {inputs}, one per line. " +
                                    $"Needs power: {v.Watts:0} W, the screen stays dark without it. Sockets on the bottom edge, so cables come from below: signals A-D from the left, power (yellow mark) on the right. " +
                                    "Press E to write your own text: one label per line, separated by ';' (e.g. 'Fuel;Oxygen'). A line with a signal shows its label and value, a line without a signal shows only the text.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
@@ -383,6 +390,12 @@ namespace Mining.Content
                 copy.Field("detectionDistance").SetValue(distance);
                 copy.Field("interactions").SetValue(configs ?? new List<PartInteractionConfig>());
             }
+        }
+
+        private static float LocalLength(Transform t, Transform visual, Vector3 visualVector, float scale, float length)
+        {
+            float local = t.InverseTransformVector(visual.TransformVector(visualVector)).magnitude;
+            return local > 1e-6f && !float.IsNaN(local) ? local : length / scale;
         }
 
         private static int Dominant(Vector3 v)

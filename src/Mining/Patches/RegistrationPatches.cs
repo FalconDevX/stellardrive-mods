@@ -31,6 +31,7 @@ namespace Mining.Patches
             (InfoPanels.Variants[0].Id, p => InfoPanels.GetOrCreate(InfoPanels.Variants[0].Id, p), () => InfoPanels.Get(InfoPanels.Variants[0].Id), 0),
             (InfoPanels.Variants[1].Id, p => InfoPanels.GetOrCreate(InfoPanels.Variants[1].Id, p), () => InfoPanels.Get(InfoPanels.Variants[1].Id), 0),
             (InfoPanels.Variants[2].Id, p => InfoPanels.GetOrCreate(InfoPanels.Variants[2].Id, p), () => InfoPanels.Get(InfoPanels.Variants[2].Id), 0),
+            (InfoPanels.Variants[3].Id, p => InfoPanels.GetOrCreate(InfoPanels.Variants[3].Id, p), () => InfoPanels.Get(InfoPanels.Variants[3].Id), 0),
             (BigFluidTank.Variants[0].id, p => BigFluidTank.GetOrCreate(BigFluidTank.Variants[0].id, p), () => BigFluidTank.Get(BigFluidTank.Variants[0].id), BigFluidTank.TankPartId),
             (BigFluidTank.Variants[1].id, p => BigFluidTank.GetOrCreate(BigFluidTank.Variants[1].id, p), () => BigFluidTank.Get(BigFluidTank.Variants[1].id), BigFluidTank.TankPartId),
             (BigChest.Variants[0].id, p => BigChest.GetOrCreate(BigChest.Variants[0].id, p), () => BigChest.Get(BigChest.Variants[0].id), BigChest.ChestPartId),
@@ -201,7 +202,7 @@ namespace Mining.Patches
 
         private static readonly (string name, ushort[] ids)[] Tabs =
         {
-            ("Control", new ushort[] { 3, 29, 17, 46, 18, 50, 54, 45, 48, 82, 56, 49, 68, 39, 225, 226, 227, PowerMeter.PartId }),
+            ("Control", new ushort[] { 3, 29, 17, 46, 18, 50, 54, 45, 48, 82, 56, 49, 68, 39, 247, 225, 226, 227, PowerMeter.PartId }),
             ("Propulsion", new ushort[] { 69, 19, 201, 228, 229, 230, 53, 16, 58, 222 }),
             ("Power", new ushort[] { 61, 65, 60, 203, Reactor.LargePartId }),
             ("Fluids", new ushort[] { 24, 81, 57, 23, 218, 215, 79, 66, 67, 202, 214, 80 }),
