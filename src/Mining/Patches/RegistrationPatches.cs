@@ -57,6 +57,7 @@ namespace Mining.Patches
             (BigDoors.Variants[7].id, p => BigDoors.GetOrCreate(BigDoors.Variants[7].id, p), () => BigDoors.Get(BigDoors.Variants[7].id), BigDoors.DoorPartId),
             (BigDoors.Variants[8].id, p => BigDoors.GetOrCreate(BigDoors.Variants[8].id, p), () => BigDoors.Get(BigDoors.Variants[8].id), BigDoors.DoorPartId),
             (PowerMeter.PartId, PowerMeter.GetOrCreatePart, () => PowerMeter.Part, 0),
+            (HeavyGyroscope.PartId, HeavyGyroscope.GetOrCreatePart, () => HeavyGyroscope.Part, HeavyGyroscope.GyroscopePartId),
         };
 
         internal static readonly ModResearch LargeDoorsResearch = new ModResearch(BigDoors.ResearchId, "Large Doors", new Vector2Int(3, 6), 16,
@@ -88,7 +89,7 @@ namespace Mining.Patches
             (Items.Model.ItemsConstants.IronItemId, 150), (112, 80), (Items.Model.ItemsConstants.GlassItemId, 40));
 
         internal static readonly ModResearch MechanicsResearch = new ModResearch(RotorUnlock.ResearchId, "Mechanics", new Vector2Int(4, 5), 16,
-            () => new[] { RotorUnlock.Rotor },
+            () => new[] { RotorUnlock.Rotor, HeavyGyroscope.Part }.Where(p => p != null).ToArray(),
             (Items.Model.ItemsConstants.IronItemId, 20), (112, 10));
 
         internal static readonly ModResearch LaserResearch = new ModResearch(LaserCannon.ResearchId, "Laser Weapons", new Vector2Int(6, 5), 201,
@@ -201,7 +202,7 @@ namespace Mining.Patches
         private static readonly (string name, ushort[] ids)[] Tabs =
         {
             ("Control", new ushort[] { 3, 29, 17, 46, 18, 50, 54, 45, 48, 82, 56, 49, 68, 39, 247, 225, 226, 227, PowerMeter.PartId }),
-            ("Propulsion", new ushort[] { 69, 19, 201, 228, 229, 230, 53, 16, 58, 222 }),
+            ("Propulsion", new ushort[] { 69, 19, 201, 228, 229, 230, 53, 248, 16, 58, 222 }),
             ("Power", new ushort[] { 61, 65, 60, 203, Reactor.LargePartId }),
             ("Fluids", new ushort[] { 24, 81, 57, 23, 218, 215, 79, 66, 67, 202, 214, 80 }),
             ("Doors", new ushort[] { DoorPartId, 42, Barrier.PartId, Stairs.PartId, RetractableStairs.PartId, 244, 217, 210, 211, 212, 213, 216, 223, 224 }),

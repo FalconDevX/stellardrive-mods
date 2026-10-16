@@ -227,6 +227,10 @@ namespace Mining.Diagnostics
             {
                 yield return BlueprintTest.Run();
             }
+            else if (HasArg("gyro"))
+            {
+                yield return RunGyroTest();
+            }
             else if (HasArg("hitch"))
             {
                 yield return HitchTest.Run();
@@ -236,6 +240,50 @@ namespace Mining.Diagnostics
             {
                 yield return new WaitForSeconds(3f);
                 Application.Quit();
+            }
+        }
+
+        private static IEnumerator RunGyroTest()
+        {
+            var log = Melon<MiningMod>.Logger;
+            var provider = new Ships.Interface.Services.PartSettingsProvider();
+            PartSettings heavy = provider.GetAllPartSettings().FirstOrDefault(p => p.id == Content.HeavyGyroscope.PartId);
+            PartSettings normal = provider.GetAllPartSettings().FirstOrDefault(p => p.id == Content.HeavyGyroscope.GyroscopePartId);
+            log.Msg($"[gyro] heavy: {(heavy != null ? heavy.fullLabel + ", mass " + heavy.mass : "MISSING")}, normal: {(normal != null ? "present" : "MISSING")}");
+            Camera cam = Camera.main;
+            if (heavy == null || normal == null || cam == null)
+            {
+                yield break;
+            }
+            foreach (Renderer r in heavy.part.GetComponentsInChildren<Renderer>(true))
+            {
+                log.Msg($"[gyro] renderer {PathOf(r.transform)} material {(r.sharedMaterial != null ? r.sharedMaterial.name : "-")}");
+            }
+            Vector3 up = cam.transform.up;
+            Vector3 fwd = cam.transform.forward;
+            Vector3 right = cam.transform.right;
+            Vector3 center = cam.transform.position + fwd * 2.4f - up * 0.6f;
+            var spinners = new List<Ships.Parts.Gyroscope.GyroscopeAnimator>();
+            foreach (var (settings, offset) in new[] { (heavy, 0.75f), (normal, -0.75f) })
+            {
+                GameObject visual = settings.part.GetComponentInChildren<Ships.Parts.Gyroscope.GyroscopeVisuals>(true).gameObject;
+                GameObject copy = UnityEngine.Object.Instantiate(visual, center + right * offset, Quaternion.LookRotation(-fwd, up) * Quaternion.Euler(0f, 35f, 0f));
+                copy.SetActive(true);
+                var animator = copy.GetComponent<Ships.Parts.Gyroscope.GyroscopeAnimator>();
+                if (animator != null) spinners.Add(animator);
+            }
+            var thumbs = ServiceCache.Get<Ships.Interface.Services.IPartThumbnailProvider>();
+            Texture2D thumb = thumbs?.GetLargeThumbnail(heavy.id);
+            yield return new WaitForSeconds(1f);
+            ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, "test_gyro0.png"));
+            thumb = thumbs?.GetLargeThumbnail(heavy.id) ?? thumb;
+            if (thumb != null) SaveTexture(thumb, Path.Combine(OutDir, $"test_thumb_{heavy.id}.png"));
+            Vector3[] targets = { new Vector3(1f, 0f, 0f), new Vector3(0f, 1f, 0.8f), new Vector3(0.7f, -0.7f, -1f) };
+            for (int shot = 1; shot <= 3; shot++)
+            {
+                foreach (var animator in spinners) animator.SetAnimationTarget(targets[shot - 1]);
+                yield return new WaitForSeconds(2.5f);
+                ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, $"test_gyro{shot}.png"));
             }
         }
 
