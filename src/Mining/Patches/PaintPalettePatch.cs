@@ -93,7 +93,7 @@ namespace Mining.Patches
             grid.childAlignment = TextAnchor.UpperLeft;
 
             var swatches = new List<(Image frame, Color color)>();
-            var tracker = ServiceLocator.GetService<IPlayerPaintToolSelectionTracker>();
+            var tracker = ServiceCache.Get<IPlayerPaintToolSelectionTracker>();
             for (int row = 0; row < rows; row++)
             {
                 swatches.Add(AddSwatch(palette, Color.HSVToRGB(0f, 0f, Greys[row]), Select));

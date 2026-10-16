@@ -31,7 +31,7 @@ namespace Mining.Patches
             {
                 return true;
             }
-            var ships = ServiceLocator.GetService<IShipsServerProvider>();
+            var ships = ServiceCache.Get<IShipsServerProvider>();
             return ships == null ||
                    !ships.TryGetStatefulPart(new PartContext { ShipId = state.EntityId, PartId = state.PartId }, out StatefulPart part) ||
                    !Excavator.IsExcavator(part.Settings);

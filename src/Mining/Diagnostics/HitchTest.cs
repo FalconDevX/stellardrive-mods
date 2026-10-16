@@ -17,9 +17,9 @@ namespace Mining.Diagnostics
         {
             var log = Melon<MiningMod>.Logger;
             yield return new WaitForSeconds(8f);
-            var players = ServiceLocator.GetService<Players.Services.PlayersServerTracker>();
+            var players = ServiceCache.Get<Players.Services.PlayersServerTracker>();
             Players.TrackedPlayerServer player = players?.ActivePlayers.FirstOrDefault();
-            var ships = ServiceLocator.GetService<ShipsServerTracker>();
+            var ships = ServiceCache.Get<ShipsServerTracker>();
             if (player == null || ships == null)
             {
                 log.Msg("[hitch] no player or ships");
@@ -27,7 +27,7 @@ namespace Mining.Diagnostics
             }
             var net = HarmonyLib.Traverse.Create(player).Property("NetworkState").GetValue<Players.Network.PlayerNetworkState>();
             PlayerPhysicsState start = player.PhysicsState;
-            var transpose = ServiceLocator.GetService<WorldTracking.Interface.Services.IWorldTransposeServer>();
+            var transpose = ServiceCache.Get<WorldTracking.Interface.Services.IWorldTransposeServer>();
             var targets = new List<(TrackedShipServer ship, Vector3 pos)>();
             foreach (TrackedShipServer s in ships.Ships.OfType<TrackedShipServer>().OrderByDescending(s => s.GetHullParts().Count))
             {

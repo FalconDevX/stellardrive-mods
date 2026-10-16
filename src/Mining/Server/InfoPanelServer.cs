@@ -28,7 +28,7 @@ namespace Mining.Server
                 {
                     foreach (ushort id in ShipPartIndex.Get(__instance, variant.Id))
                     {
-                        power = power ?? ServiceLocator.GetService<PowerServerTracker>();
+                        power = power ?? ServiceCache.Get<PowerServerTracker>();
                         if (power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, id, variant.PowerSocket), out PowerGroupServerState group))
                         {
                             group.TotalPowerNeeded += deltaTime * variant.Watts;
@@ -57,7 +57,7 @@ namespace Mining.Server
                         {
                             continue;
                         }
-                        power = power ?? ServiceLocator.GetService<PowerServerTracker>();
+                        power = power ?? ServiceCache.Get<PowerServerTracker>();
                         Update(__instance, power, part, variant);
                     }
                 }
@@ -71,7 +71,7 @@ namespace Mining.Server
         private static void Update(TrackedShipServer ship, PowerServerTracker power, StatefulPart part, InfoPanels.Variant variant)
         {
             bool powered = power.TryGetGroupFromSocket(new EntityPartSocket(ship.Id, part.Id, variant.PowerSocket), out PowerGroupServerState group) &&
-                           group.NormalizedConsumerRate >= 0.5f;
+                           group.NormalizedConsumerRate > 0.01f;
             if (part.State is BeaconState beacon)
             {
                 string name = InfoPanels.Encode(powered, InfoPanels.Clean(InfoPanels.Decode(beacon.Name).text));

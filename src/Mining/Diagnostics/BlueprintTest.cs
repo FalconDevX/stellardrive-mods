@@ -22,8 +22,8 @@ namespace Mining.Diagnostics
         {
             var log = Melon<MiningMod>.Logger;
             Camera cam = Camera.main;
-            var ships = ServiceLocator.GetService<ShipsServerTracker>();
-            var transpose = ServiceLocator.GetService<IWorldTransposeClient>();
+            var ships = ServiceCache.Get<ShipsServerTracker>();
+            var transpose = ServiceCache.Get<IWorldTransposeClient>();
             log.Msg($"[bp] item: {(BlueprintToolItem.Item != null ? "present" : "MISSING")}, tool prefab: {(BlueprintToolItem.Item?.toolSettings?.prefab?.GetComponent<BlueprintTool>() != null ? "ok" : "MISSING")}, workbench: {(Workbench.Part != null ? "present" : "MISSING")}");
             var player = ServerInventory.LocalPlayer();
             log.Msg($"[bp] host: {ServerInventory.IsHost}, player: {(player != null ? "present" : "MISSING")}, tool shader: {BlueprintToolModel.Shader}");
@@ -45,7 +45,7 @@ namespace Mining.Diagnostics
                 }
             }
             File.WriteAllText(Path.Combine(DevTools.OutDir, "test_tank_dump.txt"), dump.ToString());
-            var thumbs = ServiceLocator.GetService<Items.Interface.Service.IItemThumbnailProvider>();
+            var thumbs = ServiceCache.Get<Items.Interface.Service.IItemThumbnailProvider>();
             Texture2D thumb = thumbs?.GetThumbnail(BlueprintToolItem.ItemId);
             yield return null;
             thumb = thumbs?.GetThumbnail(BlueprintToolItem.ItemId) ?? thumb;
@@ -98,7 +98,7 @@ namespace Mining.Diagnostics
             }
             yield return null;
 
-            Vector3 up = ServiceLocator.GetService<Players.Interface.Services.IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
+            Vector3 up = ServiceCache.Get<Players.Interface.Services.IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
             Vector3 fwd = Vector3.ProjectOnPlane(cam.transform.forward, up).normalized;
             Vector3 visualPos = cam.transform.position + fwd * 30f + up * 6f;
             Vector3 physicsPos = transpose.Position(ClientOrigin.LocalVisualSpaceId, ClientOrigin.LocalPhysicsSpaceId, visualPos);
@@ -113,7 +113,7 @@ namespace Mining.Diagnostics
             bool built = BlueprintServer.Build(data, newTarget, out string msg);
             yield return null;
             TrackedShipServer created = ships.Ships.OfType<TrackedShipServer>().FirstOrDefault(s => !before.Contains(s.Id));
-            int newCables = created != null ? ServiceLocator.GetService<Ships.Cables.CablesServerTracker>().GetShipCables(created.Id).Count : -1;
+            int newCables = created != null ? ServiceCache.Get<Ships.Cables.CablesServerTracker>().GetShipCables(created.Id).Count : -1;
             log.Msg($"[bp] new ship: {built} '{msg}', ship {(created != null ? $"{created.Id}: hull {created.GetHullParts().Count}, parts {created.StatefulParts.Count()}, cables {newCables}" : "MISSING")}");
 
             int hullBefore = source.GetHullParts().Count, partsBefore = source.StatefulParts.Count();
@@ -162,7 +162,7 @@ namespace Mining.Diagnostics
             {
                 GameObject bench = Object.Instantiate(Workbench.Part.part);
                 bench.SetActive(true);
-                Vector3 benchUp = ServiceLocator.GetService<Players.Interface.Services.IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
+                Vector3 benchUp = ServiceCache.Get<Players.Interface.Services.IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
                 Vector3 flat = Vector3.ProjectOnPlane(cam.transform.forward, benchUp).normalized;
                 bench.transform.position = cam.transform.position + flat * 3.2f - benchUp * 1.6f;
                 bench.transform.rotation = Quaternion.LookRotation(flat, benchUp);
@@ -196,7 +196,7 @@ namespace Mining.Diagnostics
             {
                 GameObject tankView = Object.Instantiate(bigTank.part);
                 tankView.SetActive(true);
-                Vector3 tankUp = ServiceLocator.GetService<Players.Interface.Services.IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
+                Vector3 tankUp = ServiceCache.Get<Players.Interface.Services.IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
                 Vector3 flat = Vector3.ProjectOnPlane(cam.transform.forward, tankUp).normalized;
                 Vector3 side = Vector3.Cross(tankUp, flat);
                 tankView.transform.rotation = Quaternion.LookRotation(flat, tankUp);
@@ -280,7 +280,7 @@ namespace Mining.Diagnostics
             yield return null;
             belt?.ClearSelection();
             for (int i = 0; i < 20; i++) yield return null;
-            var shipsClient = ServiceLocator.GetService<ShipsClientTracker>();
+            var shipsClient = ServiceCache.Get<ShipsClientTracker>();
             var engineShips = new System.Collections.Generic.List<(string label, uint id)>();
             int slot = 0;
             foreach (var variant in Content.HydrogenEngines.Variants)
@@ -329,7 +329,7 @@ namespace Mining.Diagnostics
             }
             ScreenCapture.CaptureScreenshot(Path.Combine(DevTools.OutDir, "test_bp_engines.png"));
             yield return null;
-            var paint = ServiceLocator.GetService<UI.Interface.Services.IPaintMenuActivator>();
+            var paint = ServiceCache.Get<UI.Interface.Services.IPaintMenuActivator>();
             if (paint != null)
             {
                 paint.Open();

@@ -100,14 +100,14 @@ namespace Mining.Blueprints
             _instance._current = BlueprintStore.Entries.FirstOrDefault();
             _instance.SelectEntry(_instance._current);
             _instance.enabled = true;
-            ServiceLocator.GetService<MenuTracker>()?.TrackMenu(_instance);
+            ServiceCache.Get<MenuTracker>()?.TrackMenu(_instance);
         }
 
         public void Close()
         {
             enabled = false;
             GUIUtility.keyboardControl = 0;
-            ServiceLocator.GetService<MenuTracker>()?.UntrackMenu(this);
+            ServiceCache.Get<MenuTracker>()?.UntrackMenu(this);
         }
 
         private void SelectEntry(BlueprintEntry entry)

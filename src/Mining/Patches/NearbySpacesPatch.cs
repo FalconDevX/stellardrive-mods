@@ -53,9 +53,9 @@ namespace Mining.Patches
         private static void Refresh(HashSet<uint> active)
         {
             Nearby.Clear();
-            var ships = ServiceLocator.GetService<ShipsServerTracker>();
-            var transpose = ServiceLocator.GetService<IWorldTransposeServer>();
-            var spaces = ServiceLocator.GetService<ISpacesServerProvider>();
+            var ships = ServiceCache.Get<ShipsServerTracker>();
+            var transpose = ServiceCache.Get<IWorldTransposeServer>();
+            var spaces = ServiceCache.Get<ISpacesServerProvider>();
             if (ships == null || transpose == null || spaces == null)
             {
                 return;

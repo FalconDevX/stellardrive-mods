@@ -42,7 +42,7 @@ namespace Mining.Server
                     {
                         air -= Mathf.Max(0f, MiningMod.PontoonLeakPerMinute.Value) / 60f * deltaTime;
                     }
-                    connections = connections ?? ServiceLocator.GetService<ConnectionsServerTracker>();
+                    connections = connections ?? ServiceCache.Get<ConnectionsServerTracker>();
                     string supply = Supply(__instance.Id, part.Id, connections, out FluidGroupServerState group);
                     if (group != null)
                     {

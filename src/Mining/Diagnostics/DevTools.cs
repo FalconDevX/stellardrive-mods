@@ -74,7 +74,7 @@ namespace Mining.Diagnostics
         private static IEnumerator RunPerfTest()
         {
             var log = Melon<MiningMod>.Logger;
-            var shipsServer = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>();
+            var shipsServer = ServiceCache.Get<Ships.Services.ShipsServerTracker>();
             var floor = new Ships.Interface.Services.PartSettingsProvider().GetAllPartSettings().FirstOrDefault(p => p.id == 70) as HullPartSettings;
             Ships.TrackedShipServer ship = shipsServer?.Ships.OrderByDescending(sh => sh.GetStateSnapshot().HullParts.Length).FirstOrDefault();
             log.Msg($"[perf] ship {ship?.Id}: {ship?.GetStateSnapshot().HullParts.Length} hull parts, {ship?.StatefulParts.Count()} parts");
@@ -143,7 +143,7 @@ namespace Mining.Diagnostics
         private static IEnumerator RunJetpackTest()
         {
             var log = Melon<MiningMod>.Logger;
-            var players = Core.Services.ServiceLocator.GetService<Players.Services.PlayersServerTracker>();
+            var players = ServiceCache.Get<Players.Services.PlayersServerTracker>();
             Players.TrackedPlayerServer player = players?.ActivePlayers.FirstOrDefault();
             if (player == null)
             {
@@ -256,7 +256,7 @@ namespace Mining.Diagnostics
             Vector3 up = cam.transform.up;
             if (WorldTracking.Interface.Values.ClientOrigin.LocalVisualSpace is WorldTracking.Interface.Model.Spaces.PlanetSurfaceSpace surface)
             {
-                var transpose = Core.Services.ServiceLocator.GetService<WorldTracking.Interface.Services.IWorldTransposeClient>();
+                var transpose = ServiceCache.Get<WorldTracking.Interface.Services.IWorldTransposeClient>();
                 var planetSpace = new WorldTracking.Interface.Model.Spaces.PlanetSurfaceSpace { PlanetId = surface.PlanetId, Center = Core.Values.Vector3Double.Zero };
                 Vector3 camPlanet = (Vector3)transpose.Position(surface, planetSpace, (Core.Values.Vector3Double)cam.transform.position);
                 up = transpose.Rotation(planetSpace, surface, Quaternion.identity) * camPlanet.normalized;
@@ -340,7 +340,7 @@ namespace Mining.Diagnostics
 
             if (site != null && WorldTracking.Interface.Values.ClientOrigin.LocalVisualSpace is WorldTracking.Interface.Model.Spaces.PlanetSurfaceSpace surface2)
             {
-                var transpose = Core.Services.ServiceLocator.GetService<WorldTracking.Interface.Services.IWorldTransposeClient>();
+                var transpose = ServiceCache.Get<WorldTracking.Interface.Services.IWorldTransposeClient>();
                 var planetSpace = new WorldTracking.Interface.Model.Spaces.PlanetSurfaceSpace { PlanetId = surface2.PlanetId, Center = Core.Values.Vector3Double.Zero };
                 Vector3 camPlanet2 = (Vector3)transpose.Position(surface2, planetSpace, (Core.Values.Vector3Double)cam.transform.position);
                 float cellSize = Sites.MiningSites.CellSize(surface2.PlanetId);
@@ -438,7 +438,7 @@ namespace Mining.Diagnostics
                 if (encode != null) File.WriteAllBytes(Path.Combine(OutDir, "test_thumb.png"), (byte[])encode.Invoke(null, new object[] { copy }));
             }
 
-            Vector3 up2 = Core.Services.ServiceLocator.GetService<Players.Interface.Services.IPlayerUpProvider>()?.WorldPlayerUp ?? cam.transform.up;
+            Vector3 up2 = ServiceCache.Get<Players.Interface.Services.IPlayerUpProvider>()?.WorldPlayerUp ?? cam.transform.up;
             Vector3 fwd2 = Vector3.ProjectOnPlane(cam.transform.forward, up2).normalized;
             Vector3 groundPos = cam.transform.position + fwd2 * 6f;
             if (WorldTracking.Interface.Values.ClientScene.PhysicsScene.Raycast(groundPos + up2 * 10f, -up2, out RaycastHit gHit, 30f, Tools.Common.RaycastMasks.BuildDetectionLayer))
@@ -449,10 +449,10 @@ namespace Mining.Diagnostics
             Quaternion rot2 = Quaternion.LookRotation(-fwd2, up2);
             Patches.CreateShipWithExcavatorPatch.AlignToTerrain(ref groundPos, ref rot2, up2);
             log.Msg($"[test] terrain slope under the excavator: {Vector3.Angle(rot2 * Vector3.up, up2):0.0}°");
-            var shipsBefore = new HashSet<uint>(Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>().Ships.Select(sh => sh.Id));
+            var shipsBefore = new HashSet<uint>(ServiceCache.Get<Ships.Services.ShipsServerTracker>().Ships.Select(sh => sh.Id));
             var interaction = UnityEngine.Object.FindObjectOfType<Managers.Server.Services.ShipInteractionService>();
             var conn = FishNet.InstanceFinder.ServerManager.Clients.Values.FirstOrDefault();
-            var testPlayer = conn != null ? Core.Services.ServiceLocator.GetService<Players.Services.PlayersServerTracker>().GetTrackedPlayerFromConnectionId(conn.ClientId) : null;
+            var testPlayer = conn != null ? ServiceCache.Get<Players.Services.PlayersServerTracker>().GetTrackedPlayerFromConnectionId(conn.ClientId) : null;
             log.Msg($"[test] connection: {(conn != null ? conn.ClientId.ToString() : "none")}, player: {(testPlayer != null ? "present" : "none")}");
             testPlayer?.AddItemToInventory(new ItemDrop { ItemId = 101, Quantity = 30 });
             testPlayer?.AddItemToInventory(new ItemDrop { ItemId = 112, Quantity = 10 });
@@ -462,14 +462,14 @@ namespace Mining.Diagnostics
                 PartId = Content.Excavator.PartId,
                 WorldTransform = new WorldTracking.Interface.Model.WorldTransform { SpaceId = WorldTracking.Interface.Values.ClientOrigin.LocalPhysicsSpaceId, Position = groundPos, Rotation = rot2 },
             }, conn });
-            uint shipId = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>().Ships.Select(sh => sh.Id).FirstOrDefault(id => !shipsBefore.Contains(id));
+            uint shipId = ServiceCache.Get<Ships.Services.ShipsServerTracker>().Ships.Select(sh => sh.Id).FirstOrDefault(id => !shipsBefore.Contains(id));
             log.Msg($"[test] excavator ship: {shipId}");
             UnityEngine.Object.Destroy(excavator);
             yield return new WaitForSeconds(3f);
 
-            var shipsServer = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>();
+            var shipsServer = ServiceCache.Get<Ships.Services.ShipsServerTracker>();
             Ships.TrackedShipServer ship = shipsServer.GetShip(shipId);
-            var shipsClient = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsClientTracker>();
+            var shipsClient = ServiceCache.Get<Ships.Services.ShipsClientTracker>();
             var testCam2 = new GameObject("MiningTestCam2").AddComponent<Camera>();
             testCam2.CopyFrom(cam);
             var data2 = testCam2.gameObject.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
@@ -529,7 +529,7 @@ namespace Mining.Diagnostics
         {
             var log = Melon<MiningMod>.Logger;
             Camera cam = Camera.main;
-            var transpose = Core.Services.ServiceLocator.GetService<WorldTracking.Interface.Services.IWorldTransposeClient>();
+            var transpose = ServiceCache.Get<WorldTracking.Interface.Services.IWorldTransposeClient>();
             if (cam == null || transpose == null || !(WorldTracking.Interface.Values.ClientOrigin.LocalVisualSpace is WorldTracking.Interface.Model.Spaces.PlanetSurfaceSpace surface))
             {
                 log.Msg("[pump] no camera/planet");
@@ -569,11 +569,11 @@ namespace Mining.Diagnostics
             Vector3 pos = (Vector3)transpose.Position(planetSpace, physicsSpace, (Core.Values.Vector3Double)hoverPlanet);
             Vector3 fwdPlanet = Vector3.Cross(Vector3.Cross(best, t1), best).normalized;
             Quaternion rot = transpose.Rotation(planetSpace, physicsSpace, Quaternion.LookRotation(fwdPlanet, best));
-            var shipsServer = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>();
+            var shipsServer = ServiceCache.Get<Ships.Services.ShipsServerTracker>();
             var shipsBefore = new HashSet<uint>(shipsServer.Ships.Select(sh => sh.Id));
             var interaction = UnityEngine.Object.FindObjectOfType<Managers.Server.Services.ShipInteractionService>();
             var conn = FishNet.InstanceFinder.ServerManager.Clients.Values.FirstOrDefault();
-            var testPlayer = conn != null ? Core.Services.ServiceLocator.GetService<Players.Services.PlayersServerTracker>().GetTrackedPlayerFromConnectionId(conn.ClientId) : null;
+            var testPlayer = conn != null ? ServiceCache.Get<Players.Services.PlayersServerTracker>().GetTrackedPlayerFromConnectionId(conn.ClientId) : null;
             testPlayer?.AddItemToInventory(new ItemDrop { ItemId = 101, Quantity = 30 });
             testPlayer?.AddItemToInventory(new ItemDrop { ItemId = 112, Quantity = 10 });
             testPlayer?.AddItemToInventory(new ItemDrop { ItemId = 102, Quantity = 10 });
@@ -589,7 +589,7 @@ namespace Mining.Diagnostics
             yield return null;
             var hold = ship.PhysicsState;
             ushort partId = ship.StatefulParts.First().Id;
-            var shipsClient = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsClientTracker>();
+            var shipsClient = ServiceCache.Get<Ships.Services.ShipsClientTracker>();
             var testCam = new GameObject("PumpTestCam").AddComponent<Camera>();
             testCam.CopyFrom(cam);
             var data = testCam.gameObject.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
@@ -651,7 +651,7 @@ namespace Mining.Diagnostics
         {
             var log = Melon<MiningMod>.Logger;
             Camera cam = Camera.main;
-            var transpose = Core.Services.ServiceLocator.GetService<WorldTracking.Interface.Services.IWorldTransposeClient>();
+            var transpose = ServiceCache.Get<WorldTracking.Interface.Services.IWorldTransposeClient>();
             var visualSpace = WorldTracking.Interface.Values.ClientOrigin.LocalVisualSpace;
             if (cam == null || transpose == null || visualSpace == null || Content.BigFluidTank.Get(Content.BigFluidTank.LargeId) == null)
             {
@@ -660,12 +660,12 @@ namespace Mining.Diagnostics
             }
             PartSettings small = new Ships.Interface.Services.PartSettingsProvider().GetAllPartSettings().FirstOrDefault(p => p.id == Content.BigFluidTank.TankPartId);
             var physicsSpace = WorldTracking.Interface.Values.ClientOrigin.LocalPhysicsSpace;
-            Vector3 up = Core.Services.ServiceLocator.GetService<Players.Interface.Services.IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
+            Vector3 up = ServiceCache.Get<Players.Interface.Services.IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
             Vector3 fwd = Vector3.ProjectOnPlane(cam.transform.forward, up).normalized;
             if (fwd.sqrMagnitude < 0.5f) fwd = Vector3.ProjectOnPlane(cam.transform.up, up).normalized;
             Vector3 right = Vector3.Cross(up, fwd);
-            var shipsServer = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsServerTracker>();
-            var shipsClient = Core.Services.ServiceLocator.GetService<Ships.Services.ShipsClientTracker>();
+            var shipsServer = ServiceCache.Get<Ships.Services.ShipsServerTracker>();
+            var shipsClient = ServiceCache.Get<Ships.Services.ShipsClientTracker>();
 
             uint Spawn(PartSettings part, Vector3 visualPos)
             {
@@ -842,7 +842,7 @@ namespace Mining.Diagnostics
                 log.Msg($"[seat] prefab socket {s.Id} {s.Type} active={s.gameObject.activeInHierarchy} at {seat.part.transform.InverseTransformPoint(s.transform.position)} " +
                         $"visual={(s.visualObject != null ? PathOf(s.visualObject.transform) + " active=" + s.visualObject.activeSelf : "-")} interactive={(s.interactive != null ? s.interactive.name : "-")}");
             }
-            var instancer = Core.Services.ServiceLocator.GetService<Ships.Interface.Services.IShipPartInstancer>();
+            var instancer = ServiceCache.Get<Ships.Interface.Services.IShipPartInstancer>();
             if (instancer != null)
             {
                 var holder = new GameObject("SeatTestPreview");
@@ -853,7 +853,7 @@ namespace Mining.Diagnostics
                 }
                 UnityEngine.Object.Destroy(holder);
             }
-            var thumbs = Core.Services.ServiceLocator.GetService<Ships.Interface.Services.IPartThumbnailProvider>();
+            var thumbs = ServiceCache.Get<Ships.Interface.Services.IPartThumbnailProvider>();
             Texture2D large = thumbs?.GetLargeThumbnail(seat.id);
             yield return null;
             yield return null;
@@ -912,7 +912,7 @@ namespace Mining.Diagnostics
         {
             var log = Melon<MiningMod>.Logger;
             var preview = UnityEngine.Object.FindObjectOfType<Tools.Build.PartPreview>(true);
-            var thumbs = Core.Services.ServiceLocator.GetService<Ships.Interface.Services.IPartThumbnailProvider>();
+            var thumbs = ServiceCache.Get<Ships.Interface.Services.IPartThumbnailProvider>();
             var select = AccessTools.Method(typeof(Tools.Build.PartPreview), "OnPartSelected");
             var unselect = AccessTools.Method(typeof(Tools.Build.PartPreview), "OnPartUnselected");
             log.Msg($"[doors] preview: {(preview != null ? "present" : "MISSING")}, thumbnails: {(thumbs != null ? "present" : "MISSING")}");
@@ -949,8 +949,8 @@ namespace Mining.Diagnostics
                         var obj = Traverse.Create(preview).Field<GameObject>("_objectPreview").Value;
                         renderers = obj != null ? obj.GetComponentsInChildren<Renderer>(true).Length : -1;
                     }
-                    var instancer = Core.Services.ServiceLocator.GetService<Ships.Interface.Services.IShipPartInstancer>();
-                    var hologram = Core.Services.ServiceLocator.GetService<Ships.Interface.Services.IShipHologramService>();
+                    var instancer = ServiceCache.Get<Ships.Interface.Services.IShipPartInstancer>();
+                    var hologram = ServiceCache.Get<Ships.Interface.Services.IShipHologramService>();
                     Type outlineType = Type.GetType("Outline, QuickOutline");
                     double instMs = -1, outlineMs = -1, holoMs = -1;
                     if (instancer != null)

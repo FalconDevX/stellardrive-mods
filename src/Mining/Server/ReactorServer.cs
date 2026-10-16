@@ -112,7 +112,7 @@ namespace Mining.Server
         private static void Report(IShipStateWrite ship, StatefulPart part, bool grouped)
         {
             var state = (WoodPowerGeneratorState)part.State;
-            var connections = ServiceLocator.GetService<ConnectionsServerTracker>();
+            var connections = ServiceCache.Get<ConnectionsServerTracker>();
             var signal = new EntityPartSocket(ship.Id, part.Id, Reactor.SignalSocket);
             bool wired = Reactor.HasSignalSocket && connections.TryGetSignalConnectionGroupWithSocket(signal, out _);
             var problems = new System.Collections.Generic.List<string>();
@@ -145,14 +145,14 @@ namespace Mining.Server
             {
                 return true;
             }
-            var connections = ServiceLocator.GetService<ConnectionsServerTracker>();
+            var connections = ServiceCache.Get<ConnectionsServerTracker>();
             var socket = new EntityPartSocket(ship.Id, partId, Reactor.SignalSocket);
             return connections.TryGetSignalConnectionGroupWithSocket(socket, out _) && connections.GetSignalValue(socket) > 0.5f;
         }
 
         private static bool TryGetWater(IShipStateWrite ship, ushort partId, out FluidGroupServerState water)
         {
-            var connections = ServiceLocator.GetService<ConnectionsServerTracker>();
+            var connections = ServiceCache.Get<ConnectionsServerTracker>();
             return connections.TryGetFluidGroupCacheFromSocket(new EntityPartSocket(ship.Id, partId, Reactor.WaterSocket), out water) &&
                    water.FluidItemId == HydrogenThruster.WaterItemId && water.Available > 0.0001f;
         }

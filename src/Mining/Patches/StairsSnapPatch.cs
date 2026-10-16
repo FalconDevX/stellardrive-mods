@@ -125,7 +125,7 @@ namespace Mining.Patches
             }
             var id = hit.collider.GetComponent<ShipPartIdentifier>();
             IShipPartPlacements ship = hit.collider.GetComponentInParent<IShipPartPlacements>();
-            var ships = ServiceLocator.GetService<ShipsClientTracker>();
+            var ships = ServiceCache.Get<ShipsClientTracker>();
             if (id == null || ship == null || ships == null || !ships.TryGetTrackedShip(ship.ShipId, out TrackedShipClient tracked))
             {
                 return;

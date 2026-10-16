@@ -34,7 +34,7 @@ namespace Mining.Server
             {
                 return false;
             }
-            var ships = Core.Services.ServiceLocator.GetService<ShipsServerTracker>();
+            var ships = ServiceCache.Get<ShipsServerTracker>();
             TrackedShipServer child = ships?.GetShip(state.AnchoredShipId);
             Transform parentFrame = CollidersObject(parent);
             if (child == null || parentFrame == null)

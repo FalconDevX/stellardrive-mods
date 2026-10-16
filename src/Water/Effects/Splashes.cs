@@ -120,8 +120,8 @@ namespace Water.Effects
                 FadeWake(0f, 0f, dt);
                 return;
             }
-            var transpose = ServiceLocator.GetService<IWorldTransposeClient>();
-            var tracker = ServiceLocator.GetService<ShipsClientTracker>();
+            var transpose = ServiceCache.Get<IWorldTransposeClient>();
+            var tracker = ServiceCache.Get<ShipsClientTracker>();
             if (transpose == null || tracker == null || !WaterLevel.Ready())
             {
                 return;

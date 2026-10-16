@@ -442,7 +442,7 @@ namespace Mining.Patches
                 Diagnose(flying ? "flying" : !fuel ? "no wood in the fuel slot" : !onPlanet ? $"not on a planet ({space?.GetType().Name})" :
                     $"player state {____state.ClientState.Type}", !fuel);
             }
-            var audio = ServiceLocator.GetService<IAudioPlayer>();
+            var audio = ServiceCache.Get<IAudioPlayer>();
             JetpackFx fx = null;
             if (unlocked)
             {
@@ -485,7 +485,7 @@ namespace Mining.Patches
 
         private static bool HasLocalFuel()
         {
-            var inventory = ServiceLocator.GetService<Players.Interface.Services.IPlayerMainInventoryProvider>();
+            var inventory = ServiceCache.Get<Players.Interface.Services.IPlayerMainInventoryProvider>();
             InventorySlot slot = inventory != null ? inventory.GetSlot(Jetpack.FuelSlot) : default;
             return slot.HasItem && slot.ItemId == Jetpack.FuelItem && slot.Quantity > 0;
         }

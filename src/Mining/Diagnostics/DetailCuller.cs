@@ -67,7 +67,7 @@ namespace Mining.Diagnostics
 
         private static void Refresh()
         {
-            var tracker = ServiceLocator.GetService<ShipsClientTracker>();
+            var tracker = ServiceCache.Get<ShipsClientTracker>();
             if (tracker == null)
             {
                 return;

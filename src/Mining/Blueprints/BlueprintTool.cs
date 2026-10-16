@@ -362,7 +362,7 @@ namespace Mining.Blueprints
             }
             else if (hit)
             {
-                Vector3 up = ServiceLocator.GetService<IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
+                Vector3 up = ServiceCache.Get<IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
                 Vector3 forward = Vector3.ProjectOnPlane(cameraPhysics.Direction, up);
                 if (forward.sqrMagnitude < 0.001f) forward = Vector3.ProjectOnPlane(Vector3.forward, up);
                 Quaternion rotation = Quaternion.LookRotation(forward.normalized, up) * Quaternion.Euler(0f, 90f * _turns, 0f);
@@ -398,7 +398,7 @@ namespace Mining.Blueprints
                 return;
             }
             Vector3Int other = _cornerB ?? (_hasHover && _hoverShip == _selectionShip ? _hoverVoxel : _cornerA.Value);
-            var ships = ServiceLocator.GetService<ShipsClientTracker>();
+            var ships = ServiceCache.Get<ShipsClientTracker>();
             if (ships == null || !ships.TryGetTrackedShip(_selectionShip, out TrackedShipClient tracked) || !tracked.IsVisualLoaded || tracked.VisualObject == null)
             {
                 return;

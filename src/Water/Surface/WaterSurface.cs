@@ -51,7 +51,7 @@ namespace Water.Surface
                 if (_object != null) _object.SetActive(false);
                 return;
             }
-            var transpose = ServiceLocator.GetService<IWorldTransposeClient>();
+            var transpose = ServiceCache.Get<IWorldTransposeClient>();
             if (transpose == null)
             {
                 return;

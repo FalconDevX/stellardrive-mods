@@ -61,7 +61,7 @@ namespace Mining.Server
             }
             try
             {
-                var power = ServiceLocator.GetService<PowerServerTracker>();
+                var power = ServiceCache.Get<PowerServerTracker>();
                 foreach (ushort id in ids)
                 {
                     if (!TryGetExcavator(__instance, id, out StatefulPart part))
@@ -96,7 +96,7 @@ namespace Mining.Server
                     _nextSiteRefresh = Time.time + 2f;
                     SiteCache.Clear();
                 }
-                var power = ServiceLocator.GetService<PowerServerTracker>();
+                var power = ServiceCache.Get<PowerServerTracker>();
                 foreach (ushort id in ids)
                 {
                     if (!TryGetExcavator(__instance, id, out StatefulPart part))
@@ -164,7 +164,7 @@ namespace Mining.Server
 
         private static bool SignalAllows(TrackedShipServer ship, StatefulPart part)
         {
-            var connections = ServiceLocator.GetService<Ships.Cables.ConnectionsServerTracker>();
+            var connections = ServiceCache.Get<Ships.Cables.ConnectionsServerTracker>();
             var socket = new EntityPartSocket(ship.Id, part.Id, Excavator.SignalSocketId);
             return connections != null && connections.TryGetSignalConnectionGroupWithSocket(socket, out _) && connections.GetSignalValue(socket) >= 0.5;
         }
@@ -177,9 +177,9 @@ namespace Mining.Server
                 return cached;
             }
             MiningSite site = null;
-            var ships = ServiceLocator.GetService<ShipsServerTracker>();
-            var spaces = ServiceLocator.GetService<ISpacesServerProvider>();
-            var transpose = ServiceLocator.GetService<IWorldTransposeServer>();
+            var ships = ServiceCache.Get<ShipsServerTracker>();
+            var spaces = ServiceCache.Get<ISpacesServerProvider>();
+            var transpose = ServiceCache.Get<IWorldTransposeServer>();
             if (ships.TryGetRootShip(ship.Id, out IShipStateRead root) && root is TrackedShipServer rootShip &&
                 spaces.GetSpace(rootShip.SpaceId) is PlanetSurfaceSpace surface)
             {

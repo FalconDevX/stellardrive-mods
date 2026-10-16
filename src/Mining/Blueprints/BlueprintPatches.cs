@@ -28,8 +28,8 @@ namespace Mining.Blueprints
         {
             try
             {
-                var players = ServiceLocator.GetService<IPlayersProviderClient>();
-                var ships = ServiceLocator.GetService<IShipsClientProvider>();
+                var players = ServiceCache.Get<IPlayersProviderClient>();
+                var ships = ServiceCache.Get<IShipsClientProvider>();
                 WorkbenchUi.Pending = players != null && ships != null && players.TryGetLocalPlayerState(out var state)
                     && ships.TryGetStatefulPart(new PartContext(state.EntityId, state.PartId), out StatefulPart part)
                     && part.Settings != null && part.Settings.id == Workbench.PartId;

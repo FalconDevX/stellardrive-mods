@@ -148,7 +148,7 @@ namespace Mining.Blueprints
             }
             else
             {
-                ServiceLocator.GetService<IResearchNetworkService>()?.ResearchTech(WorkbenchUi.RecipeIdOf(item));
+                ServiceCache.Get<IResearchNetworkService>()?.ResearchTech(WorkbenchUi.RecipeIdOf(item));
                 MiningMod.ShowMessage($"Crafting {ServerInventory.ItemName(item)}...", 3f);
             }
             Traverse.Create(__instance).Method("UpdateButtons").GetValue();
@@ -172,7 +172,7 @@ namespace Mining.Blueprints
             }
             try
             {
-                TrackedPlayerServer player = __1 != null ? ServiceLocator.GetService<PlayersServerTracker>()?.GetTrackedPlayerFromConnectionId(__1.ClientId) : null;
+                TrackedPlayerServer player = __1 != null ? ServiceCache.Get<PlayersServerTracker>()?.GetTrackedPlayerFromConnectionId(__1.ClientId) : null;
                 Workbench.Craft(player, item, out string message);
                 Melon<MiningMod>.Logger.Msg($"Workbench (player {player?.Id}): {message}");
             }

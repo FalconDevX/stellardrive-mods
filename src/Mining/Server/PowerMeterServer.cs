@@ -35,7 +35,7 @@ namespace Mining.Server
                     {
                         continue;
                     }
-                    power = power ?? ServiceLocator.GetService<PowerServerTracker>();
+                    power = power ?? ServiceCache.Get<PowerServerTracker>();
                     double load = 0.0;
                     if (power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, id, PowerMeter.PowerSocket), out PowerGroupServerState group))
                     {

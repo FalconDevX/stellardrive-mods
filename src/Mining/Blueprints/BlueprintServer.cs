@@ -37,7 +37,7 @@ namespace Mining.Blueprints
             {
                 return null;
             }
-            return ServiceLocator.GetService<PlayersServerTracker>()?.GetTrackedPlayerFromConnectionId(conn.ClientId);
+            return ServiceCache.Get<PlayersServerTracker>()?.GetTrackedPlayerFromConnectionId(conn.ClientId);
         }
 
         internal static int Count(TrackedPlayerServer player, uint itemId)
@@ -117,7 +117,7 @@ namespace Mining.Blueprints
         internal static BlueprintData Capture(uint shipId, Vector3Int a, Vector3Int b, out string error)
         {
             error = null;
-            TrackedShipServer ship = ServiceLocator.GetService<ShipsServerTracker>()?.GetShip(shipId);
+            TrackedShipServer ship = ServiceCache.Get<ShipsServerTracker>()?.GetShip(shipId);
             if (ship == null)
             {
                 error = "Ship not found";
@@ -171,7 +171,7 @@ namespace Mining.Blueprints
                 }
                 ids.Add(part.Id);
             }
-            var cables = ServiceLocator.GetService<CablesServerTracker>();
+            var cables = ServiceCache.Get<CablesServerTracker>();
             if (cables != null)
             {
                 foreach (CableData cable in cables.GetShipCables(shipId))
@@ -286,7 +286,7 @@ namespace Mining.Blueprints
                 message = "Only the host can build blueprints";
                 return false;
             }
-            var ships = ServiceLocator.GetService<ShipsServerTracker>();
+            var ships = ServiceCache.Get<ShipsServerTracker>();
             TrackedShipServer ship = target.NewShip ? null : ships.GetShip(target.ShipId);
             if (!target.NewShip && ship == null)
             {
@@ -318,8 +318,8 @@ namespace Mining.Blueprints
             uint shipId;
             if (target.NewShip)
             {
-                var spaces = ServiceLocator.GetService<ISpacesServerProvider>();
-                var worldIds = ServiceLocator.GetService<IWorldObjectsIdsServerProvider>();
+                var spaces = ServiceCache.Get<ISpacesServerProvider>();
+                var worldIds = ServiceCache.Get<IWorldObjectsIdsServerProvider>();
                 shipId = worldIds.CreateUniqueIdForObject();
                 var stateful = new List<StatefulPart>();
                 ushort next = 1;
@@ -341,7 +341,7 @@ namespace Mining.Blueprints
                     StatefulParts = stateful.ToArray(),
                 };
                 ships.LoadShip(snapshot);
-                ServiceLocator.GetService<ShipInteractionNotifier>()?.NotifyShipCreation(snapshot.SpaceId, snapshot.Position);
+                ServiceCache.Get<ShipInteractionNotifier>()?.NotifyShipCreation(snapshot.SpaceId, snapshot.Position);
             }
             else
             {
@@ -367,8 +367,8 @@ namespace Mining.Blueprints
 
         private static int AddCables(BlueprintData data, uint shipId, Dictionary<int, ushort> ids)
         {
-            var cables = ServiceLocator.GetService<CablesServerTracker>();
-            var connections = ServiceLocator.GetService<ConnectionsServerTracker>();
+            var cables = ServiceCache.Get<CablesServerTracker>();
+            var connections = ServiceCache.Get<ConnectionsServerTracker>();
             if (cables == null)
             {
                 return 0;

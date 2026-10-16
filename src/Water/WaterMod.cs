@@ -3,7 +3,7 @@ using MelonLoader;
 using UnityEngine;
 using Water;
 
-[assembly: MelonInfo(typeof(WaterMod), "Water", "0.4.2", "mateu")]
+[assembly: MelonInfo(typeof(WaterMod), "Water", "0.4.3", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Water
@@ -54,6 +54,7 @@ namespace Water
 
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
+            ServiceCache.Reset();
             Surface.WaterSurface.Clear();
             Buoyancy.WaterLevel.Clear();
             Buoyancy.ShipWaterPhysics.Clear();
@@ -62,19 +63,21 @@ namespace Water
             Diagnostics.WaterDevTest.OnSceneLoaded(sceneName);
         }
 
+        private static bool _surfaceFailed;
+
         public override void OnUpdate()
         {
             try
             {
-                if (Enabled.Value)
+                if (Enabled.Value && !_surfaceFailed)
                 {
                     Surface.WaterSurface.Update();
                 }
             }
             catch (Exception e)
             {
-                LoggerInstance.Error($"Water error: {e}");
-                Enabled.Value = false;
+                LoggerInstance.Error($"Water surface disabled for this session: {e}");
+                _surfaceFailed = true;
             }
             if (Enabled.Value && Splashes.Value)
             {

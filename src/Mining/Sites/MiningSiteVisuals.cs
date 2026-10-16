@@ -75,7 +75,7 @@ namespace Mining.Sites
                 if (Active.Count > 0) Clear();
                 return;
             }
-            var transpose = ServiceLocator.GetService<IWorldTransposeClient>();
+            var transpose = ServiceCache.Get<IWorldTransposeClient>();
             if (transpose == null)
             {
                 return;
@@ -263,7 +263,7 @@ namespace Mining.Sites
             {
                 return null;
             }
-            var transpose = ServiceLocator.GetService<IWorldTransposeClient>();
+            var transpose = ServiceCache.Get<IWorldTransposeClient>();
             var planetSpace = new PlanetSurfaceSpace { PlanetId = space.PlanetId, Center = Vector3Double.Zero };
             Vector3 cam = (Vector3)transpose.Position(ClientOrigin.LocalVisualSpace, planetSpace, (Vector3Double)Camera.main.transform.position);
             float cell = MiningSites.CellSize(space.PlanetId);
@@ -286,7 +286,7 @@ namespace Mining.Sites
             {
                 return "You are not on a planet.";
             }
-            var transpose = ServiceLocator.GetService<IWorldTransposeClient>();
+            var transpose = ServiceCache.Get<IWorldTransposeClient>();
             var planetSpace = new PlanetSurfaceSpace { PlanetId = space.PlanetId, Center = Vector3Double.Zero };
             Vector3 cam = (Vector3)transpose.Position(ClientOrigin.LocalVisualSpace, planetSpace, (Vector3Double)Camera.main.transform.position);
             float cell = MiningSites.CellSize(space.PlanetId);

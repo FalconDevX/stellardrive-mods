@@ -339,7 +339,7 @@ namespace Mining.Content
             bool down = change.NewState is IDoorState door && door.IsOpen;
             if (down != _down)
             {
-                ServiceLocator.GetService<IAudioPlayer>()?.PlayAudioEvent3D(down ? "Event:/Ships/DoorOpen" : "Event:/Ships/DoorClose", gameObject);
+                ServiceCache.Get<IAudioPlayer>()?.PlayAudioEvent3D(down ? "Event:/Ships/DoorOpen" : "Event:/Ships/DoorClose", gameObject);
             }
             _down = down;
             _nextProbe = 0f;
@@ -419,10 +419,10 @@ namespace Mining.Content
         {
             _inWater = false;
             _downDir = -transform.up;
-            float reach = _down ? WaterPump.HoseLimit(ServiceLocator.GetService<Ships.Cables.ConnectionsClientTracker>(), _shipId, _partId, _scale, out _, out _) : 0f;
+            float reach = _down ? WaterPump.HoseLimit(ServiceCache.Get<Ships.Cables.ConnectionsClientTracker>(), _shipId, _partId, _scale, out _, out _) : 0f;
             try
             {
-                var transpose = ServiceLocator.GetService<IWorldTransposeClient>();
+                var transpose = ServiceCache.Get<IWorldTransposeClient>();
                 if (transpose != null && ClientOrigin.LocalVisualSpace is PlanetSurfaceSpace surface)
                 {
                     var planetSpace = new PlanetSurfaceSpace { PlanetId = surface.PlanetId, Center = Vector3Double.Zero };

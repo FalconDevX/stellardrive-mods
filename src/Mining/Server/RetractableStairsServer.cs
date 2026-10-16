@@ -27,7 +27,7 @@ namespace Mining.Server
                     {
                         continue;
                     }
-                    connections = connections ?? ServiceLocator.GetService<ConnectionsServerTracker>();
+                    connections = connections ?? ServiceCache.Get<ConnectionsServerTracker>();
                     var socket = new EntityPartSocket(__instance.Id, id, RetractableStairs.SignalSocket);
                     bool open = connections != null && connections.TryGetSignalConnectionGroupWithSocket(socket, out _) && connections.GetSignalValue(socket) >= 0.5;
                     if (state.IsOpen != open)

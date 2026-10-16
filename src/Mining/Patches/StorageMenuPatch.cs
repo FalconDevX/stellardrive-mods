@@ -33,8 +33,8 @@ namespace Mining.Patches
 
         internal static bool IsLocalPlayerUsing(System.Func<Ships.Interface.Settings.PartSettings, bool> isPart)
         {
-            var players = ServiceLocator.GetService<IPlayersProviderClient>();
-            var ships = ServiceLocator.GetService<IShipsClientProvider>();
+            var players = ServiceCache.Get<IPlayersProviderClient>();
+            var ships = ServiceCache.Get<IShipsClientProvider>();
             if (players == null || ships == null || !players.TryGetLocalPlayerState(out var state))
             {
                 return false;

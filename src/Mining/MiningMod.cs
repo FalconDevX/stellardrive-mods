@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.16.3", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.16.4", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -112,17 +112,42 @@ namespace Mining
             Server.ExcavatorServer.Reset();
             Server.WaterPumpServer.Reset();
             Server.ShipPartIndex.Reset();
+            Server.HydrogenThrusterServer.Reset();
+            ServiceCache.Reset();
             Blueprints.BlueprintGhosts.Clear();
             Diagnostics.DevTools.OnSceneLoaded(sceneName);
         }
 
-        public override void OnUpdate()
+        private static readonly System.Collections.Generic.HashSet<string> Failed = new System.Collections.Generic.HashSet<string>();
+
+        private void Run(string name, System.Action action)
         {
+            if (Failed.Contains(name))
+            {
+                return;
+            }
             try
             {
-                Sites.MiningSiteVisuals.Update();
-                Blueprints.BlueprintGhosts.Update();
-                Diagnostics.DetailCuller.Update();
+                action();
+            }
+            catch (System.Exception e)
+            {
+                Failed.Add(name);
+                LoggerInstance.Error($"{name} disabled for this session: {e}");
+            }
+        }
+
+        private static readonly System.Action SitesUpdate = Sites.MiningSiteVisuals.Update;
+        private static readonly System.Action GhostsUpdate = Blueprints.BlueprintGhosts.Update;
+        private static readonly System.Action CullerUpdate = Diagnostics.DetailCuller.Update;
+
+        public override void OnUpdate()
+        {
+            Run("Deposits", SitesUpdate);
+            Run("Blueprint ghosts", GhostsUpdate);
+            Run("Detail culler", CullerUpdate);
+            try
+            {
                 Keyboard kb = Keyboard.current;
                 if (kb != null && kb.nKey.wasPressedThisFrame && !Diagnostics.DevTools.IsTyping())
                 {
@@ -160,8 +185,7 @@ namespace Mining
             }
             catch (System.Exception e)
             {
-                LoggerInstance.Error($"Deposit error: {e}");
-                ShowSites.Value = false;
+                LoggerInstance.Error($"Key handling error: {e}");
             }
         }
 

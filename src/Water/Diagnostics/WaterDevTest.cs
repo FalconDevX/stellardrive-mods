@@ -40,7 +40,7 @@ namespace Water.Diagnostics
             try
             {
                 Camera cam = Camera.main;
-                var transpose = ServiceLocator.GetService<IWorldTransposeClient>();
+                var transpose = ServiceCache.Get<IWorldTransposeClient>();
                 TrackedPlanet tracked = WaterSurface.FindTracked();
                 if (cam == null || transpose == null || tracked == null || !(ClientOrigin.LocalVisualSpace is PlanetSurfaceSpace surface))
                 {

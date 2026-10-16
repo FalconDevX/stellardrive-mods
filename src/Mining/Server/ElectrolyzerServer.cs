@@ -33,8 +33,8 @@ namespace Mining.Server
         {
             try
             {
-                var power = ServiceLocator.GetService<PowerServerTracker>();
-                var connections = ServiceLocator.GetService<ConnectionsServerTracker>();
+                var power = ServiceCache.Get<PowerServerTracker>();
+                var connections = ServiceCache.Get<ConnectionsServerTracker>();
                 foreach (StatefulPart part in ____ship.GetAllStatefulParts<ElectrolyzerState>())
                 {
                     if (CanRun(____ship, connections, part, out _) &&
@@ -57,8 +57,8 @@ namespace Mining.Server
         {
             try
             {
-                var power = ServiceLocator.GetService<PowerServerTracker>();
-                var connections = ServiceLocator.GetService<ConnectionsServerTracker>();
+                var power = ServiceCache.Get<PowerServerTracker>();
+                var connections = ServiceCache.Get<ConnectionsServerTracker>();
                 foreach (StatefulPart part in ____ship.GetAllStatefulParts<ElectrolyzerState>())
                 {
                     var state = (ElectrolyzerState)part.State;

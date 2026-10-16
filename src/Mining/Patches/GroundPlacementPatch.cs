@@ -61,7 +61,7 @@ namespace Mining.Patches
             bool tilt = false;
             if (____snappedPlacement == null)
             {
-                Vector3 up = ServiceLocator.GetService<IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
+                Vector3 up = ServiceCache.Get<IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
                 tilt = CreateShipWithExcavatorPatch.AlignToTerrain(ref position, ref rotation, up) == GroundPlacement.Feet.Length;
             }
             foreach (Transform child in root)
@@ -90,7 +90,7 @@ namespace Mining.Patches
             }
             try
             {
-                Vector3 up = ServiceLocator.GetService<IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
+                Vector3 up = ServiceCache.Get<IPlayerUpProvider>()?.WorldPlayerUp ?? Vector3.up;
                 Quaternion rotation = previewPlacement.Rotation;
                 Vector3 position = previewPlacement.Position;
                 AlignToTerrain(ref position, ref rotation, up);
@@ -167,8 +167,8 @@ namespace Mining.Patches
             }
             try
             {
-                var spaces = ServiceLocator.GetService<ISpacesServerProvider>();
-                var players = ServiceLocator.GetService<PlayersServerTracker>();
+                var spaces = ServiceCache.Get<ISpacesServerProvider>();
+                var players = ServiceCache.Get<PlayersServerTracker>();
                 if (P_1 == null || !spaces.HasSpace(P_0.WorldTransform.SpaceId))
                 {
                     Melon<MiningMod>.Logger.Warning($"Excavator on ground: no connection or space {P_0.WorldTransform.SpaceId}");
@@ -202,9 +202,9 @@ namespace Mining.Patches
 
         internal static uint CreateExcavatorShip(PartSettings settings, WorldTransform transform)
         {
-            var spaces = ServiceLocator.GetService<ISpacesServerProvider>();
-            var ids = ServiceLocator.GetService<IWorldObjectsIdsServerProvider>();
-            var ships = ServiceLocator.GetService<ShipsServerTracker>();
+            var spaces = ServiceCache.Get<ISpacesServerProvider>();
+            var ids = ServiceCache.Get<IWorldObjectsIdsServerProvider>();
+            var ships = ServiceCache.Get<ShipsServerTracker>();
             uint id = ids.CreateUniqueIdForObject();
             var snapshot = new ShipStateSnapshot
             {
@@ -219,7 +219,7 @@ namespace Mining.Patches
                 StatefulParts = new[] { new StatefulPart(1, settings, new FloatingPartPlacement(Vector3.zero, PartOrientation.Forward, PartOrientation.Up)) },
             };
             ships.LoadShip(snapshot);
-            ServiceLocator.GetService<ShipInteractionNotifier>()?.NotifyShipCreation(snapshot.SpaceId, snapshot.Position);
+            ServiceCache.Get<ShipInteractionNotifier>()?.NotifyShipCreation(snapshot.SpaceId, snapshot.Position);
             return id;
         }
     }

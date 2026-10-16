@@ -41,7 +41,7 @@ namespace Mining.Patches
                 {
                     return true;
                 }
-                var tracker = ServiceLocator.GetService<ShipsClientTracker>();
+                var tracker = ServiceCache.Get<ShipsClientTracker>();
                 Vector3 center = ship.position;
                 float distance = 12f, height = 3f;
                 if (tracker != null && tracker.TryGetTrackedShip(localState.EntityId, out TrackedShipClient tracked))

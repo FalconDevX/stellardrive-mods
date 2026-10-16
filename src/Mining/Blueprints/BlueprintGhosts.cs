@@ -184,7 +184,7 @@ namespace Mining.Blueprints
                 if (_root.transform.parent != null) _root.transform.SetParent(null, false);
                 try
                 {
-                    var transpose = ServiceLocator.GetService<IWorldTransposeClient>();
+                    var transpose = ServiceCache.Get<IWorldTransposeClient>();
                     _root.transform.SetPositionAndRotation(
                         transpose.Position(Target.World.SpaceId, ClientOrigin.LocalVisualSpaceId, Target.World.Position),
                         transpose.Rotation(Target.World.SpaceId, ClientOrigin.LocalVisualSpaceId, Target.World.Rotation));
@@ -197,7 +197,7 @@ namespace Mining.Blueprints
                 _body.localRotation = Quaternion.identity;
                 return true;
             }
-            var ships = ServiceLocator.GetService<ShipsClientTracker>();
+            var ships = ServiceCache.Get<ShipsClientTracker>();
             if (ships == null || !ships.TryGetTrackedShip(Target.ShipId, out TrackedShipClient ship) || !ship.IsVisualLoaded || ship.VisualObject == null)
             {
                 return false;
@@ -280,7 +280,7 @@ namespace Mining.Blueprints
 
         internal static void Update()
         {
-            if (ServiceLocator.GetService<ShipsClientTracker>() == null)
+            if (ServiceCache.Get<ShipsClientTracker>() == null)
             {
                 return;
             }

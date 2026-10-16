@@ -21,7 +21,7 @@ namespace Mining.Patches
             {
                 return;
             }
-            var ships = ServiceLocator.GetService<ShipsClientTracker>();
+            var ships = ServiceCache.Get<ShipsClientTracker>();
             if (ships == null || !ships.TryGetTrackedShip(result.shipPartsProxy.ShipId, out TrackedShipClient ship))
             {
                 return;

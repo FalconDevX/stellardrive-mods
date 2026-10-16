@@ -37,7 +37,7 @@ namespace Mining.Content
 
         internal static bool IsUnlocked()
         {
-            var research = ServiceLocator.GetService<IResearchProvider>();
+            var research = ServiceCache.Get<IResearchProvider>();
             try
             {
                 return research != null && research.IsResearched(ResearchId);
@@ -58,7 +58,7 @@ namespace Mining.Content
             }
             else if (CurrentIsLocalPrediction)
             {
-                var inventory = ServiceLocator.GetService<Players.Interface.Services.IPlayerMainInventoryProvider>();
+                var inventory = ServiceCache.Get<Players.Interface.Services.IPlayerMainInventoryProvider>();
                 slot = inventory != null ? inventory.GetSlot(FuelSlot) : default;
             }
             return slot.HasItem && slot.ItemId == FuelItem && slot.Quantity > 0;

@@ -83,12 +83,12 @@ namespace Water.Buoyancy
             {
                 return;
             }
-            _spaces = _spaces ?? ServiceLocator.GetService<ISpacesServerProvider>();
+            _spaces = _spaces ?? ServiceCache.Get<ISpacesServerProvider>();
             if (!(_spaces?.GetSpace(state.PhysicsState.SpaceId) is PlanetSurfaceSpace space) || space.PlanetId != WaterLevel.PlanetId || !WaterLevel.Ready())
             {
                 return;
             }
-            _tracker = _tracker ?? ServiceLocator.GetService<ShipsServerTracker>();
+            _tracker = _tracker ?? ServiceCache.Get<ShipsServerTracker>();
             TrackedShipServer ship = _tracker?.GetShip(state.Id);
             if (ship == null || ship.PartCount <= 0)
             {
@@ -107,7 +107,7 @@ namespace Water.Buoyancy
                 return;
             }
 
-            _environment = _environment ?? ServiceLocator.GetService<IWorldEnvironmentServerProvider>();
+            _environment = _environment ?? ServiceCache.Get<IWorldEnvironmentServerProvider>();
             float gravity = _environment != null ? _environment.GetGravityAtPosition(state.PhysicsState.SpaceId, rb.position).magnitude : 9.8f;
             Buoyancy.Pontoons.Refresh(ship, entry.Pontoons);
             Buoyancy.Pontoons.UpdateInflation(ship, entry.Pontoons, dt);

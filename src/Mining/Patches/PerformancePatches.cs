@@ -74,7 +74,8 @@ namespace Mining.Patches
         private const int Every = 4;
         private static readonly FieldInfo ConnectionsField = AccessTools.Field(typeof(FluidCablesVisualUpdater), "_visibleNodeConnections");
         private static readonly List<(FluidCableVisual visual, float flow)> Flows = new List<(FluidCableVisual, float)>();
-        private static FieldInfo _visualField, _flowField;
+        private static AccessTools.FieldRef<object, FluidCableVisual> _visualRef;
+        private static AccessTools.FieldRef<object, float> _flowRef;
         private static int _frame;
         private static int _cableCount = -1;
         private static bool _ranOriginal;
@@ -83,7 +84,7 @@ namespace Mining.Patches
         {
             if (!MiningMod.FastCableVisuals.Value) return true;
             _frame++;
-            if (_frame % Every == 0 || loadedCables.Count != _cableCount || _flowField == null)
+            if (_frame % Every == 0 || loadedCables.Count != _cableCount || _flowRef == null)
             {
                 _ranOriginal = true;
                 return true;
@@ -105,14 +106,14 @@ namespace Mining.Patches
             foreach (object connection in connections.Values)
             {
                 if (connection == null) continue;
-                if (_flowField == null)
+                if (_flowRef == null)
                 {
                     Type type = connection.GetType();
-                    _visualField = AccessTools.Field(type, "CableVisual");
-                    _flowField = AccessTools.Field(type, "Flow");
-                    if (_visualField == null || _flowField == null) return;
+                    if (AccessTools.Field(type, "CableVisual") == null || AccessTools.Field(type, "Flow") == null) return;
+                    _visualRef = AccessTools.FieldRefAccess<FluidCableVisual>(type, "CableVisual");
+                    _flowRef = AccessTools.FieldRefAccess<float>(type, "Flow");
                 }
-                Flows.Add(((FluidCableVisual)_visualField.GetValue(connection), (float)_flowField.GetValue(connection)));
+                Flows.Add((_visualRef(connection), _flowRef(connection)));
             }
         }
     }

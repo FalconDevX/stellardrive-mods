@@ -48,8 +48,8 @@ namespace Mining.Server
             }
             try
             {
-                var power = ServiceLocator.GetService<PowerServerTracker>();
-                var connections = ServiceLocator.GetService<ConnectionsServerTracker>();
+                var power = ServiceCache.Get<PowerServerTracker>();
+                var connections = ServiceCache.Get<ConnectionsServerTracker>();
                 foreach (ushort id in ids)
                 {
                     if (!__instance.TryGetStatefulPart(id, out StatefulPart part) || !(part.State is DoorState))
@@ -80,8 +80,8 @@ namespace Mining.Server
             }
             try
             {
-                var power = ServiceLocator.GetService<PowerServerTracker>();
-                var connections = ServiceLocator.GetService<ConnectionsServerTracker>();
+                var power = ServiceCache.Get<PowerServerTracker>();
+                var connections = ServiceCache.Get<ConnectionsServerTracker>();
                 foreach (ushort id in ids)
                 {
                     if (!__instance.TryGetStatefulPart(id, out StatefulPart part) || !(part.State is DoorState))
@@ -241,9 +241,9 @@ namespace Mining.Server
         {
             needed = float.MaxValue;
             water = false;
-            var ships = ServiceLocator.GetService<ShipsServerTracker>();
-            var spaces = ServiceLocator.GetService<ISpacesServerProvider>();
-            var transpose = ServiceLocator.GetService<IWorldTransposeServer>();
+            var ships = ServiceCache.Get<ShipsServerTracker>();
+            var spaces = ServiceCache.Get<ISpacesServerProvider>();
+            var transpose = ServiceCache.Get<IWorldTransposeServer>();
             if (!ships.TryGetRootShip(ship.Id, out var root) || !(root is TrackedShipServer rootShip) ||
                 !(spaces.GetSpace(rootShip.SpaceId) is PlanetSurfaceSpace surface))
             {

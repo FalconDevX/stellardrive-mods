@@ -538,7 +538,7 @@ namespace Mining.Content
                 return;
             }
             _next = Time.time + 0.15f;
-            var connections = ServiceLocator.GetService<ConnectionsClientTracker>();
+            var connections = ServiceCache.Get<ConnectionsClientTracker>();
             for (int i = 0; i < _lines; i++)
             {
                 var socket = new EntityPartSocket(_shipId, _partId, (byte)i);
