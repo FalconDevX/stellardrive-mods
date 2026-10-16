@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using HarmonyLib;
 using Items.Model;
 using Mining.Content;
@@ -9,7 +9,6 @@ using Ships.Interface.Model.Parts;
 using Ships.Interface.Model.Parts.Common;
 using Ships.Interface.Model.Parts.State;
 using Ships.Interface.Model.State;
-using Ships.Parts.FluidPump;
 using Ships.Parts.GasExhaust;
 using UnityEngine;
 
@@ -53,32 +52,6 @@ namespace Mining.Server
                 ____ship.UpdateRoomGasState(room.RoomId, gas);
             }
             __result = new GasExhaustState { FluidItemId = group.FluidItemId, OutputRate = flow / deltaTime / rate };
-            return false;
-        }
-    }
-
-    [HarmonyPatch(typeof(FluidPumpsServerUpdater), nameof(FluidPumpsServerUpdater.Update))]
-    internal static class ScaledPumpPatch
-    {
-        private static bool Prefix(IShipStateWrite ____ship, ConnectionsServerTracker ____connections, float deltaTime)
-        {
-            foreach (StatefulPart part in ____ship.GetAllStatefulParts<FluidPumpState>())
-            {
-                float signal = (float)____connections.GetSignalValue(new EntityPartSocket(____ship.Id, part.Id, 0));
-                if (signal <= 0f ||
-                    !____connections.TryGetFluidGroupCacheFromSocket(new EntityPartSocket(____ship.Id, part.Id, 2), out var from) ||
-                    !____connections.TryGetFluidGroupCacheFromSocket(new EntityPartSocket(____ship.Id, part.Id, 3), out var to) ||
-                    from == to || from.FluidItemId == 0 || (to.FluidItemId != 0 && from.FluidItemId != to.FluidItemId))
-                {
-                    ____ship.UpdatePartState(part.Id, new FluidPumpState { PumpRate = 0f });
-                    continue;
-                }
-                float full = 5f * ScaledVariants.Rate(part.Settings) * deltaTime;
-                float moved = Mathf.Max(Mathf.Min(from.Available, to.ReceivingCapacity, signal * full), 0f);
-                to.AddFluid(from.FluidItemId, moved);
-                from.RemoveFluid(moved);
-                ____ship.UpdatePartState(part.Id, new FluidPumpState { PumpRate = moved / full });
-            }
             return false;
         }
     }
