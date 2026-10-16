@@ -50,6 +50,19 @@ namespace Mining.Patches
             return tex;
         }
 
+        private static Texture2D LoadPaintIcon()
+        {
+            try
+            {
+                return Content.ModAssets.LoadTexture("paint_tool_icon.png");
+            }
+            catch (Exception e)
+            {
+                Melon<MiningMod>.Logger.Warning($"Paint tool icon: {e.Message}");
+                return null;
+            }
+        }
+
         private static void Paint(ref Color c, float d, Color fill, Color outline, float aa)
         {
             float a = Mathf.Clamp01((aa - d) / (2f * aa));
@@ -85,7 +98,7 @@ namespace Mining.Patches
             if (itemId == Blueprints.BlueprintToolItem.PaintToolItemId)
             {
                 var size = Traverse.Create(__instance).Field("_thumbnailsResolutionProvider").Method("GetItemSmallThumbnailResolution").GetValue<int>();
-                __result = PaintIcon(Mathf.Max(64, size));
+                __result = LoadPaintIcon() ?? PaintIcon(Mathf.Max(64, size));
                 ____thumbnails[itemId] = __result;
                 return false;
             }
