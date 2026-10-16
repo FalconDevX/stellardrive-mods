@@ -175,13 +175,13 @@ namespace Mining.Content
             }
 
             Bounds b = root.GetComponent<ShipPartBounds>().GetBounds();
-            float frame = BigDoorModel.Frame, depth = Mathf.Clamp(b.size.z, 0.25f, 0.35f), z = b.center.z;
+            float frame = BigDoorModel.SideFrame(b), top = BigDoorModel.TopFrame(b), depth = Mathf.Clamp(b.size.z, 0.25f, 0.35f), z = b.center.z;
             GameObject frameObject = ColliderObject("Frame", dynamic.transform, layer, tag);
             AddBox(root, frameObject, new Vector3(b.min.x + frame / 2, b.center.y, z), new Vector3(frame, b.size.y, depth));
             AddBox(root, frameObject, new Vector3(b.max.x - frame / 2, b.center.y, z), new Vector3(frame, b.size.y, depth));
-            AddBox(root, frameObject, new Vector3(b.center.x, b.max.y - frame / 2, z), new Vector3(b.size.x, frame, depth));
+            AddBox(root, frameObject, new Vector3(b.center.x, b.max.y - top / 2, z), new Vector3(b.size.x, top, depth));
             GameObject leaf = ColliderObject("Door", dynamic.transform, layer, tag);
-            AddBox(root, leaf, new Vector3(b.center.x, (b.min.y + b.max.y - frame) / 2, z), new Vector3(b.size.x - 2 * frame, b.size.y - frame, depth));
+            AddBox(root, leaf, new Vector3(b.center.x, (b.min.y + b.max.y - top) / 2, z), new Vector3(b.size.x - 2 * frame, b.size.y - top, depth));
             leaf.SetActive(oldDoor == null || oldDoor.activeSelf);
             fields.Field("doorCollider").SetValue(leaf);
             fields.Field("colliders").SetValue(new[] { frameObject, leaf });

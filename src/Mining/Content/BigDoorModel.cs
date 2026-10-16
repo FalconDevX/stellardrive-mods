@@ -25,6 +25,13 @@ namespace Mining.Content
 
         internal const string ModelName = "BigDoorModel";
         internal const float Frame = 0.22f;
+        internal const float NarrowFrame = 0.06f, NarrowTop = 0.1f;
+
+        internal static bool IsNarrow(Bounds b) => b.size.x < 1.5f;
+
+        internal static float SideFrame(Bounds b) => IsNarrow(b) ? NarrowFrame : Frame;
+
+        internal static float TopFrame(Bounds b) => IsNarrow(b) ? NarrowTop : Frame;
         private const float Sill = 0.08f;
         private const float Strip = 0.25f;
 
@@ -44,6 +51,11 @@ namespace Mining.Content
             Vector3 min = b.min, max = b.max;
             float w = b.size.x, h = b.size.y, z = b.center.z;
             float depth = Mathf.Clamp(b.size.z, 0.25f, 0.35f);
+            if (IsNarrow(b))
+            {
+                BuildNarrow(model, material, look, min, max, z, depth);
+                return model;
+            }
             Style style = w >= 8f ? Style.Blast : w > h && h >= 3f ? Style.Jaw : Style.Slide;
 
             float ix0 = min.x + Frame, ix1 = max.x - Frame, iy0 = min.y + Sill, iy1 = max.y - Frame;
@@ -142,6 +154,33 @@ namespace Mining.Content
                 }
             }
             PartFactory.CreateRenderer("Frame", model, m.ToMesh("BigDoorFrame"), material, look);
+        }
+
+        private static void BuildNarrow(Transform model, Material material, MeshRenderer look, Vector3 min, Vector3 max, float z, float depth)
+        {
+            float w = max.x - min.x, h = max.y - min.y, cx = (min.x + max.x) / 2, cy = (min.y + max.y) / 2;
+            float ix0 = min.x + NarrowFrame, ix1 = max.x - NarrowFrame, iy0 = min.y, iy1 = max.y - NarrowTop;
+            var m = new MeshBuilder();
+            foreach (float sx in new[] { min.x + NarrowFrame / 2, max.x - NarrowFrame / 2 })
+            {
+                m.Box(new Vector3(sx, cy, z), new Vector3(NarrowFrame, h, depth), "grey");
+            }
+            m.Box(new Vector3(cx, max.y - NarrowTop / 2, z), new Vector3(w, NarrowTop, depth), "grey");
+            m.Box(new Vector3(cx, max.y - NarrowTop / 2, z), new Vector3(w - 0.3f, NarrowTop * 0.4f, depth + 0.02f), "yellow");
+            PartFactory.CreateRenderer("Frame", model, m.ToMesh("BigDoorFrame"), material, look);
+
+            float d = Mathf.Min(0.1f, depth * 0.6f), wl = ix1 - ix0 - 0.01f, hl = iy1 - iy0, lcx = (ix0 + ix1) / 2, lcy = (iy0 + iy1) / 2;
+            var leaf = new List<Box> { new Box(new Vector3(lcx, lcy, z), new Vector3(wl, hl, d), "light") };
+            foreach (float side in new[] { -1f, 1f })
+            {
+                float fz = z + side * (d / 2 + 0.006f);
+                leaf.Add(new Box(new Vector3(lcx, iy1 - 0.04f, fz), new Vector3(wl, 0.08f, 0.012f), "grey"));
+                leaf.Add(new Box(new Vector3(lcx, iy0 + 0.04f, fz), new Vector3(wl, 0.08f, 0.012f), "grey"));
+                leaf.Add(new Box(new Vector3(lcx, lcy - 0.15f, fz), new Vector3(wl - 0.12f, 0.03f, 0.012f), "grey"));
+                leaf.Add(new Box(new Vector3(lcx, iy1 - 0.45f, fz), new Vector3(wl * 0.55f, 0.42f, 0.016f), "dark"));
+                leaf.Add(new Box(new Vector3(lcx, iy1 - 0.45f, fz + side * 0.004f), new Vector3(wl * 0.55f - 0.06f, 0.36f, 0.012f), "screen"));
+            }
+            AddLeaf(model, material, look, leaf, 'y', 1, hl, iy0, iy1, iy0, iy1);
         }
 
         private static List<Box> SlideLeaf(float x0, float x1, float y0, float y1, float z, float d, float mid)
