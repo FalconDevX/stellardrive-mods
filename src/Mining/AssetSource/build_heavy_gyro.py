@@ -18,8 +18,6 @@ CELLS = 4
 C = Matrix(((0, 0, -1), (1, 0, 0), (0, 1, 0)))
 
 PIVOT_Y = 0.5306
-POST = 0.45
-TOP = 0.955
 
 
 def B(v):
@@ -79,6 +77,13 @@ class Builder:
         self._paint(verts, mat)
         return self
 
+    def pipe(self, points, r, mat, seg=12):
+        for a, b in zip(points, points[1:]):
+            self.cyl(a, b, r, mat, seg)
+        for p in points[1:-1]:
+            self.lathe([(r * math.sin(math.pi * i / 6), -r * math.cos(math.pi * i / 6)) for i in range(7)], mat, p, (0, 1, 0), seg)
+        return self
+
     def prism(self, pts2d, origin, u, v, depth, mat):
         o, u, v = Vector(origin), Vector(u), Vector(v)
         n = u.cross(v).normalized()
@@ -115,7 +120,8 @@ class Builder:
 def hazard(m, center, right, up, outward, length, height):
     o, r, u, n = Vector(center), Vector(right), Vector(up), Vector(outward)
     m.box(tuple(o + n * 0.002), tuple(abs(c) for c in (r * length + u * height + n * 0.004)), 'yellow')
-    w, slant, step = height * 0.75, height * 0.55, height * 1.6
+    stripe = min(height, 0.034)
+    w, slant, step = stripe * 0.75, stripe * 0.55, stripe * 1.6
     x = -length / 2 + 0.006
     while x + w + slant < length / 2 - 0.004:
         h = height / 2 - 0.002
@@ -128,58 +134,75 @@ def bolt(m, center, normal, r=0.0085, length=0.008):
     m.cyl(tuple(c), tuple(c + n * length), r, 'grey', seg=6)
 
 
-def build_cage(m):
-    for sx in (-1, 1):
-        for sz in (-1, 1):
-            x, z = sx * POST, sz * POST
-            m.box((x, 0.475, z), (0.05, 0.93, 0.05), 'steel', bevel=0.006)
-            m.box((x, 0.02, z), (0.085, 0.04, 0.085), 'dark', bevel=0.005)
-            for bx in (-1, 1):
-                for bz in (-1, 1):
-                    bolt(m, (x + bx * 0.029, 0.04, z + bz * 0.029), (0, 1, 0), 0.0065, 0.006)
-            m.box((x, 0.86, z), (0.056, 0.05, 0.056), 'yellow')
-            m.box((x, 0.83, z), (0.057, 0.01, 0.057), 'black')
-            m.box((x, 0.985, z), (0.07, 0.03, 0.07), 'dark', bevel=0.006)
-
+def build_aframes(m):
     for sz in (-1, 1):
-        z = sz * POST
-        m.box((0, TOP, z), (0.85, 0.05, 0.05), 'steel', bevel=0.005)
-        hazard(m, (0, TOP, z + sz * 0.025), (1, 0, 0), (0, 1, 0), (0, 0, sz), 0.78, 0.034)
-    for sx in (-1, 1):
-        x = sx * POST
-        m.box((x, TOP, 0), (0.05, 0.05, 0.85), 'steel', bevel=0.005)
-        m.box((x, 0.405, 0), (0.042, 0.036, 0.85), 'steel', bevel=0.004)
-        m.cyl((x, 0.43, -0.415), (x, 0.93, 0.415), 0.014, 'grey', seg=10)
-        m.cyl((x, 0.43, 0.415), (x, 0.93, -0.415), 0.014, 'grey', seg=10)
-        m.box((x, 0.68, 0), (0.05, 0.05, 0.05), 'dark', bevel=0.004)
-        for sz in (-1, 1):
-            m.prism([(0, 0), (0.09, 0), (0, -0.09)], (x + sz * 0.01, TOP - 0.025, sz * (POST - 0.025)), (0, 0, -sz), (0, 1, 0), 0.02, 'dark')
-
-    for sx in (-1, 1):
-        for sz in (-1, 1):
-            m.prism([(0, 0), (0.08, 0), (0, -0.08)], (sx * (POST - 0.025), TOP - 0.025, sz * POST - sx * 0.01), (-sx, 0, 0), (0, 1, 0), 0.02, 'dark')
-
-
-def build_bearings(m):
-    for sz in (-1, 1):
-        z = sz * 0.479
+        face = sz * 0.461
+        foot = sz * 0.469
+        z = sz * 0.476
         center = (0, PIVOT_Y, z)
-        profile = [(0.052, -0.014), (0.086, -0.014), (0.093, -0.008), (0.093, 0.008), (0.086, 0.014), (0.052, 0.014), (0.052, -0.014)]
-        m.lathe(profile, 'dark', center, (0, 0, 1), seg=40)
-        m.lathe([(0.0525, -0.004), (0.06, -0.004), (0.06, 0.016), (0.0525, 0.016), (0.0525, -0.004)], 'yellow', center, (0, 0, 1), seg=40)
-        for i in range(6):
-            a = math.radians(30 + 60 * i)
-            bolt(m, (0.073 * math.cos(a), PIVOT_Y + 0.073 * math.sin(a), z + sz * 0.012), (0, 0, sz), 0.0075, 0.007)
-        m.box((0, PIVOT_Y - 0.135, z - sz * 0.004), (0.12, 0.09, 0.02), 'dark', bevel=0.004)
-        hazard(m, (0, PIVOT_Y - 0.135, z + sz * 0.006), (1, 0, 0), (0, 1, 0), (0, 0, sz), 0.105, 0.03)
+        m.lathe([(0.052, -0.015), (0.086, -0.015), (0.094, -0.009), (0.094, 0.009), (0.086, 0.015), (0.052, 0.015), (0.052, -0.015)], 'dark', center, (0, 0, 1), seg=40)
+        m.lathe([(0.0525, -0.004), (0.061, -0.004), (0.061, 0.018), (0.0525, 0.018), (0.0525, -0.004)], 'yellow', center, (0, 0, 1), seg=40)
+        m.lathe([(0.079, 0.0145), (0.084, 0.0145), (0.084, 0.0175), (0.079, 0.0175), (0.079, 0.0145)], 'glow', center, (0, 0, 1), seg=40)
+        for i in range(8):
+            a = math.radians(22.5 + 45 * i)
+            bolt(m, (0.069 * math.cos(a), PIVOT_Y + 0.069 * math.sin(a), z + sz * 0.015), (0, 0, sz), 0.0065, 0.006)
+        for sx in (-1, 1):
+            for y in (0.31, 0.37):
+                x = sx * (0.22 - (y - 0.3) * 0.9)
+                m.box((x, y, face + sz * 0.003), (0.034, 0.034, 0.006), 'dark', bevel=0.002)
+                bolt(m, (x, y, face + sz * 0.006), (0, 0, sz), 0.0075, 0.006)
+            m.box((sx * 0.335, 0.075, foot + sz * 0.004), (0.2, 0.09, 0.008), 'dark', bevel=0.002)
+            hazard(m, (sx * 0.335, 0.075, foot + sz * 0.008), (1, 0, 0), (0, 1, 0), (0, 0, sz), 0.18, 0.07)
+            for bx in (-1, 1):
+                bolt(m, (sx * 0.335 + bx * 0.075, 0.165, foot), (0, 0, sz), 0.0075, 0.008)
 
 
-def build_lamps(m):
+def build_cables(m):
     for sx in (-1, 1):
-        for sz in (-1, 1):
-            m.box((sx * POST, 0.994, sz * POST), (0.036, 0.008, 0.036), 'glow')
+        z = -0.476
+        path = [(sx * 0.42, 0.17, -0.46), (sx * 0.42, 0.17, z), (sx * 0.30, 0.17, z), (sx * 0.265, 0.27, z), (sx * 0.12, 0.45, z), (sx * 0.092, 0.488, z)]
+        m.pipe(path, 0.0075, 'rubber', seg=10)
+        for t in (0.35, 0.65):
+            a, b = Vector(path[3]), Vector(path[4])
+            c = a + (b - a) * t
+            m.box(tuple(c + Vector((0, 0, 0.004))), (0.026, 0.026, 0.012), 'dark', rot=Matrix.Rotation(math.atan2(b.y - a.y, b.x - a.x), 3, 'Z'), bevel=0.002)
+
+
+def build_conditioners(m):
+    for sx in (-1, 1):
+        x = sx * 0.42
+        z0 = -0.375
+        m.box((x, 0.215, z0), (0.1, 0.13, 0.12), 'grey', bevel=0.008)
+        m.box((x, 0.285, z0), (0.104, 0.012, 0.124), 'dark', bevel=0.003)
+        for i in range(5):
+            m.box((x + sx * 0.051, 0.175 + i * 0.019, z0), (0.006, 0.008, 0.09), 'dark')
+        m.box((x, 0.215, z0 + 0.061), (0.07, 0.07, 0.004), 'white')
+        m.box((x - sx * 0.012, 0.228, z0 + 0.0635), (0.03, 0.006, 0.002), 'black')
+        m.box((x - sx * 0.012, 0.212, z0 + 0.0635), (0.03, 0.006, 0.002), 'black')
+        m.box((x + sx * 0.02, 0.2, z0 + 0.0635), (0.012, 0.012, 0.002), 'yellow')
+        m.cyl((x, 0.215, z0 - 0.06), (x, 0.215, z0 - 0.085), 0.016, 'dark', seg=12)
+        m.cyl((x, 0.215, z0 - 0.085), (x, 0.17, z0 - 0.085), 0.009, 'rubber', seg=10)
+        m.box((x - sx * 0.025, 0.2925, z0 - 0.03), (0.02, 0.006, 0.02), 'glow')
+        m.box((x - sx * 0.025, 0.2925, z0 + 0.0), (0.02, 0.006, 0.02), 'glow')
+        m.box((x - sx * 0.025, 0.2925, z0 + 0.03), (0.02, 0.006, 0.02), 'glow')
+        for bz in (-1, 1):
+            bolt(m, (x + sx * 0.03, 0.291, z0 + bz * 0.045), (0, 1, 0), 0.0055, 0.004)
+
+
+def build_bar(m):
+    for sx in (-1, 1):
+        x = sx * 0.332
+        m.lathe([(0.056, 0.0), (0.084, 0.0), (0.088, 0.004), (0.088, 0.011), (0.082, 0.015), (0.056, 0.015), (0.056, 0.0)], 'steel', (x, 0, 0), (sx, 0, 0), seg=32)
+        for i in range(8):
+            a = math.radians(22.5 + 45 * i)
+            bolt(m, (x, 0.118 * math.sin(a), 0.118 * math.cos(a)), (sx, 0, 0), 0.0095, 0.009)
+        for sy in (-1, 1):
+            m.box((x + sx * 0.002, sy * 0.14, 0), (0.004, 0.012, 0.11), 'yellow')
     for sz in (-1, 1):
-        m.box((0, TOP + 0.026, sz * POST), (0.3, 0.004, 0.012), 'glow')
+        for sy in (-1, 1):
+            m.box((0, sy * 0.1235, sz * 0.366), (0.1, 0.019, 0.032), 'steel', bevel=0.003)
+            for bx in (-1, 1):
+                bolt(m, (bx * 0.035, sy * 0.133, sz * 0.366), (0, sy, 0), 0.0055, 0.004)
 
 
 def export(obj, path, glow):
@@ -212,17 +235,21 @@ def export(obj, path, glow):
             f.write(struct.pack('<8f', *v))
         f.write(struct.pack('<%di' % len(index), *index))
     bounds = [(round(min(v[k] for v in verts), 3), round(max(v[k] for v in verts), 3)) for k in range(3)]
-    clearance = min((math.hypot(v[0], v[1] - PIVOT_Y) for v in verts if abs(v[2]) < 0.42), default=1.0)
-    print(os.path.basename(path), len(verts), 'vertices', len(index) // 3, 'triangles', 'bounds', bounds, 'clearance', round(clearance, 3))
+    clearance = min((math.hypot(v[0], v[1] - PIVOT_Y) for v in verts if abs(v[2]) < 0.395), default=1.0)
+    reach = max(math.hypot(v[0], v[1]) for v in verts)
+    print(os.path.basename(path), len(verts), 'vertices', len(index) // 3, 'triangles', 'bounds', bounds, 'clearance', round(clearance, 3), 'reach', round(reach, 3))
 
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 m = Builder()
-build_cage(m)
-build_bearings(m)
-build_lamps(m)
+build_aframes(m)
+build_conditioners(m)
+build_cables(m)
 detail = m.to_object('HeavyGyroDetail')
 export(detail, os.path.join(OUT, 'heavy_gyro_frame.bin'), False)
 export(detail, os.path.join(OUT, 'heavy_gyro_glow.bin'), True)
+b = Builder()
+build_bar(b)
+export(b.to_object('HeavyGyroBar'), os.path.join(OUT, 'heavy_gyro_bar.bin'), False)
 if PREVIEW:
     bpy.ops.wm.save_as_mainfile(filepath=PREVIEW)

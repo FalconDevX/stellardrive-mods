@@ -61,6 +61,8 @@ namespace Mining.Content
             PartFactory.CreateRenderer("Frame", visuals, ModAssets.LoadMesh("heavy_gyro_frame.bin"), frame, look);
             GameObject lamps = PartFactory.CreateRenderer("Lamps", visuals, ModAssets.LoadMesh("heavy_gyro_glow.bin"), glow, look);
             lamps.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            Transform bar = visuals.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "GyroscopeBar") ?? throw new Exception("gyroscope has no bar");
+            PartFactory.CreateRenderer("BarDetail", bar, ModAssets.LoadMesh("heavy_gyro_bar.bin"), frame, look);
             Tint(visuals, "GyroscopeWheel", new Color(0.62f, 0.66f, 0.74f));
             visuals.gameObject.AddComponent<HeavyGyroscopeVisuals>();
 
@@ -69,7 +71,7 @@ namespace Mining.Content
             settings.hideFlags = HideFlags.DontUnloadUnusedAsset;
             settings.id = PartId;
             settings.fullLabel = "Heavy Gyroscope";
-            settings.description = $"A gyroscope with a heavy flywheel in a reinforced cage, the size of the normal one but {Strength:0} times stronger. " +
+            settings.description = $"A gyroscope with a heavy flywheel, reinforced bearings and its own power conditioners, the size of the normal one but {Strength:0} times stronger. " +
                                    $"Uses {Strength:0} times the power (up to {800f * Strength / 1000f:0.#} kW while turning). Wire it like the normal gyroscope: three rotation signals and power on either side.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
