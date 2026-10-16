@@ -140,6 +140,7 @@ namespace Mining.Content
             if (sound != null)
             {
                 sound.transform.position = root.transform.TransformPoint(main.Exit);
+                sound.gameObject.AddComponent<HydrogenThrusterSound>();
             }
 
             Transform interactions = root.transform.Find("Interactions");

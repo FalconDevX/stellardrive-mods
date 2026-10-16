@@ -97,7 +97,11 @@ namespace Mining.Content
                 flame.transform.position = nozzleWorld;
                 TintFlame(flame.gameObject);
             }
-            if (sound != null) sound.transform.position = nozzleWorld;
+            if (sound != null)
+            {
+                sound.transform.position = nozzleWorld;
+                sound.gameObject.AddComponent<HydrogenThrusterSound>();
+            }
 
             PartFactory.SetBounds(root, mesh.bounds);
 
