@@ -6,10 +6,14 @@ from build_pump_sounds import RATE, band_noise, tone, soft_clip, write, rng
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
-def recorded(seconds):
-    path = os.path.join(HERE, 'hydrogen_elevenlabs.mp3')
+def decode(name):
+    path = os.path.join(HERE, name)
     raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', path, '-ac', '1', '-ar', str(RATE), '-f', 's16le', '-'], capture_output=True, check=True).stdout
-    x = np.frombuffer(raw, '<i2').astype(np.float64) / 32768
+    return np.frombuffer(raw, '<i2').astype(np.float64) / 32768
+
+
+def recorded(name, seconds):
+    x = decode(name)
     n = int(RATE * seconds)
     fade = int(RATE * 0.05)
     ramp = np.linspace(0, 1, fade)
@@ -39,14 +43,40 @@ def synth(n, seconds):
     return low, body, jet, hiss, crackle, whine
 
 
+def jitter(n):
+    rough = band_noise(n, 6, 22)
+    rough = rough / (np.abs(rough).max() + 1e-9)
+    pops = np.zeros(n)
+    for _ in range(int(n / RATE * 9)):
+        m = int(RATE * rng.uniform(0.03, 0.09))
+        idx = (int(rng.random() * n) + np.arange(m)) % n
+        pops[idx] = np.maximum(pops[idx], np.sin(np.linspace(0, np.pi, m)) * rng.uniform(0.4, 1.0))
+    return 0.82 + 0.13 * rough - 0.22 * pops
+
+
 def hydrogen():
     seconds = 6.0
     n = int(RATE * seconds)
-    rec = recorded(seconds)
+    rec = recorded('hydrogen_elevenlabs.mp3', seconds)
+    sputter = recorded('hydrogen_sputter_elevenlabs.mp3', seconds)
     low, body, jet, hiss, crackle, whine = synth(n, seconds)
-    x = rec * 1.0 + low * 0.3 + body * 0.15 + jet * 0.12 + hiss * 0.1 + crackle * 0.2 + whine * 0.02
-    write('hydrogen_loop.wav', soft_clip(x * 1.1), 0.8)
+    x = rec * 1.0 + sputter * 0.6 + low * 0.25 + body * 0.12 + jet * 0.1 + hiss * 0.1 + crackle * 0.3 + whine * 0.02
+    x = x * jitter(n)
+    write('hydrogen_loop.wav', soft_clip(x * 1.05), 0.8)
+
+
+def shutdown():
+    x = decode('hydrogen_stop_elevenlabs.mp3')
+    n = len(x)
+    t = np.arange(n) / RATE
+    hold, end = 0.25, n / RATE - 0.05
+    env = np.where(t < hold, 1.0, 0.5 + 0.5 * np.cos(np.pi * np.clip((t - hold) / (end - hold), 0, 1)))
+    env = env ** 1.6
+    attack = int(RATE * 0.03)
+    env[:attack] *= np.linspace(0, 1, attack)
+    write('hydrogen_stop.wav', x * env, 0.7)
 
 
 if __name__ == '__main__':
     hydrogen()
+    shutdown()

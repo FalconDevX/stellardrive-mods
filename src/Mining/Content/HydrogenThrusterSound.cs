@@ -8,27 +8,54 @@ namespace Mining.Content
     internal class HydrogenThrusterSound : MonoBehaviour
     {
         private Audio.LoopEmitter _sound;
-        private float _target, _level, _pitch = 1f;
+        private float _target, _level, _peak, _pitch = 1f, _hear = 90f, _lastStop = -10f;
 
-        internal void SetIntensity(float intensity) => _target = Mathf.Clamp01(intensity);
+        internal void SetIntensity(float intensity)
+        {
+            float next = Mathf.Clamp01(intensity);
+            if (next <= 0.01f && _target > 0.01f)
+            {
+                Shutdown();
+            }
+            _target = next;
+        }
 
         private void Awake()
         {
             var bounds = GetComponentInParent<ShipPartBounds>();
             float size = bounds != null ? bounds.bounds.magnitude : 1.5f;
             _pitch = Mathf.Clamp(1.12f - 0.055f * size, 0.68f, 1.08f);
-            _sound = new Audio.LoopEmitter("hydrogen", 70f + 18f * size, MiningMod.HydrogenEngineVolume);
+            _hear = 70f + 18f * size;
+            _sound = new Audio.LoopEmitter("hydrogen", _hear, MiningMod.HydrogenEngineVolume);
         }
 
         private void Update()
         {
-            _level = Mathf.MoveTowards(_level, _target, Time.deltaTime * (_target > _level ? 2.5f : 1.5f));
-            float level = _level > 0f ? 0.35f + 0.65f * _level : 0f;
-            _sound.Update(transform.position, level, _pitch * (0.88f + 0.2f * _level));
+            _level = Mathf.MoveTowards(_level, _target, Time.deltaTime * (_target > _level ? 3f : 0.9f));
+            _peak = _target > 0.01f ? Mathf.Max(_peak * Mathf.Exp(-Time.deltaTime * 0.5f), _level) : _peak;
+            float volume = Mathf.Pow(_level, 0.7f);
+            _sound.Update(transform.position, volume, _pitch * (0.72f + 0.36f * _level));
+        }
+
+        private void Shutdown()
+        {
+            float strength = Mathf.Max(_level, _peak);
+            _peak = 0f;
+            if (strength < 0.15f || Time.time - _lastStop < 0.6f)
+            {
+                return;
+            }
+            _lastStop = Time.time;
+            Audio.OneShot.Play("hydrogen_stop", transform.position, _hear, MiningMod.HydrogenEngineVolume.Value * (0.4f + 0.6f * strength), _pitch);
         }
 
         private void OnDisable()
         {
+            if (_target > 0.01f || _level > 0.15f)
+            {
+                Shutdown();
+            }
+            _target = 0f;
             _level = 0f;
             _sound?.Stop();
         }

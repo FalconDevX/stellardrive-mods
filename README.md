@@ -38,7 +38,7 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Mining](#mining)** | 0.15.11 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
+| **[Mining](#mining)** | 0.15.12 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
 | **[Water](#water)** | 0.4.2 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.4 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.5.7 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
@@ -160,7 +160,7 @@ The largest mod in the collection. It adds resource extraction, new power source
 - **Hydrogen thruster** (research *Hydrogen Propulsion*): needs hydrogen, oxygen and power, is 1.8x stronger than the chemical thruster and burns with a sky-blue flame.
 - **Electrolyzer:** turns ice or water plus power into hydrogen, oxygen and water. Hydrogen exits on the left by the orange tank, oxygen on the right by the light blue tank; power and water enter at the back, ice goes into the front container.
 - **Water pump (1x1):** above a lake on Otrera b it lowers a hose (up to 30 m, length controllable by signal) and pumps water to two outlets.
-- **Heavy hydrogen engines** (research *Heavy Hydrogen Engines*): sizes **M** (2x2x3, 4x thrust), **L** (3x3x4, 4 nozzles, 9x) and **XL** (4x4x6, large nozzle plus 6 small, 20x), with proportionally higher consumption. Every nozzle shows its own sky-blue flame; the XL flame is longer. All hydrogen engines have their own roar (deep combustion rumble, crackle and a high-pressure jet hiss); larger engines sound deeper and carry further. Volume: `HydrogenEngineVolume` in the Mining preferences.
+- **Heavy hydrogen engines** (research *Heavy Hydrogen Engines*): sizes **M** (2x2x3, 4x thrust), **L** (3x3x4, 4 nozzles, 9x) and **XL** (4x4x6, large nozzle plus 6 small, 20x), with proportionally higher consumption. Every nozzle shows its own sky-blue flame; the XL flame is longer. All hydrogen engines have their own rough, sputtering roar (deep combustion rumble, popping and crackle, high-pressure jet hiss); larger engines sound deeper and carry further. Cutting the throttle winds the roar down with a shutdown sound instead of cutting it off. Volume: `HydrogenEngineVolume` in the Mining preferences.
 
 </details>
 
