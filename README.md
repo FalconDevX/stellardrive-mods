@@ -38,7 +38,7 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Mining](#mining)** | 0.16.8 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
+| **[Mining](#mining)** | 0.16.9 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
 | **[Water](#water)** | 0.4.4 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.4 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.5.8 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
@@ -125,7 +125,7 @@ A few commonly tweaked options:
 | Resource Tweaks | `MaxStackSize` | `100` | Maximum stack size |
 | Resource Tweaks | `InventoryRows` | `0` | Rows of slots visible in the Tab inventory window (0 = all that fit on the screen) |
 | Mining | `HydrogenThrustMultiplier` | `1.8` | Hydrogen thruster strength relative to the chemical one |
-| Mining | `ReactorPower` | `20000` | Reactor output in watts |
+| Mining | `ReactorPower` | `45000` | Reactor output in watts (the large reactor gives 5x) |
 | Mining | `RotorLeverAngle` | `90` | Rotor angle for a signal of 1 |
 | Mining | `RotorCollision` | `false` | Stop a turning rotor before its moving part hits something |
 | Mining | `KeepNearbyShipsLoaded` | `true` | Keep nearby ships physics-loaded across spaces to avoid hitches |
@@ -169,7 +169,7 @@ The largest mod in the collection. It adds resource extraction, new power source
 <details>
 <summary><b>Nuclear power</b></summary>
 
-- **Reactor** (research *Nuclear Power*): uranium + water + a signal of `1` produces 20,000 W. A detailed small modular reactor in a steel frame: shielded pressure vessel with a domed, bolted closure head and a bank of control-rod drives, two steam generators with steam lines, two coolant pumps with motors, a pressurizer, glowing coolant windows, a fuel hatch and a control console; all four sockets (two power, water, signal) sit on one service panel. Only the windows, screens and lamps glow, the rest keeps its real colors. It spins its cooling fan under the top grille, lights its surroundings and hums while running.
+- **Reactor** (research *Nuclear Power*): uranium + water + a signal of `1` produces 45,000 W (the Large Nuclear Reactor 225,000 W). A detailed small modular reactor in a steel frame: shielded pressure vessel with a domed, bolted closure head and a bank of control-rod drives, two steam generators with steam lines, two coolant pumps with motors, a pressurizer, glowing coolant windows, a fuel hatch and a control console; all four sockets (two power, water, signal) sit on one service panel. Only the windows, screens and lamps glow, the rest keeps its real colors. It spins its cooling fan under the top grille, lights its surroundings and hums while running.
 - **Large reactor** (research *Large Reactor*): 4x4x4, 100,000 W, uses 5x more uranium and water. The same design at double size, with all four sockets on one service panel.
 
 </details>

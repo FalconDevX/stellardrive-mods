@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.16.8", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.16.9", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -68,7 +68,11 @@ namespace Mining
             UraniumChance = category.CreateEntry("UraniumShare", 0.3f, description: "Share of Otrera b deposits that are uranium (0-1). All players must use the same value");
             ShowSites = category.CreateEntry("ShowSites", true, description: "Show deposits (fields of ore rocks)");
             DrillVolume = category.CreateEntry("DrillVolume", 0.8f, description: "Drill volume (0-1)");
-            ReactorPower = category.CreateEntry("ReactorPower", 20000f, description: "Reactor power (W). The wood generator gives 4000 W. Host only");
+            ReactorPower = category.CreateEntry("ReactorPower", 45000f, description: "Reactor power (W), the large reactor gives 5x. The wood generator gives 4000 W. Host only");
+            if (ReactorPower.Value <= 20000f)
+            {
+                ReactorPower.Value = 45000f;
+            }
             ReactorSecondsPerUranium = category.CreateEntry("ReactorSecondsPerUranium", 120f, description: "Seconds of full-power operation per 1 uranium. Host only");
             PumpRate = category.CreateEntry("PumpRate", 1f, description: "Water per second pumped at full power. Host only");
             PumpVolume = category.CreateEntry("PumpVolume", 0.7f, description: "Water pump volume (0-1)");
