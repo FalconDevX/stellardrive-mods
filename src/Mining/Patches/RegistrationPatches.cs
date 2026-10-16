@@ -45,8 +45,6 @@ namespace Mining.Patches
             (ScaledVariants.Variants[3].Id, p => ScaledVariants.GetOrCreate(ScaledVariants.Variants[3].Id, p), () => ScaledVariants.Get(ScaledVariants.Variants[3].Id), 0),
             (ScaledVariants.Variants[4].Id, p => ScaledVariants.GetOrCreate(ScaledVariants.Variants[4].Id, p), () => ScaledVariants.Get(ScaledVariants.Variants[4].Id), 0),
             (ScaledVariants.Variants[5].Id, p => ScaledVariants.GetOrCreate(ScaledVariants.Variants[5].Id, p), () => ScaledVariants.Get(ScaledVariants.Variants[5].Id), 0),
-            (ScaledVariants.Variants[6].Id, p => ScaledVariants.GetOrCreate(ScaledVariants.Variants[6].Id, p), () => ScaledVariants.Get(ScaledVariants.Variants[6].Id), 0),
-            (ScaledVariants.Variants[7].Id, p => ScaledVariants.GetOrCreate(ScaledVariants.Variants[7].Id, p), () => ScaledVariants.Get(ScaledVariants.Variants[7].Id), 0),
             (Blueprints.Workbench.PartId, Blueprints.Workbench.GetOrCreatePart, () => Blueprints.Workbench.Part, Blueprints.Workbench.ResearchTablePartId),
             (BigChest.Variants[2].id, p => BigChest.GetOrCreate(BigChest.Variants[2].id, p), () => BigChest.Get(BigChest.Variants[2].id), BigChest.ChestPartId),
             (BigDoors.Variants[0].id, p => BigDoors.GetOrCreate(BigDoors.Variants[0].id, p), () => BigDoors.Get(BigDoors.Variants[0].id), BigDoors.DoorPartId),
