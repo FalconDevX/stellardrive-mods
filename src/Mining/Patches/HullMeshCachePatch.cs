@@ -114,8 +114,10 @@ namespace Mining.Patches
             yield return AccessTools.Method(typeof(ShipPartInstancer), nameof(ShipPartInstancer.InstantiatePartPreview));
             yield return AccessTools.Method(typeof(ShipPartsThumbnailRuntimeCache), nameof(ShipPartsThumbnailRuntimeCache.GetLargeThumbnail));
             yield return AccessTools.Method(typeof(HolographicDisplayService), nameof(HolographicDisplayService.ChangeObjectStyleToHolographic));
+            yield return AccessTools.Method(typeof(Ships.Parts.Rotor.RotorsUpdater), nameof(Ships.Parts.Rotor.RotorsUpdater.Update));
         }
 
+        [HarmonyPriority(Priority.First)]
         private static void Prefix(out long __state) => __state = Stopwatch.GetTimestamp();
 
         private static void Postfix(long __state, MethodBase __originalMethod)

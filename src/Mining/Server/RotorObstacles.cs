@@ -14,9 +14,19 @@ namespace Mining.Server
     {
         private const float Margin = 0.08f;
         private const float DeeperBy = 0.002f;
+        private const float CacheSeconds = 1f;
         private static readonly Collider[] Hits = new Collider[16];
-        private static readonly HashSet<Collider> Own = new HashSet<Collider>();
-        private static readonly List<Collider> Moving = new List<Collider>();
+        private static readonly Dictionary<uint, Group> Cache = new Dictionary<uint, Group>();
+        private static readonly Dictionary<uint, Transform> Frames = new Dictionary<uint, Transform>();
+        private static HashSet<Collider> Own;
+        private static List<Collider> Moving;
+
+        private sealed class Group
+        {
+            public readonly HashSet<Collider> Own = new HashSet<Collider>();
+            public readonly List<Collider> Moving = new List<Collider>();
+            public float Until;
+        }
 
         internal static bool IsBlocked(TrackedShipServer parent, StatefulPart rotor, RotorState state, float newAngle)
         {
@@ -31,9 +41,19 @@ namespace Mining.Server
             {
                 return false;
             }
-            Own.Clear();
-            Moving.Clear();
-            CollectOwn(ships, child, 0);
+            if (!Cache.TryGetValue(child.Id, out Group group) || Time.time > group.Until || group.Moving.Exists(c => c == null))
+            {
+                group = group ?? new Group();
+                Cache[child.Id] = group;
+                group.Own.Clear();
+                group.Moving.Clear();
+                Own = group.Own;
+                Moving = group.Moving;
+                CollectOwn(ships, child, 0);
+                group.Until = Time.time + CacheSeconds;
+            }
+            Own = group.Own;
+            Moving = group.Moving;
             if (Moving.Count == 0)
             {
                 return false;
@@ -68,8 +88,11 @@ namespace Mining.Server
                         continue;
                     }
                     float after = Depth(collider, movedPosition, movedTransformRotation, other);
-                    float before = Depth(collider, t.position, t.rotation, other);
-                    if (after < 0f || after > before + DeeperBy)
+                    if (after == 0f)
+                    {
+                        continue;
+                    }
+                    if (after < 0f || after > Depth(collider, t.position, t.rotation, other) + DeeperBy)
                     {
                         return true;
                     }
@@ -125,9 +148,18 @@ namespace Mining.Server
             {
                 return null;
             }
+            if (Frames.TryGetValue(ship.Id, out Transform cached) && cached != null)
+            {
+                return cached;
+            }
             object physics = Traverse.Create(ship).Field("_shipServerPhysics").GetValue();
             GameObject go = physics != null ? Traverse.Create(physics).Property("CollidersObject").GetValue<GameObject>() : null;
-            return go != null ? go.transform : null;
+            if (go == null)
+            {
+                return null;
+            }
+            Frames[ship.Id] = go.transform;
+            return go.transform;
         }
 
         private static bool GetBox(Collider collider, out Vector3 center, out Vector3 halfExtents, out Quaternion rotation)
