@@ -8,6 +8,7 @@ namespace Mining.Content
     internal class HydrogenThrusterSound : MonoBehaviour
     {
         private Audio.LoopEmitter _sound;
+        private Audio.OneShotChannel _start, _stop;
         private float _target, _level, _peak, _pitch = 1f, _hear = 90f, _lastStop = -10f, _lastStart = -10f;
 
         internal void SetIntensity(float intensity)
@@ -39,6 +40,8 @@ namespace Mining.Content
             _peak = _target > 0.01f ? Mathf.Max(_peak * Mathf.Exp(-Time.deltaTime * 0.5f), _level) : _peak;
             float volume = Mathf.Pow(_level, 0.7f);
             _sound.Update(transform.position, volume, _pitch * (0.72f + 0.36f * _level));
+            _start.Follow(transform.position);
+            _stop.Follow(transform.position);
         }
 
         private void Ignite()
@@ -48,7 +51,7 @@ namespace Mining.Content
                 return;
             }
             _lastStart = Time.time;
-            Audio.OneShot.Play("hydrogen_start", transform.position, _hear, MiningMod.HydrogenEngineVolume.Value * 0.45f, _pitch);
+            _start = Audio.OneShot.Play("hydrogen_start", transform.position, _hear, MiningMod.HydrogenEngineVolume.Value * 0.45f, _pitch);
         }
 
         private void Shutdown()
@@ -60,7 +63,7 @@ namespace Mining.Content
                 return;
             }
             _lastStop = Time.time;
-            Audio.OneShot.Play("hydrogen_stop", transform.position, _hear, MiningMod.HydrogenEngineVolume.Value * (0.25f + 0.35f * strength), _pitch);
+            _stop = Audio.OneShot.Play("hydrogen_stop", transform.position, _hear, MiningMod.HydrogenEngineVolume.Value * (0.25f + 0.35f * strength), _pitch);
         }
 
         private void OnDisable()

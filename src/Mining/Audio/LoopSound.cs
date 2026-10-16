@@ -132,29 +132,58 @@ namespace Mining.Audio
         }
     }
 
+    internal struct OneShotChannel
+    {
+        public FMOD.Channel Channel;
+        public float Volume, HearDistance;
+        public bool Valid;
+
+        public bool Follow(Vector3 position)
+        {
+            if (!Valid || Channel.isPlaying(out bool playing) != FMOD.RESULT.OK || !playing)
+            {
+                Valid = false;
+                return false;
+            }
+            OneShot.Place(Channel, position, HearDistance, Volume);
+            return true;
+        }
+    }
+
     internal static class OneShot
     {
-        internal static void Play(string name, Vector3 position, float hearDistance, float volume, float pitch)
+        internal static OneShotChannel Play(string name, Vector3 position, float hearDistance, float volume, float pitch)
         {
-            Camera cam = LoopEmitter.ListenerOverride != null ? LoopEmitter.ListenerOverride : Camera.main;
-            float distance = cam != null ? Vector3.Distance(cam.transform.position, position) : float.MaxValue;
-            float attenuation = Mathf.Clamp01(1f - distance / hearDistance);
-            float v = volume * attenuation * attenuation;
-            if (v <= 0.001f || !LoopSound.TryGet(name, out FMOD.Sound sound, false))
+            if (!LoopSound.TryGet(name, out FMOD.Sound sound, false) || Attenuated(position, hearDistance, volume) <= 0.001f)
             {
-                return;
+                return default;
             }
             FMOD.System core = FMODUnity.RuntimeManager.CoreSystem;
             core.getMasterChannelGroup(out FMOD.ChannelGroup master);
             core.playSound(sound, master, true, out FMOD.Channel channel);
-            channel.setVolume(v);
             channel.setPitch(pitch);
+            Place(channel, position, hearDistance, volume);
+            channel.setPaused(false);
+            return new OneShotChannel { Channel = channel, Volume = volume, HearDistance = hearDistance, Valid = true };
+        }
+
+        internal static void Place(FMOD.Channel channel, Vector3 position, float hearDistance, float volume)
+        {
+            channel.setVolume(Attenuated(position, hearDistance, volume));
+            Camera cam = LoopEmitter.ListenerOverride != null ? LoopEmitter.ListenerOverride : Camera.main;
             if (cam != null)
             {
                 Vector3 local = cam.transform.InverseTransformPoint(position);
                 channel.setPan(Mathf.Clamp(local.x / Mathf.Max(1f, local.magnitude), -1f, 1f) * 0.8f);
             }
-            channel.setPaused(false);
+        }
+
+        private static float Attenuated(Vector3 position, float hearDistance, float volume)
+        {
+            Camera cam = LoopEmitter.ListenerOverride != null ? LoopEmitter.ListenerOverride : Camera.main;
+            float distance = cam != null ? Vector3.Distance(cam.transform.position, position) : float.MaxValue;
+            float attenuation = Mathf.Clamp01(1f - distance / hearDistance);
+            return volume * attenuation * attenuation;
         }
     }
 }
