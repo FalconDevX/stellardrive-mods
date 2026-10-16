@@ -9,6 +9,8 @@ namespace Mining.Content
     {
         private Audio.LoopEmitter _sound;
         private Audio.OneShotChannel _start, _stop;
+        private static float _lastAnyStop = -10f;
+        private static int _recentStops;
         private float _target, _level, _peak, _pitch = 1f, _hear = 90f, _lastStop = -10f, _lastStart = -10f;
 
         internal void SetIntensity(float intensity)
@@ -63,7 +65,10 @@ namespace Mining.Content
                 return;
             }
             _lastStop = Time.time;
-            _stop = Audio.OneShot.Play("hydrogen_stop", transform.position, _hear, MiningMod.HydrogenEngineVolume.Value * (0.25f + 0.35f * strength), _pitch);
+            _recentStops = Time.time - _lastAnyStop < 0.25f ? _recentStops + 1 : 0;
+            _lastAnyStop = Time.time;
+            float crowd = 1f / Mathf.Sqrt(1f + _recentStops);
+            _stop = Audio.OneShot.Play("hydrogen_stop", transform.position, _hear * 0.6f, MiningMod.HydrogenEngineVolume.Value * (0.2f + 0.3f * strength) * crowd, _pitch);
         }
 
         private void OnDisable()
