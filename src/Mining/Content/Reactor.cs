@@ -184,7 +184,7 @@ namespace Mining.Content
                 Transform lamp = PartFactory.CreateRenderer("Beacon" + i, visual, beacon, beaconMaterial, lookCopy).transform;
                 lamp.localPosition = BeaconPositions[i] * size;
                 lamp.localRotation = Quaternion.Euler(0f, 90f * i, 0f);
-                lamp.localScale = Vector3.one * size;
+                lamp.localScale = Vector3.one * size * 1.5f;
             }
             Object.DestroyImmediate(lookCopy.gameObject);
 

@@ -42,6 +42,7 @@ namespace Mining.Content
         private Transform[] _beacons = new Transform[0];
         private Light[] _beaconLights = new Light[0];
         private Material _beaconMaterial;
+        private bool _beaconsOn;
         private Color _beaconColor = Unset;
         private readonly Audio.LoopEmitter _sound = new Audio.LoopEmitter("reactor", 30f, MiningMod.ReactorVolume);
 
@@ -112,7 +113,12 @@ namespace Mining.Content
         private void UpdateBeacons(float dt)
         {
             bool on = _level > 0.05f;
-            SetEmission(_beaconMaterial, ref _beaconColor, on ? Color.white * 2.2f : Color.black);
+            if (on != _beaconsOn)
+            {
+                _beaconsOn = on;
+                MelonLoader.Melon<MiningMod>.Logger.Msg($"Reactor beacons {(on ? "on" : "off")}: level {_level:0.00}, {_beacons.Length} beacons, material {_beaconMaterial?.shader?.name ?? "none"}, emission {(_beaconMaterial != null && _beaconMaterial.HasProperty(EmissionId))}, active {gameObject.activeInHierarchy}");
+            }
+            SetEmission(_beaconMaterial, ref _beaconColor, on ? Color.white * 6f : Color.black);
             for (int i = 0; i < _beacons.Length; i++)
             {
                 if (on)
@@ -123,7 +129,7 @@ namespace Mining.Content
                 if (light != null)
                 {
                     light.enabled = on;
-                    light.intensity = on ? 3f * _scale : 0f;
+                    light.intensity = on ? 8f * _scale : 0f;
                 }
             }
         }
