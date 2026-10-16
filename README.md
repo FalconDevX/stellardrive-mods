@@ -41,7 +41,7 @@
 | **[Mining](#mining)** | 0.16.10 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
 | **[Water](#water)** | 0.4.4 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.4 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
-| **[Ship Safety](#ship-safety)** | 0.5.8 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
+| **[Ship Safety](#ship-safety)** | 0.5.9 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
 | **[Resource Tweaks](#resource-tweaks)** | 0.5.1 | 3x resource yield, stacks of 100, faster mining | Host |
 | **[Warp Unlock](#warp-unlock)** | 0.1.2 | Reveals the hidden Warp Drive research in the demo | All players |
 | **[Planet Unlock](#planet-unlock)** | 0.1.2 | *Experimental:* loads every planet of the 442 Otrera system | All players |
@@ -134,6 +134,7 @@ A few commonly tweaked options:
 | Pick Block | `AreaMaxSize` | `9` | Largest square side for area building |
 | Ship Safety | `MaxSpeed` | `5000` | Ship speed limit (m/s) |
 | Ship Safety | `GuestShipCollision` | `true` | Collision between parked ships |
+| Ship Safety | `CarryShipsInHangars` | `true` | A smaller ship inside a bigger ship moves and turns with it |
 | Water | `LakeDepth` | `10` | How far lake beds are lowered (m) |
 | Water | `UnderwaterAirSeconds` | `30` | Breath time underwater with a full oxygen tank |
 | FPS Counter | `ToggleKey` | `F3` | Toggles the counter |
@@ -249,6 +250,7 @@ Turns the blue terrain of Otrera b's lakes into real water. **All players need i
 - Fixes a game bug where fuel in tanks is counted as negative, giving the ship negative mass and flinging it at many times the speed of light millions of kilometres from the planet.
 - Guards against mass errors, sudden speed jumps and enforces a 5000 m/s limit.
 - Ships parked on or next to each other collide properly and can be moved with the tool afterwards (`GuestShipCollision`, needs the mod on both sides; everything else works host-only).
+- A smaller ship inside a bigger ship's hull, e.g. parked or hovering in a hangar, moves and turns together with the bigger ship instead of sliding around when it flies, and it gets no air drag there. It can still fly, take off and land inside the hangar under its own power (`CarryShipsInHangars`).
 
 ### Resource Tweaks
 

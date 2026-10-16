@@ -1,7 +1,7 @@
 using MelonLoader;
 using ShipSafety;
 
-[assembly: MelonInfo(typeof(ShipSafetyMod), "Ship Safety", "0.5.8", "mateu")]
+[assembly: MelonInfo(typeof(ShipSafetyMod), "Ship Safety", "0.5.9", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace ShipSafety
@@ -16,6 +16,7 @@ namespace ShipSafety
         internal static MelonPreferences_Entry<int> ShipSolverIterations;
         internal static MelonPreferences_Entry<float> ShipDepenetrationSpeed;
         internal static MelonPreferences_Entry<bool> GuestShipCollision;
+        internal static MelonPreferences_Entry<bool> CarryShipsInHangars;
 
         public override void OnInitializeMelon()
         {
@@ -36,6 +37,8 @@ namespace ShipSafety
                 description: "Speed (m/s) at which physics pushes apart overlapping ships (0 = like the game). Less = gentler, no launching");
             GuestShipCollision = category.CreateEntry("GuestShipCollision", true,
                 description: "A ship resting on or standing next to another ship stays solid - players on either ship cannot walk through the other one");
+            CarryShipsInHangars = category.CreateEntry("CarryShipsInHangars", true,
+                description: "A smaller ship inside a bigger ship's hull (e.g. in a hangar) moves and turns with it, but can still fly and land on its own. Host only");
             category.SaveToFile(false);
 
             LoggerInstance.Msg($"Ship speed limit {MaxSpeed.Value} m/s, acceleration {MaxAcceleration.Value} m/s^2" +
