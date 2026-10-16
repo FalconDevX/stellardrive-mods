@@ -1,4 +1,4 @@
-﻿Resource Tweaks 0.5.0
+﻿Resource Tweaks 0.5.1
 Crouch 0.1.4
 Flora 0.4.1
 Pick Block 0.3.4

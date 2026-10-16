@@ -42,7 +42,7 @@
 | **[Water](#water)** | 0.4.4 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.4 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.5.8 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
-| **[Resource Tweaks](#resource-tweaks)** | 0.5.0 | 3x resource yield, stacks of 100, faster mining | Host |
+| **[Resource Tweaks](#resource-tweaks)** | 0.5.1 | 3x resource yield, stacks of 100, faster mining | Host |
 | **[Warp Unlock](#warp-unlock)** | 0.1.2 | Reveals the hidden Warp Drive research in the demo | All players |
 | **[Planet Unlock](#planet-unlock)** | 0.1.2 | *Experimental:* loads every planet of the 442 Otrera system | All players |
 | **[Shared Piloting](#shared-piloting)** | 0.1.1 | Multiple pilot seats: whoever moves the mouse steers | Host |
@@ -123,7 +123,7 @@ A few commonly tweaked options:
 |---|---|---|---|
 | Resource Tweaks | `DropMultiplier` | `3` | Resource yield multiplier |
 | Resource Tweaks | `MaxStackSize` | `100` | Maximum stack size |
-| Resource Tweaks | `InventoryScale` | `1.5` | Size of the Tab inventory window (1 = like the game) |
+| Resource Tweaks | `InventoryRows` | `0` | Rows of slots visible in the Tab inventory window (0 = all that fit on the screen) |
 | Mining | `HydrogenThrustMultiplier` | `1.8` | Hydrogen thruster strength relative to the chemical one |
 | Mining | `ReactorPower` | `20000` | Reactor output in watts |
 | Mining | `RotorLeverAngle` | `90` | Rotor angle for a signal of 1 |
@@ -252,7 +252,7 @@ Turns the blue terrain of Otrera b's lakes into real water. **All players need i
 
 ### Resource Tweaks
 
-3x resources from tool-less mining, stack size of 100, faster mining (trees -50% time, everything else -25%), a 45-slot personal inventory and a 50% bigger inventory window under Tab (`InventoryScale`). Host only, the window size is per player.
+3x resources from tool-less mining, stack size of 100, faster mining (trees -50% time, everything else -25%), a 45-slot personal inventory and a taller inventory window under Tab that shows more rows of normal-sized slots (`InventoryRows`). Host only, the window size is per player.
 
 ### Warp Unlock
 

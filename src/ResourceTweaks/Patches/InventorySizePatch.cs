@@ -85,7 +85,6 @@ namespace ResourceTweaks.Patches
             try
             {
                 Expand(__instance, InventoryConstants.GridSize);
-                Enlarge(__instance);
             }
             catch (Exception e)
             {
@@ -95,52 +94,6 @@ namespace ResourceTweaks.Patches
                     Melon<ResourceTweaksMod>.Logger.Error($"Inventory window: {e}");
                 }
             }
-        }
-
-        private static void Enlarge(InventoryGrid grid)
-        {
-            float scale = Mathf.Clamp(ResourceTweaksMod.InventoryScale.Value, 1f, 2.5f);
-            Transform parent = grid.transform.parent;
-            if (scale <= 1.001f || parent == null)
-            {
-                return;
-            }
-            foreach (InventoryGrid other in parent.GetComponentsInChildren<InventoryGrid>(true))
-            {
-                if (other != grid && Traverse.Create(other).Field<InventoryType>("source").Value != InventoryType.MainInventory)
-                {
-                    return;
-                }
-            }
-            Transform target = grid.transform;
-            for (Transform t = grid.transform.parent; t != null; t = t.parent)
-            {
-                Canvas canvas = t.GetComponent<Canvas>();
-                if (canvas != null && canvas.isRootCanvas)
-                {
-                    break;
-                }
-                if (t.GetComponentInChildren<DestroySlotUI>(true) != null)
-                {
-                    if (t.GetComponentsInChildren<InventoryGrid>(true).Length == 1)
-                    {
-                        target = t;
-                    }
-                    break;
-                }
-            }
-            target.localScale *= scale;
-            if (target == grid.transform)
-            {
-                DestroySlotUI trash = parent.root.GetComponentsInChildren<DestroySlotUI>(true)
-                    .OrderBy(d => Vector3.Distance(d.transform.position, target.position)).FirstOrDefault();
-                if (trash != null && !trash.transform.IsChildOf(target))
-                {
-                    trash.transform.position = target.position + (trash.transform.position - target.position) * scale;
-                    trash.transform.localScale *= scale;
-                }
-            }
-            Melon<ResourceTweaksMod>.Logger.Msg($"Inventory window '{target.name}' scaled x{scale:0.##}");
         }
 
         private static void Expand(InventoryGrid grid, int slots)
@@ -195,10 +148,71 @@ namespace ResourceTweaks.Patches
             gridRect.anchoredPosition = Vector2.zero;
             gridRect.sizeDelta = new Vector2(visibleWidth, height);
 
+            float extra = ExtraRows(grid, viewport, visibleHeight, stepY, rows) * stepY;
+            if (extra > 0f)
+            {
+                Grow(viewport, extra);
+                visibleHeight += extra;
+            }
+
             var scroll = viewport.gameObject.AddComponent<InventoryScroll>();
             scroll.Content = gridRect;
             scroll.Step = stepY;
             scroll.MaxOffset = Mathf.Max(0f, height - visibleHeight);
+        }
+
+        private static int ExtraRows(InventoryGrid grid, RectTransform viewport, float visibleHeight, float stepY, int rows)
+        {
+            int shown = Mathf.Max(1, Mathf.RoundToInt(visibleHeight / stepY));
+            int wanted = ResourceTweaksMod.InventoryRows.Value <= 0 ? rows : Mathf.Min(rows, ResourceTweaksMod.InventoryRows.Value);
+            RectTransform panel = FindPanel(grid);
+            Canvas canvas = viewport.GetComponentInParent<Canvas>();
+            if (panel != null && canvas != null)
+            {
+                var root = (RectTransform)canvas.rootCanvas.transform;
+                float free = root.rect.height * root.lossyScale.y * 0.92f - panel.rect.height * panel.lossyScale.y;
+                int fit = Mathf.FloorToInt(free / (stepY * viewport.lossyScale.y));
+                wanted = Mathf.Min(wanted, shown + Mathf.Max(0, fit));
+            }
+            return Mathf.Max(0, wanted - shown);
+        }
+
+        private static RectTransform FindPanel(InventoryGrid grid)
+        {
+            for (Transform t = grid.transform.parent; t != null; t = t.parent)
+            {
+                Canvas canvas = t.GetComponent<Canvas>();
+                if (canvas != null && canvas.isRootCanvas)
+                {
+                    return null;
+                }
+                if (t.GetComponentInChildren<DestroySlotUI>(true) != null)
+                {
+                    return t.GetComponentsInChildren<InventoryGrid>(true).Length == 1 ? (RectTransform)t : null;
+                }
+            }
+            return null;
+        }
+
+        private static void Grow(RectTransform viewport, float extra)
+        {
+            RectTransform panel = FindPanel(viewport.GetComponentInChildren<InventoryGrid>(true));
+            for (var t = viewport; t != null; t = t.parent as RectTransform)
+            {
+                if (t == panel)
+                {
+                    t.offsetMax += new Vector2(0f, extra * 0.5f);
+                    t.offsetMin -= new Vector2(0f, extra * 0.5f);
+                    break;
+                }
+                t.offsetMax += new Vector2(0f, (1f - t.anchorMax.y) * extra);
+                t.offsetMin -= new Vector2(0f, t.anchorMin.y * extra);
+                if (panel == null)
+                {
+                    break;
+                }
+            }
+            Melon<ResourceTweaksMod>.Logger.Msg($"Inventory window: +{extra:0} px of slots{(panel != null ? $" in '{panel.name}'" : "")}");
         }
     }
 }
