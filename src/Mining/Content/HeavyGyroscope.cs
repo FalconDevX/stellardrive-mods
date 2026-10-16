@@ -14,7 +14,8 @@ namespace Mining.Content
     {
         internal const ushort PartId = 248;
         internal const ushort GyroscopePartId = 53;
-        internal const float Strength = 5f;
+        internal const float Strength = 8f;
+        internal const float Scale = 2f;
         private static bool _failed;
 
         internal static PartSettings Part { get; private set; }
@@ -35,7 +36,7 @@ namespace Mining.Content
             try
             {
                 Part = Build(source);
-                Melon<MiningMod>.Logger.Msg($"Added part '{Part.fullLabel}' (id {PartId}, {Strength:0}x gyroscope)");
+                Melon<MiningMod>.Logger.Msg($"Added part '{Part.fullLabel}' (id {PartId}, {Scale:0}x size, {Strength:0}x gyroscope)");
             }
             catch (Exception e)
             {
@@ -65,18 +66,20 @@ namespace Mining.Content
             PartFactory.CreateRenderer("BarDetail", bar, ModAssets.LoadMesh("heavy_gyro_bar.bin"), frame, look);
             Tint(visuals, "GyroscopeWheel", new Color(0.62f, 0.66f, 0.74f));
             visuals.gameObject.AddComponent<HeavyGyroscopeVisuals>();
+            PartFactory.ScaleUniform(root, source.size, Scale, "Heavy Gyroscope", false);
 
             var settings = Object.Instantiate(source);
             settings.name = "MiningHeavyGyroscope";
             settings.hideFlags = HideFlags.DontUnloadUnusedAsset;
             settings.id = PartId;
             settings.fullLabel = "Heavy Gyroscope";
-            settings.description = $"A gyroscope with a heavy flywheel, reinforced bearings and its own power conditioners, the size of the normal one but {Strength:0} times stronger. " +
+            settings.description = $"A {Scale:0}x{Scale:0}x{Scale:0} gyroscope with a heavy flywheel, reinforced bearings and its own power conditioners, {Strength:0} times stronger than the normal one. " +
                                    $"Uses {Strength:0} times the power (up to {800f * Strength / 1000f:0.#} kW while turning). Wire it like the normal gyroscope: three rotation signals and power on either side.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
-            settings.mass = source.mass * 3f;
-            PartFactory.SetCost(settings, (Items.Model.ItemsConstants.IronItemId, 45), (112, 8));
+            settings.size = source.size * Scale;
+            settings.mass = source.mass * Strength;
+            PartFactory.SetCost(settings, (Items.Model.ItemsConstants.IronItemId, 80), (112, 16));
             return settings;
         }
 
@@ -114,7 +117,7 @@ namespace Mining.Content
         private void Awake()
         {
             _animator = GetComponent<GyroscopeAnimator>() ?? GetComponentInParent<GyroscopeAnimator>();
-            Renderer lamps = transform.Find("Lamps")?.GetComponent<Renderer>();
+            Renderer lamps = GetComponentsInChildren<Renderer>(true).FirstOrDefault(r => r.name == "Lamps");
             _material = lamps != null ? lamps.material : null;
         }
 

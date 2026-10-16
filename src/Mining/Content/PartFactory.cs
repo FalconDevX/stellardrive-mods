@@ -81,7 +81,7 @@ namespace Mining.Content
             bounds.bounds = b.size;
         }
 
-        internal static void ScaleUniform(GameObject root, Vector3 size, float scale, string label)
+        internal static void ScaleUniform(GameObject root, Vector3 size, float scale, string label, bool snapSockets = true)
         {
             var bounds = root.GetComponent<ShipPartBounds>();
             Vector3 c0 = bounds.center, b0 = bounds.bounds;
@@ -152,7 +152,7 @@ namespace Mining.Content
             foreach (var (t, pos) in originals)
             {
                 Vector3 p = root.transform.InverseTransformPoint(t.position);
-                Vector3 snapped = SnapToGrid(p, pos, c1, b1, size, scale);
+                Vector3 snapped = snapSockets ? SnapToGrid(p, pos, c1, b1, size, scale) : MapScaled(pos);
                 t.position = root.transform.TransformPoint(snapped);
                 Melon<MiningMod>.Logger.Msg($"{label}: socket {t.name} {pos} -> {snapped}");
             }

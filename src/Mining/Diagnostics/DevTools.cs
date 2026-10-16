@@ -262,9 +262,9 @@ namespace Mining.Diagnostics
             Vector3 up = cam.transform.up;
             Vector3 fwd = cam.transform.forward;
             Vector3 right = cam.transform.right;
-            Vector3 center = cam.transform.position + fwd * 2.4f - up * 0.6f;
+            Vector3 center = cam.transform.position + fwd * 3.8f - up * 1.0f;
             var spinners = new List<Ships.Parts.Gyroscope.GyroscopeAnimator>();
-            foreach (var (settings, offset) in new[] { (heavy, 0.75f), (normal, -0.75f) })
+            foreach (var (settings, offset) in new[] { (heavy, 1.1f), (normal, -1.3f) })
             {
                 GameObject visual = settings.part.GetComponentInChildren<Ships.Parts.Gyroscope.GyroscopeVisuals>(true).gameObject;
                 GameObject copy = UnityEngine.Object.Instantiate(visual, center + right * offset, Quaternion.LookRotation(-fwd, up) * Quaternion.Euler(0f, 35f, 0f));
