@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.16.10", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.16.11", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -119,6 +119,7 @@ namespace Mining
             Server.WaterPumpServer.Reset();
             Server.ShipPartIndex.Reset();
             Server.HydrogenThrusterServer.Reset();
+            Server.BigDoorSignalServer.Reset();
             ServiceCache.Reset();
             Blueprints.BlueprintGhosts.Clear();
             Diagnostics.DevTools.OnSceneLoaded(sceneName);

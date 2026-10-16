@@ -11,13 +11,26 @@ namespace Mining.Patches
     {
         private static bool Prefix(DoorDynamicColliders __instance, StatefulPartStateChangeEvent change)
         {
-            var timer = __instance != null ? __instance.GetComponent<BigDoorColliderTimer>() : null;
-            if (timer == null || !(change.NewState is IDoorState state))
+            var leaves = __instance != null ? __instance.GetComponent<BigDoorLeafColliders>() : null;
+            if (leaves == null || !(change.NewState is IDoorState state))
             {
                 return true;
             }
-            timer.Apply(state.IsOpen);
+            leaves.SetOpen(state.IsOpen, false);
             return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(DoorDynamicColliders), nameof(DoorDynamicColliders.SetNetworkState))]
+    internal static class BigDoorColliderLoadPatch
+    {
+        private static void Postfix(DoorDynamicColliders __instance, IStatefulPartState state)
+        {
+            var leaves = __instance != null ? __instance.GetComponent<BigDoorLeafColliders>() : null;
+            if (leaves != null && state is IDoorState door)
+            {
+                leaves.SetOpen(door.IsOpen, true);
+            }
         }
     }
 }

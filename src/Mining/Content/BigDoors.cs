@@ -5,6 +5,7 @@ using System.Linq;
 using HarmonyLib;
 using MelonLoader;
 using Ships.Interface.Model.Parts;
+using Ships.Interface.Model.Parts.Common;
 using Ships.Interface.Settings;
 using Ships.Parts.Common;
 using Ships.Parts.Door;
@@ -17,6 +18,7 @@ namespace Mining.Content
     {
         internal const ushort ResearchId = 206;
         internal const ushort DoorPartId = 14;
+        internal const byte SignalSocket = 0;
 
         internal static readonly (ushort id, string name, int width, int height, int iron)[] Variants =
         {
@@ -75,14 +77,15 @@ namespace Mining.Content
             RebuildColliders(root);
             CoverInteraction(root);
             ReplaceLook(root, chest);
-            SetupColliderTimer(root);
+            SetupLeafColliders(root);
+            AddSignalSocket(root);
 
             HullPartSettings settings = Object.Instantiate(door);
             settings.name = root.name;
             settings.hideFlags = HideFlags.DontUnloadUnusedAsset;
             settings.id = v.id;
             settings.fullLabel = v.name;
-            settings.description = $"A {v.width} x {v.height} door. Opens and closes like the normal door and seals the room when closed.";
+            settings.description = $"A {v.width} x {v.height} door. Opens and closes like the normal door and seals the room when closed. Signal 1 on the socket on the left post opens it, 0 closes it.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.size = new Vector3(v.width, v.height, door.size.z);
             settings.part = root;
@@ -112,25 +115,73 @@ namespace Mining.Content
             model.localScale = inv.lossyScale;
         }
 
-        private static void SetupColliderTimer(GameObject root)
+        private static void SetupLeafColliders(GameObject root)
         {
             DoorDynamicColliders dynamic = root.GetComponentInChildren<DoorDynamicColliders>(true);
-            GameObject leaf = dynamic != null ? Traverse.Create(dynamic).Field<GameObject>("doorCollider").Value : null;
-            if (leaf == null)
+            GameObject door = dynamic != null ? Traverse.Create(dynamic).Field<GameObject>("doorCollider").Value : null;
+            BoxCollider closed = door != null ? door.GetComponent<BoxCollider>() : null;
+            if (closed == null)
             {
                 return;
             }
-            float travel = 0f;
+            Vector3 center = root.transform.InverseTransformPoint(door.transform.TransformPoint(closed.center));
+            Vector3 size = root.transform.InverseTransformVector(door.transform.TransformVector(closed.size));
+            size = new Vector3(Mathf.Abs(size.x), Mathf.Abs(size.y), Mathf.Abs(size.z));
+            var leaves = new Dictionary<(string axis, int dir), (float lo, float hi, float distance, float clipLo, float clipHi)>();
             foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
             {
                 string[] p = t.name.Split('|');
-                if (p.Length == 7 && p[0] == "P" && float.TryParse(p[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float distance))
+                if (p.Length != 7 || p[0] != "P")
                 {
-                    travel = Mathf.Max(travel, distance);
+                    continue;
                 }
+                int dir = int.Parse(p[2], CultureInfo.InvariantCulture);
+                float distance = float.Parse(p[3], CultureInfo.InvariantCulture), clipLo = float.Parse(p[4], CultureInfo.InvariantCulture);
+                float clipHi = float.Parse(p[5], CultureInfo.InvariantCulture), width = float.Parse(p[6], CultureInfo.InvariantCulture);
+                float mid = p[1] == "x" ? t.localPosition.x : t.localPosition.y;
+                var key = (p[1], dir);
+                leaves[key] = leaves.TryGetValue(key, out var leaf)
+                    ? (Mathf.Min(leaf.lo, mid - width / 2), Mathf.Max(leaf.hi, mid + width / 2), distance, clipLo, clipHi)
+                    : (mid - width / 2, mid + width / 2, distance, clipLo, clipHi);
             }
-            leaf.name = BigDoorColliderTimer.LeafPrefix + (1.2f + 0.5f * travel).ToString(CultureInfo.InvariantCulture);
-            dynamic.gameObject.AddComponent<BigDoorColliderTimer>();
+            if (leaves.Count == 0)
+            {
+                return;
+            }
+            Object.DestroyImmediate(closed);
+            float travel = 0f;
+            foreach (var pair in leaves)
+            {
+                var (lo, hi, distance, clipLo, clipHi) = pair.Value;
+                travel = Mathf.Max(travel, distance);
+                Vector3 c = center, s = size;
+                if (pair.Key.axis == "x") { c.x = (lo + hi) / 2; s.x = hi - lo; }
+                else { c.y = (lo + hi) / 2; s.y = hi - lo; }
+                string name = string.Format(CultureInfo.InvariantCulture, "{0}{1}|{2}|{3}|{4}|{5}|{6}|{7}",
+                    BigDoorLeafColliders.LeafPrefix, pair.Key.axis, pair.Key.dir, distance, lo, hi, clipLo, clipHi);
+                AddBox(root, ColliderObject(name, door.transform, door.layer, door.tag), c, s);
+            }
+            door.name = BigDoorLeafColliders.DoorPrefix + (1.2f + 0.5f * travel).ToString(CultureInfo.InvariantCulture);
+            dynamic.gameObject.AddComponent<BigDoorLeafColliders>();
+        }
+
+        private static void AddSignalSocket(GameObject root)
+        {
+            SocketObject source = Resources.FindObjectsOfTypeAll<SocketObject>().FirstOrDefault(s => s.Type == CableType.Signal && s.visualObject != null && s.interactive != null);
+            if (source == null)
+            {
+                Melon<MiningMod>.Logger.Warning($"Door {root.name}: no signal socket found to copy");
+                return;
+            }
+            if (root.GetComponentsInChildren<SocketObject>(true).Any(s => s.Id == SignalSocket))
+            {
+                Melon<MiningMod>.Logger.Warning($"Door {root.name}: socket {SignalSocket} already used - no signal input");
+                return;
+            }
+            Bounds b = root.GetComponent<ShipPartBounds>().GetBounds();
+            float frame = BigDoorModel.SideFrame(b), depth = Mathf.Clamp(b.size.z, 0.25f, 0.35f);
+            float y = Mathf.Min(b.min.y + 1.2f, b.max.y - BigDoorModel.TopFrame(b) - 0.2f);
+            PartFactory.CloneSocket(source, root.transform, SignalSocket, new Vector3(b.min.x + frame / 2, y, b.center.z + depth / 2 + 0.01f), 180f);
         }
 
         private static void CoverInteraction(GameObject root)

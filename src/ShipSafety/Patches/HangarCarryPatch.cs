@@ -7,6 +7,7 @@ using Managers.Server;
 using MelonLoader;
 using Ships;
 using Ships.Grid.Model;
+using Ships.Parts.Gyroscope;
 using Ships.Physics;
 using Ships.Physics.Forces;
 using Ships.Physics.Model;
@@ -20,12 +21,6 @@ namespace ShipSafety.Patches
     [HarmonyPatch(typeof(WorldPhysicsServerUpdater), "UpdateShipsPhysics")]
     internal static class HangarCarryPatch
     {
-        private struct Carry
-        {
-            public Vector3 SpinVelocity, HostAngular;
-            public int Tick;
-        }
-
         private const float BoundsMargin = 0.5f;
         private const int BoundsRefreshTicks = 50;
 
@@ -36,12 +31,12 @@ namespace ShipSafety.Patches
         private static readonly AccessTools.FieldRef<ShipNewtonianPhysics, ShipDrag> Drag =
             AccessTools.FieldRefAccess<ShipNewtonianPhysics, ShipDrag>("_drag");
 
-        private static readonly Dictionary<(uint host, uint guest), Carry> Carries = new Dictionary<(uint, uint), Carry>();
+        private static readonly Dictionary<uint, uint> Carries = new Dictionary<uint, uint>();
         private static readonly Dictionary<uint, (Bounds bounds, int tick)> HullBounds = new Dictionary<uint, (Bounds, int)>();
-        private static readonly List<(uint, uint)> Stale = new List<(uint, uint)>();
-        private static readonly HashSet<uint> Logged = new HashSet<uint>();
+        private static readonly List<uint> Stale = new List<uint>();
         internal static readonly HashSet<ShipDrag> Sheltered = new HashSet<ShipDrag>();
-        internal static readonly Dictionary<ShipNewtonianPhysics, (Vector3 force, float mass, ShipPhysicsState state)> Pushes = new Dictionary<ShipNewtonianPhysics, (Vector3, float, ShipPhysicsState)>();
+        internal static readonly Dictionary<ShipNewtonianPhysics, (Vector3 force, Vector3 turn, float mass, ShipPhysicsState state)> Pushes = new Dictionary<ShipNewtonianPhysics, (Vector3, Vector3, float, ShipPhysicsState)>();
+        internal static readonly Dictionary<uint, Vector3> HostSpin = new Dictionary<uint, Vector3>();
         private static int _tick;
         private static bool _loggedError;
 
@@ -72,6 +67,7 @@ namespace ShipSafety.Patches
             _tick++;
             Sheltered.Clear();
             List<TrackedShipServer> roots = ships.LoadedRootShips.Where(s => !s.IsShipDestroyed).ToList();
+            HostSpin.Clear();
             if (roots.Count < 2)
             {
                 Carries.Clear();
@@ -92,8 +88,7 @@ namespace ShipSafety.Patches
                 }
                 Rigidbody hostBody = host.RigidbodyObject.GetComponent<Rigidbody>();
                 Vector3 arm = guestBody.worldCenterOfMass - hostBody.worldCenterOfMass;
-                var carry = new Carry { SpinVelocity = Vector3.Cross(hostBody.angularVelocity, arm), HostAngular = hostBody.angularVelocity, Tick = _tick };
-                var key = (host.Id, guest.Id);
+                Vector3 spin = hostBody.angularVelocity, turn = Vector3.zero;
                 ShipServerPhysics hostPhysics = Physics(host);
                 ShipNewtonianPhysics hostNewtonian = hostPhysics != null ? Newtonian(hostPhysics) : null;
                 if (hostNewtonian != null && Pushes.TryGetValue(hostNewtonian, out var push) && push.mass > 0f)
@@ -101,17 +96,17 @@ namespace ShipSafety.Patches
                     environment = environment ?? ServiceLocator.GetService<IWorldEnvironmentServerProvider>();
                     Vector3 gravity = environment != null ? environment.GetGravityAtPosition(push.state.SpaceId, push.state.Position) : Vector3.zero;
                     guestBody.linearVelocity += (push.state.Rotation * push.force / push.mass - gravity) * deltaTime;
+                    turn = push.state.Rotation * push.turn * deltaTime;
                 }
-                if (Carries.TryGetValue(key, out Carry previous) && previous.Tick == _tick - 1)
-                {
-                    guestBody.linearVelocity += carry.SpinVelocity - previous.SpinVelocity;
-                    guestBody.angularVelocity += carry.HostAngular - previous.HostAngular;
-                }
-                else if (Logged.Add(guest.Id))
+                Vector3 spinAfter = spin + turn;
+                guestBody.angularVelocity += turn;
+                guestBody.linearVelocity += Vector3.Cross(spinAfter, arm) - Vector3.Cross(spin, arm) + Vector3.Cross(spin, Vector3.Cross(spin, arm)) * deltaTime;
+                HostSpin[guest.Id] = spinAfter;
+                if (!Carries.TryGetValue(guest.Id, out uint previous) || previous != host.Id)
                 {
                     Melon<ShipSafetyMod>.Logger.Msg($"Ship {guest.Id} is inside ship {host.Id} - it moves with it");
                 }
-                Carries[key] = carry;
+                Carries[guest.Id] = host.Id;
                 ShipServerPhysics physics = Physics(guest);
                 ShipNewtonianPhysics newtonian = physics != null ? Newtonian(physics) : null;
                 ShipDrag drag = newtonian != null ? Drag(newtonian) : null;
@@ -120,14 +115,13 @@ namespace ShipSafety.Patches
                     Sheltered.Add(drag);
                 }
             }
-            foreach (var pair in Carries)
+            foreach (uint id in Carries.Keys)
             {
-                if (pair.Value.Tick != _tick) Stale.Add(pair.Key);
+                if (!HostSpin.ContainsKey(id)) Stale.Add(id);
             }
-            foreach (var key in Stale)
+            foreach (uint id in Stale)
             {
-                Carries.Remove(key);
-                Logged.Remove(key.Item2);
+                Carries.Remove(id);
             }
             Stale.Clear();
         }
@@ -173,7 +167,27 @@ namespace ShipSafety.Patches
             {
                 return;
             }
-            HangarCarryPatch.Pushes[__instance] = (__result.ForceToAdd, calculationProperties.MassIncludingConnectedShips, calculationProperties.PhysicsState);
+            HangarCarryPatch.Pushes[__instance] = (__result.ForceToAdd, __result.TorqueToAddInDegreesSecond, calculationProperties.MassIncludingConnectedShips, calculationProperties.PhysicsState);
+        }
+    }
+
+    [HarmonyPatch(typeof(GyroscopesUpdater), nameof(GyroscopesUpdater.PrepareGyroscopesActionsBeforePowerLimits))]
+    internal static class HangarGyroPatch
+    {
+        private static readonly AccessTools.FieldRef<GyroscopesUpdater, IShipStateWrite> Ship =
+            AccessTools.FieldRefAccess<GyroscopesUpdater, IShipStateWrite>("_ship");
+
+        private static void Prefix(GyroscopesUpdater __instance, ref Vector3 localAngularVelocity)
+        {
+            if (HangarCarryPatch.HostSpin.Count == 0)
+            {
+                return;
+            }
+            IShipStateWrite ship = Ship(__instance);
+            if (ship != null && HangarCarryPatch.HostSpin.TryGetValue(ship.Id, out Vector3 spin))
+            {
+                localAngularVelocity -= Quaternion.Inverse(ship.PhysicsState.Rotation) * spin;
+            }
         }
     }
 
