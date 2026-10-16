@@ -11,6 +11,8 @@ using Ships.Parts.Gyroscope;
 using Ships.Physics;
 using Ships.Physics.Forces;
 using Ships.Physics.Model;
+using Ships.Interface.Model.Parts;
+using Ships.Interface.Model.Parts.State;
 using Ships.Interface.Model.State;
 using Ships.Services;
 using UnityEngine;
@@ -23,6 +25,7 @@ namespace ShipSafety.Patches
     {
         private const float BoundsMargin = 0.5f;
         private const int BoundsRefreshTicks = 50;
+        private const float WeldMaxSpeed = 1f;
 
         private static readonly AccessTools.FieldRef<TrackedShipServer, ShipServerPhysics> Physics =
             AccessTools.FieldRefAccess<TrackedShipServer, ShipServerPhysics>("_shipServerPhysics");
@@ -37,6 +40,8 @@ namespace ShipSafety.Patches
         internal static readonly HashSet<ShipDrag> Sheltered = new HashSet<ShipDrag>();
         internal static readonly Dictionary<ShipNewtonianPhysics, (Vector3 force, Vector3 turn, float mass, ShipPhysicsState state)> Pushes = new Dictionary<ShipNewtonianPhysics, (Vector3, Vector3, float, ShipPhysicsState)>();
         internal static readonly Dictionary<uint, Vector3> HostSpin = new Dictionary<uint, Vector3>();
+        private static readonly Dictionary<uint, Welded> Welds = new Dictionary<uint, Welded>();
+        internal static readonly HashSet<ShipNewtonianPhysics> Frozen = new HashSet<ShipNewtonianPhysics>();
         private static int _tick;
         private static bool _loggedError;
 
@@ -71,6 +76,8 @@ namespace ShipSafety.Patches
             if (roots.Count < 2)
             {
                 Carries.Clear();
+                Welds.Clear();
+                Frozen.Clear();
                 return;
             }
             IWorldEnvironmentServerProvider environment = null;
@@ -88,27 +95,35 @@ namespace ShipSafety.Patches
                 }
                 Rigidbody hostBody = host.RigidbodyObject.GetComponent<Rigidbody>();
                 Vector3 arm = guestBody.worldCenterOfMass - hostBody.worldCenterOfMass;
-                Vector3 spin = hostBody.angularVelocity, turn = Vector3.zero;
+                Vector3 spin = hostBody.angularVelocity, turn = Vector3.zero, hostAcceleration = Vector3.zero, gravity = Vector3.zero;
                 ShipServerPhysics hostPhysics = Physics(host);
                 ShipNewtonianPhysics hostNewtonian = hostPhysics != null ? Newtonian(hostPhysics) : null;
                 if (hostNewtonian != null && Pushes.TryGetValue(hostNewtonian, out var push) && push.mass > 0f)
                 {
                     environment = environment ?? ServiceLocator.GetService<IWorldEnvironmentServerProvider>();
-                    Vector3 gravity = environment != null ? environment.GetGravityAtPosition(push.state.SpaceId, push.state.Position) : Vector3.zero;
-                    guestBody.linearVelocity += (push.state.Rotation * push.force / push.mass - gravity) * deltaTime;
+                    gravity = environment != null ? environment.GetGravityAtPosition(push.state.SpaceId, push.state.Position) : Vector3.zero;
+                    hostAcceleration = push.state.Rotation * push.force / push.mass;
                     turn = push.state.Rotation * push.turn * deltaTime;
                 }
                 Vector3 spinAfter = spin + turn;
-                guestBody.angularVelocity += turn;
-                guestBody.linearVelocity += Vector3.Cross(spinAfter, arm) - Vector3.Cross(spin, arm) + Vector3.Cross(spin, Vector3.Cross(spin, arm)) * deltaTime;
-                HostSpin[guest.Id] = spinAfter;
+                ShipServerPhysics physics = Physics(guest);
+                ShipNewtonianPhysics newtonian = physics != null ? Newtonian(physics) : null;
+                if (Weld(guest, host, guestBody, hostBody, newtonian, hostAcceleration, spinAfter, deltaTime))
+                {
+                    HostSpin[guest.Id] = spinAfter;
+                }
+                else
+                {
+                    guestBody.linearVelocity += (hostAcceleration - gravity) * deltaTime;
+                    guestBody.angularVelocity += turn;
+                    guestBody.linearVelocity += Vector3.Cross(spinAfter, arm) - Vector3.Cross(spin, arm) + Vector3.Cross(spin, Vector3.Cross(spin, arm)) * deltaTime;
+                    HostSpin[guest.Id] = spinAfter;
+                }
                 if (!Carries.TryGetValue(guest.Id, out uint previous) || previous != host.Id)
                 {
                     Melon<ShipSafetyMod>.Logger.Msg($"Ship {guest.Id} is inside ship {host.Id} - it moves with it");
                 }
                 Carries[guest.Id] = host.Id;
-                ShipServerPhysics physics = Physics(guest);
-                ShipNewtonianPhysics newtonian = physics != null ? Newtonian(physics) : null;
                 ShipDrag drag = newtonian != null ? Drag(newtonian) : null;
                 if (drag != null)
                 {
@@ -124,6 +139,88 @@ namespace ShipSafety.Patches
                 Carries.Remove(id);
             }
             Stale.Clear();
+            foreach (uint id in Welds.Keys)
+            {
+                if (!HostSpin.ContainsKey(id)) Stale.Add(id);
+            }
+            foreach (uint id in Stale)
+            {
+                ReleaseWeld(id);
+            }
+            Stale.Clear();
+        }
+
+        private static bool Weld(TrackedShipServer guest, TrackedShipServer host, Rigidbody guestBody, Rigidbody hostBody, ShipNewtonianPhysics newtonian, Vector3 hostAcceleration, Vector3 spinAfter, float deltaTime)
+        {
+            if (!ShipSafetyMod.WeldParkedShipsInHangars.Value || IsPiloted(guest))
+            {
+                ReleaseWeld(guest.Id);
+                return false;
+            }
+            Quaternion hostRotation = hostBody.rotation;
+            if (!Welds.TryGetValue(guest.Id, out Welded weld) || weld.Host != host.Id)
+            {
+                Vector3 relative = guestBody.linearVelocity - hostBody.GetPointVelocity(guestBody.worldCenterOfMass);
+                if (relative.sqrMagnitude > WeldMaxSpeed * WeldMaxSpeed)
+                {
+                    ReleaseWeld(guest.Id);
+                    return false;
+                }
+                Quaternion inverse = Quaternion.Inverse(hostRotation);
+                weld = new Welded(host.Id, inverse * (guestBody.position - hostBody.position), inverse * guestBody.rotation, newtonian);
+                Welds[guest.Id] = weld;
+                if (newtonian != null) Frozen.Add(newtonian);
+                Melon<ShipSafetyMod>.Logger.Msg($"Ship {guest.Id} is parked in ship {host.Id} - welded until someone takes the pilot seat");
+            }
+            Vector3 position = hostBody.position + hostRotation * weld.Position;
+            Quaternion rotation = hostRotation * weld.Rotation;
+            guestBody.position = position;
+            guestBody.rotation = rotation;
+            guestBody.transform.SetPositionAndRotation(position, rotation);
+            Vector3 arm = position + rotation * guestBody.centerOfMass - hostBody.worldCenterOfMass;
+            guestBody.linearVelocity = hostBody.linearVelocity + hostAcceleration * deltaTime + Vector3.Cross(spinAfter, arm);
+            guestBody.angularVelocity = spinAfter;
+            return true;
+        }
+
+        private static void ReleaseWeld(uint id)
+        {
+            if (!Welds.TryGetValue(id, out Welded weld))
+            {
+                return;
+            }
+            Welds.Remove(id);
+            if (weld.Newtonian != null) Frozen.Remove(weld.Newtonian);
+            Melon<ShipSafetyMod>.Logger.Msg($"Ship {id} is no longer welded in ship {weld.Host}");
+        }
+
+        private static bool IsPiloted(TrackedShipServer ship)
+        {
+            foreach (StatefulPart part in ship.GetAllStatefulParts<PilotSeatState>())
+            {
+                if (((PilotSeatState)part.State).IsInUse) return true;
+            }
+            foreach (StatefulPart part in ship.GetAllStatefulParts<PilotSeatAdvState>())
+            {
+                if (((PilotSeatAdvState)part.State).IsInUse) return true;
+            }
+            return false;
+        }
+
+        private readonly struct Welded
+        {
+            public readonly uint Host;
+            public readonly Vector3 Position;
+            public readonly Quaternion Rotation;
+            public readonly ShipNewtonianPhysics Newtonian;
+
+            public Welded(uint host, Vector3 position, Quaternion rotation, ShipNewtonianPhysics newtonian)
+            {
+                Host = host;
+                Position = position;
+                Rotation = rotation;
+                Newtonian = newtonian;
+            }
         }
 
         private static TrackedShipServer FindHost(TrackedShipServer guest, Vector3 point, List<TrackedShipServer> roots)
@@ -161,11 +258,15 @@ namespace ShipSafety.Patches
     [HarmonyPatch(typeof(ShipNewtonianPhysics), nameof(ShipNewtonianPhysics.ComputePhysicsForces))]
     internal static class HangarPushPatch
     {
-        private static void Postfix(ShipNewtonianPhysics __instance, ShipPhysicsCalculationProperties calculationProperties, ShipPhysicsForcesResult __result)
+        private static void Postfix(ShipNewtonianPhysics __instance, ShipPhysicsCalculationProperties calculationProperties, ref ShipPhysicsForcesResult __result)
         {
             if (!ShipSafetyMod.CarryShipsInHangars.Value || calculationProperties.MassIncludingConnectedShips <= 0f)
             {
                 return;
+            }
+            if (HangarCarryPatch.Frozen.Count > 0 && HangarCarryPatch.Frozen.Contains(__instance))
+            {
+                __result = default;
             }
             HangarCarryPatch.Pushes[__instance] = (__result.ForceToAdd, __result.TorqueToAddInDegreesSecond, calculationProperties.MassIncludingConnectedShips, calculationProperties.PhysicsState);
         }
