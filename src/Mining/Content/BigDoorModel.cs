@@ -349,10 +349,10 @@ namespace Mining.Content
                     float b1 = b0 + (axis == 'x' ? box.S.x : box.S.y);
                     float c0 = Mathf.Max(b0, s0), c1 = Mathf.Min(b1, s1);
                     if (c1 - c0 < 0.0005f) continue;
-                    Vector3 c = box.C, s = box.S, shift = axis == 'x' ? new Vector3(sc, 0, 0) : new Vector3(0, sc, 0);
+                    Vector3 c = box.C, s = box.S;
                     if (axis == 'x') { c.x = (c0 + c1) / 2 - sc; s.x = c1 - c0; }
                     else { c.y = (c0 + c1) / 2 - sc; s.y = c1 - c0; }
-                    m.Box(c, s, box.Color, box.C - box.S * 0.5f - shift, box.C + box.S * 0.5f - shift);
+                    m.Box(c, s, box.Color);
                 }
                 string name = string.Format(CultureInfo.InvariantCulture, "P|{0}|{1}|{2}|{3}|{4}|{5}", axis, dir, distance, clipLo, clipHi, step);
                 GameObject piece = PartFactory.CreateRenderer(name, model, m.ToMesh("BigDoorStrip"), material, look);
@@ -361,31 +361,7 @@ namespace Mining.Content
         }
 
         private const int Grid = 4;
-        private const float Margin = 26f / 256f;
-        private const float Border = 0.045f;
-        private const float Inset = 1.5f / 256f;
-        private const float MinTile = 0.6f, MaxTile = 1.5f;
-
-        private struct Axis
-        {
-            public float F0, F1, TileLen;
-            public int Tiles;
-            public bool Sliced => F1 - F0 >= Border * 2.5f;
-            public float Inner => F1 - F0 - 2f * Border;
-
-            public int TileAt(float p) => Mathf.Clamp(Mathf.FloorToInt((p - F0 - Border) / TileLen), 0, Tiles - 1);
-
-            public float Map(float p, int tile, bool mirror)
-            {
-                float l = F1 - F0, t = Mathf.Clamp(p - F0, 0f, l);
-                if (!Sliced) return t / l;
-                if (t <= Border) return Margin * t / Border;
-                if (t >= l - Border) return 1f - Margin * (l - t) / Border;
-                float local = Mathf.Clamp01((t - Border - tile * TileLen) / TileLen);
-                if (mirror && tile % 2 == 1) local = 1f - local;
-                return Margin + (1f - 2f * Margin) * local;
-            }
-        }
+        private const float SolidU = 0.55f, SolidV = 0.58f;
 
         private sealed class MeshBuilder
         {
@@ -393,77 +369,34 @@ namespace Mining.Content
             private readonly List<Vector3> _n = new List<Vector3>();
             private readonly List<Vector2> _uv = new List<Vector2>();
             private readonly List<int> _t = new List<int>();
-            private readonly List<float> _ca = new List<float>(8), _cb = new List<float>(8);
 
-            public void Box(Vector3 center, Vector3 size, string color) => Box(center, size, color, center - size * 0.5f, center + size * 0.5f);
-
-            public void Box(Vector3 center, Vector3 size, string color, Vector3 fullMin, Vector3 fullMax)
+            public void Box(Vector3 center, Vector3 size, string color)
             {
                 int cell = System.Array.IndexOf(Names, HullStyle(color));
                 Vector3 min = center - size * 0.5f, max = center + size * 0.5f;
                 for (int k = 0; k < 3; k++)
                 {
                     int a = k == 0 ? 2 : 0, b = k == 1 ? 2 : 1;
-                    var ax = new Axis { F0 = fullMin[a], F1 = fullMax[a] };
-                    var bx = new Axis { F0 = fullMin[b], F1 = fullMax[b] };
-                    float shorter = Mathf.Min(ax.Sliced ? ax.Inner : float.MaxValue, bx.Sliced ? bx.Inner : float.MaxValue);
-                    float tile = Mathf.Clamp(shorter, MinTile, MaxTile);
-                    ax = Tiled(ax, tile);
-                    bx = Tiled(bx, tile);
-                    Cuts(_ca, min[a], max[a], ax);
-                    Cuts(_cb, min[b], max[b], bx);
                     foreach (int sign in new[] { -1, 1 })
                     {
                         var n = new Vector3();
                         n[k] = sign;
-                        float plane = sign > 0 ? max[k] : min[k];
-                        for (int i = 0; i + 1 < _ca.Count; i++)
-                        {
-                            for (int j = 0; j + 1 < _cb.Count; j++)
-                            {
-                                Quad(n, k, a, b, plane, _ca[i], _ca[i + 1], _cb[j], _cb[j + 1], cell, ax, bx);
-                            }
-                        }
+                        Quad(n, k, a, b, sign > 0 ? max[k] : min[k], min[a], max[a], min[b], max[b], cell);
                     }
                 }
             }
 
-            private static Axis Tiled(Axis axis, float tile)
-            {
-                axis.Tiles = axis.Sliced ? Mathf.Max(1, Mathf.RoundToInt(axis.Inner / tile)) : 1;
-                axis.TileLen = axis.Sliced ? axis.Inner / axis.Tiles : 1f;
-                return axis;
-            }
-
-            private static void Cuts(List<float> cuts, float lo, float hi, Axis axis)
-            {
-                cuts.Clear();
-                cuts.Add(lo);
-                if (axis.Sliced)
-                {
-                    for (int i = 0; i <= axis.Tiles; i++)
-                    {
-                        float c = axis.F0 + Border + i * axis.TileLen;
-                        if (c > lo + 1e-4f && c < hi - 1e-4f) cuts.Add(c);
-                    }
-                }
-                cuts.Add(hi);
-            }
-
-            private void Quad(Vector3 n, int k, int a, int b, float plane, float a0, float a1, float b0, float b1, int cell, Axis ax, Axis bx)
+            private void Quad(Vector3 n, int k, int a, int b, float plane, float a0, float a1, float b0, float b1, int cell)
             {
                 int start = _v.Count;
-                float cx = cell % Grid, cy = cell / Grid;
-                int ta = ax.TileAt((a0 + a1) / 2), tb = bx.TileAt((b0 + b1) / 2);
+                var uv = new Vector2((cell % Grid + SolidU) / Grid, 1f - (cell / Grid + 1f - SolidV) / Grid);
                 foreach (var (pa, pb) in new[] { (a0, b0), (a0, b1), (a1, b1), (a1, b0) })
                 {
                     var p = new Vector3();
                     p[k] = plane; p[a] = pa; p[b] = pb;
                     _v.Add(p);
                     _n.Add(n);
-                    float fu = Inset + ax.Map(pa, ta, true) * (1f - 2f * Inset);
-                    float fv = Inset + bx.Map(pb, tb, false) * (1f - 2f * Inset);
-                    _uv.Add(new Vector2((cx + fu) / Grid, 1f - (cy + 1f - fv) / Grid));
+                    _uv.Add(uv);
                 }
                 bool flip = Vector3.Dot(Vector3.Cross(_v[start + 1] - _v[start], _v[start + 2] - _v[start]), n) < 0f;
                 if (flip)

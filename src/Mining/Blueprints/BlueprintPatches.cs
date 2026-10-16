@@ -18,6 +18,7 @@ namespace Mining.Blueprints
         private static void Prefix(ref ItemSettings[] ___items)
         {
             ___items = BlueprintToolItem.EnsureIn(___items);
+            Content.PaintToolModel.Apply(___items);
         }
     }
 
