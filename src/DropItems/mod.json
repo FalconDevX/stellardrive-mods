@@ -2,6 +2,6 @@
   "id": "stellardrive-dropitems",
   "name": "Drop Items",
   "author": "mateu",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Dropping items: Q from the selected toolbar slot, X from the inventory slot under the cursor (with Shift: half of the stack). Only the dropping player needs the mod."
 }

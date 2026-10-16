@@ -333,8 +333,8 @@ namespace Mining.Sites
             if ((_serverTracker == null || _clientTracker == null) && Time.unscaledTime >= _nextTrackerSearch)
             {
                 _nextTrackerSearch = Time.unscaledTime + 2f;
-                if (_serverTracker == null) _serverTracker = Object.FindObjectOfType<PlanetsServerTracker>();
-                if (_clientTracker == null) _clientTracker = Object.FindObjectOfType<PlanetsClientTracker>();
+                if (_serverTracker == null) _serverTracker = Object.FindAnyObjectByType<PlanetsServerTracker>();
+                if (_clientTracker == null) _clientTracker = Object.FindAnyObjectByType<PlanetsClientTracker>();
             }
             foreach (MonoBehaviour tracker in new MonoBehaviour[] { _serverTracker, _clientTracker })
             {

@@ -2,6 +2,6 @@
   "id": "stellardrive-shipsafety",
   "name": "Ship Safety",
   "author": "mateu",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "description": "Protection against the game bug that launches ships at many times the speed of light: ship speed and acceleration limits and logging of the cause. Host only."
 }

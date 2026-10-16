@@ -127,7 +127,7 @@ namespace Water.Surface
             if ((_sun == null || !_sun.isActiveAndEnabled) && Time.unscaledTime > _nextSunSearch)
             {
                 _nextSunSearch = Time.unscaledTime + 5f;
-                _sun = Object.FindObjectsOfType<Light>().Where(l => l.type == LightType.Directional && l.isActiveAndEnabled).OrderByDescending(l => l.intensity).FirstOrDefault();
+                _sun = Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Where(l => l.type == LightType.Directional && l.isActiveAndEnabled).OrderByDescending(l => l.intensity).FirstOrDefault();
                 Melon<WaterMod>.Logger.Msg($"Water: sun = {(_sun != null ? _sun.name + " " + _sun.intensity : "none")}");
             }
             float target = 1f;
@@ -302,7 +302,7 @@ namespace Water.Surface
 
         internal static Planet FindPlanet()
         {
-            foreach (MonoBehaviour tracker in new MonoBehaviour[] { Object.FindObjectOfType<PlanetsClientTracker>(), Object.FindObjectOfType<PlanetsServerTracker>() })
+            foreach (MonoBehaviour tracker in new MonoBehaviour[] { Object.FindAnyObjectByType<PlanetsClientTracker>(), Object.FindAnyObjectByType<PlanetsServerTracker>() })
             {
                 if (tracker != null && Traverse.Create(tracker).Field("_planets").GetValue() is IDictionary planets)
                 {
@@ -315,12 +315,12 @@ namespace Water.Surface
                     }
                 }
             }
-            return Object.FindObjectsOfType<Planet>().FirstOrDefault(p => p.Id == PlanetId);
+            return Object.FindObjectsByType<Planet>(FindObjectsSortMode.None).FirstOrDefault(p => p.Id == PlanetId);
         }
 
         internal static TrackedPlanet FindTracked()
         {
-            foreach (MonoBehaviour tracker in new MonoBehaviour[] { Object.FindObjectOfType<PlanetsServerTracker>(), Object.FindObjectOfType<PlanetsClientTracker>() })
+            foreach (MonoBehaviour tracker in new MonoBehaviour[] { Object.FindAnyObjectByType<PlanetsServerTracker>(), Object.FindAnyObjectByType<PlanetsClientTracker>() })
             {
                 if (tracker != null && Traverse.Create(tracker).Field("_planets").GetValue() is IDictionary planets)
                 {

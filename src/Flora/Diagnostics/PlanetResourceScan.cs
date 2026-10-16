@@ -137,8 +137,8 @@ namespace Flora.Diagnostics
             var result = new Dictionary<ulong, TrackedPlanet>();
             foreach (MonoBehaviour tracker in new MonoBehaviour[]
                      {
-                         UnityEngine.Object.FindObjectOfType<PlanetsServerTracker>(),
-                         UnityEngine.Object.FindObjectOfType<PlanetsClientTracker>()
+                         UnityEngine.Object.FindAnyObjectByType<PlanetsServerTracker>(),
+                         UnityEngine.Object.FindAnyObjectByType<PlanetsClientTracker>()
                      })
             {
                 if (tracker == null)

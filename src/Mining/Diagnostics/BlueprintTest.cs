@@ -237,7 +237,7 @@ namespace Mining.Diagnostics
             yield return null;
             yield return null;
             BlueprintCatalog.Toggle();
-            var activator = Object.FindObjectOfType<UI.Research.GenericPartOpenableMenuActivator>(true);
+            var activator = Object.FindAnyObjectByType<UI.Research.GenericPartOpenableMenuActivator>(FindObjectsInactive.Include);
             GameObject prefab = activator != null ? HarmonyLib.Traverse.Create(activator).Field<GameObject>("researchMenuPrefab").Value : null;
             if (prefab != null)
             {
@@ -272,7 +272,7 @@ namespace Mining.Diagnostics
                 net.ServerSetToolbarSlot(4, new Items.Model.InventorySlot { HasItem = true, ItemId = BlueprintToolItem.ItemId, Quantity = 1 });
                 toolSlot = 4;
             }
-            var belt = Object.FindObjectOfType<Players.Inventory.ToolBelt>();
+            var belt = Object.FindAnyObjectByType<Players.Inventory.ToolBelt>();
             yield return null;
             belt?.SelectTool(toolSlot + 1);
             for (int i = 0; i < 60; i++) yield return null;

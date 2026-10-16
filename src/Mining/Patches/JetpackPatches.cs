@@ -355,7 +355,7 @@ namespace Mining.Patches
                     }
                     var text = label.GetComponent<TMP_Text>();
                     text.text = "JETPACK FUEL";
-                    text.enableWordWrapping = false;
+                    text.textWrappingMode = TextWrappingModes.NoWrap;
                     float scale = template.transform.lossyScale.y / Mathf.Max(1e-4f, rect.lossyScale.y);
                     text.enableAutoSizing = false;
                     text.fontSize = Mathf.Clamp(template.fontSize * 0.5f, 12f, 20f) * scale;

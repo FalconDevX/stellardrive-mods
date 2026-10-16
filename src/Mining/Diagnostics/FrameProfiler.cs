@@ -97,7 +97,7 @@ namespace Mining.Diagnostics
             sb.AppendLine("Visible objects (triangles, most first):");
             var groups = new Dictionary<string, (long tris, int count, int shadows)>();
             int visible = 0;
-            foreach (Renderer r in UnityEngine.Object.FindObjectsOfType<Renderer>())
+            foreach (Renderer r in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
             {
                 if (!r.enabled || !r.isVisible) continue;
                 visible++;
@@ -120,7 +120,7 @@ namespace Mining.Diagnostics
             {
                 sb.AppendLine($"  {kv.Value.tris,10:N0} tris  x{kv.Value.count,-4} (shadow: {kv.Value.shadows})  {kv.Key}");
             }
-            sb.AppendLine($"Lights: {UnityEngine.Object.FindObjectsOfType<Light>().Count(l => l.isActiveAndEnabled)}, playing particle systems: {UnityEngine.Object.FindObjectsOfType<ParticleSystem>().Count(p => p.isPlaying)}");
+            sb.AppendLine($"Lights: {UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Count(l => l.isActiveAndEnabled)}, playing particle systems: {UnityEngine.Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None).Count(p => p.isPlaying)}");
 
             sb.AppendLine();
             sb.AppendLine("Experiments (2 s each, settings restored afterwards):");
@@ -146,7 +146,7 @@ namespace Mining.Diagnostics
                 camData.renderPostProcessing = post;
                 sb.AppendLine($"  without post-processing: {result[0]:0} FPS");
             }
-            var particles = UnityEngine.Object.FindObjectsOfType<ParticleSystemRenderer>().Where(r => r.enabled).ToList();
+            var particles = UnityEngine.Object.FindObjectsByType<ParticleSystemRenderer>(FindObjectsSortMode.None).Where(r => r.enabled).ToList();
             foreach (var r in particles) r.enabled = false;
             yield return Measure(result);
             foreach (var r in particles) if (r != null) r.enabled = true;

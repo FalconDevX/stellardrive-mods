@@ -16,7 +16,6 @@ namespace Mining.Patches
     [HarmonyPatch(typeof(ActiveSpacesServerTracker), nameof(ActiveSpacesServerTracker.UpdateActiveSpaces))]
     internal static class NearbySpacesPatch
     {
-        private const float KeepDistance = 3000f;
         private const float RecheckSeconds = 1f;
         private static readonly HashSet<uint> Nearby = new HashSet<uint>();
         private static float _nextCheck;
@@ -68,7 +67,7 @@ namespace Mining.Patches
                 foreach (uint anchor in anchors)
                 {
                     if (!(spaces.GetSpace(anchor) is PlanetSurfaceSpace)) continue;
-                    if (transpose.Position(space, anchor, ship.PhysicsState.Position).magnitude < KeepDistance)
+                    if (transpose.Position(space, anchor, ship.PhysicsState.Position).magnitude < MiningMod.KeepNearbyShipsDistance.Value)
                     {
                         Nearby.Add(space);
                         break;

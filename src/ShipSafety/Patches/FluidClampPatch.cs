@@ -39,7 +39,26 @@ namespace ShipSafety.Patches
     {
         private static readonly AccessTools.FieldRef<object, float> QuantityRef = AccessTools.FieldRefAccess<float>(FluidClamp.PartContainer, "_fluidQuantity");
         private static readonly AccessTools.FieldRef<object, StatefulPart> PartRef = AccessTools.FieldRefAccess<StatefulPart>(FluidClamp.PartContainer, "_part");
-        private static readonly System.Reflection.MethodInfo MaxFluid = AccessTools.PropertyGetter(FluidClamp.PartContainer, "MaxFluid");
+        private static readonly Func<object, float> MaxFluid = CreateMaxFluid();
+
+        private static Func<object, float> CreateMaxFluid()
+        {
+            System.Reflection.MethodInfo getter = AccessTools.PropertyGetter(FluidClamp.PartContainer, "MaxFluid");
+            if (getter == null || getter.ReturnType != typeof(float))
+            {
+                return null;
+            }
+            try
+            {
+                var instance = System.Linq.Expressions.Expression.Parameter(typeof(object));
+                var call = System.Linq.Expressions.Expression.Call(System.Linq.Expressions.Expression.Convert(instance, FluidClamp.PartContainer), getter);
+                return System.Linq.Expressions.Expression.Lambda<Func<object, float>>(call, instance).Compile();
+            }
+            catch (Exception)
+            {
+                return target => (float)getter.Invoke(target, null);
+            }
+        }
 
         private static System.Reflection.MethodBase TargetMethod() => AccessTools.Method(FluidClamp.PartContainer, "CommitChanges");
 
@@ -51,9 +70,9 @@ namespace ShipSafety.Patches
                 return;
             }
             float capacity = state.FluidCapacity;
-            if (MaxFluid != null && MaxFluid.Invoke(__instance, null) is float max)
+            if (MaxFluid != null)
             {
-                capacity = Mathf.Max(capacity, max);
+                capacity = Mathf.Max(capacity, MaxFluid(__instance));
             }
             if (FluidClamp.TryFix(__instance, "part", quantity, capacity, out float fixedQuantity))
             {

@@ -2,6 +2,6 @@
   "id": "stellardrive-planetunlock",
   "name": "Planet Unlock",
   "author": "mateu",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "EXPERIMENTAL: loads all planets of the 442 Otrera system (the demo loads only Otrera b) so you can warp to them. Both players need the mod."
 }

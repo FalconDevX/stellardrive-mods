@@ -170,7 +170,7 @@ namespace Mining.Diagnostics
             }
             Content.Jetpack.TestForceUp = false;
             MiningMod.JetpackSecondsPerWood.Value = oldSeconds;
-            var inventoryUi = UnityEngine.Object.FindObjectOfType<UI.Inventory.PlayerInventoryActivator>(true);
+            var inventoryUi = UnityEngine.Object.FindAnyObjectByType<UI.Inventory.PlayerInventoryActivator>(FindObjectsInactive.Include);
             inventoryUi?.ToggleInventory();
             yield return new WaitForSeconds(1f);
             ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, "test_jetpack_inventory.png"));
@@ -294,7 +294,7 @@ namespace Mining.Diagnostics
                 log.Msg($"[test] large reactor placed, sockets: {large.GetComponentsInChildren<Ships.Interface.Model.Parts.Common.SocketObject>(true).Length}");
             }
 
-            var storageMenu = UnityEngine.Object.FindObjectsOfType<UI.Inventory.StorageMenuActivator>(true).FirstOrDefault();
+            var storageMenu = UnityEngine.Object.FindObjectsByType<UI.Inventory.StorageMenuActivator>(FindObjectsInactive.Include, FindObjectsSortMode.None).FirstOrDefault();
             log.Msg($"[test] electrolyzer window: {(storageMenu != null && Traverse.Create(storageMenu).Field("electrolyzerMenu").GetValue<GameObject>() != null ? "present" : "MISSING")}");
 
             Sites.MiningSite site = Sites.MiningSiteVisuals.FindNearest(3000f, out float distance);
@@ -407,7 +407,7 @@ namespace Mining.Diagnostics
                 log.Msg($"[test] server: added {added} ore, slots: {string.Join(", ", Enumerable.Range(0, 5).Select(i => st.GetSlot((byte)i).HasItem ? st.GetSlot((byte)i).Quantity.ToString() : "-"))}");
             }
 
-            var activator = UnityEngine.Object.FindObjectOfType<UI.Research.GenericPartOpenableMenuActivator>();
+            var activator = UnityEngine.Object.FindAnyObjectByType<UI.Research.GenericPartOpenableMenuActivator>();
             GameObject menuPrefab = activator != null ? Traverse.Create(activator).Field("researchMenuPrefab").GetValue<GameObject>() : null;
             if (menuPrefab != null)
             {
@@ -422,7 +422,7 @@ namespace Mining.Diagnostics
                 log.Msg("[test] no research menu");
             }
 
-            var thumbs = UnityEngine.Object.FindObjectOfType<Ships.Services.ShipPartsThumbnailRuntimeCache>();
+            var thumbs = UnityEngine.Object.FindAnyObjectByType<Ships.Services.ShipPartsThumbnailRuntimeCache>();
             Texture2D thumb = thumbs != null ? thumbs.GetLargeThumbnail(Content.Excavator.PartId) : null;
             log.Msg($"[test] thumbnail: {(thumb != null ? thumb.width + "x" + thumb.height : "none")}");
             if (thumb != null)
@@ -450,7 +450,7 @@ namespace Mining.Diagnostics
             Patches.CreateShipWithExcavatorPatch.AlignToTerrain(ref groundPos, ref rot2, up2);
             log.Msg($"[test] terrain slope under the excavator: {Vector3.Angle(rot2 * Vector3.up, up2):0.0}°");
             var shipsBefore = new HashSet<uint>(ServiceCache.Get<Ships.Services.ShipsServerTracker>().Ships.Select(sh => sh.Id));
-            var interaction = UnityEngine.Object.FindObjectOfType<Managers.Server.Services.ShipInteractionService>();
+            var interaction = UnityEngine.Object.FindAnyObjectByType<Managers.Server.Services.ShipInteractionService>();
             var conn = FishNet.InstanceFinder.ServerManager.Clients.Values.FirstOrDefault();
             var testPlayer = conn != null ? ServiceCache.Get<Players.Services.PlayersServerTracker>().GetTrackedPlayerFromConnectionId(conn.ClientId) : null;
             log.Msg($"[test] connection: {(conn != null ? conn.ClientId.ToString() : "none")}, player: {(testPlayer != null ? "present" : "none")}");
@@ -502,7 +502,7 @@ namespace Mining.Diagnostics
                 yield return null;
                 yield return null;
             }
-            foreach (var socket in UnityEngine.Object.FindObjectsOfType<Ships.Cables.VisualObjects.SocketInteractionObject>().Where(o => o.EntityPartSocket.EntityId == shipId))
+            foreach (var socket in UnityEngine.Object.FindObjectsByType<Ships.Cables.VisualObjects.SocketInteractionObject>(FindObjectsSortMode.None).Where(o => o.EntityPartSocket.EntityId == shipId))
             {
                 Vector3 target = socket.transform.position;
                 Vector3 outward = (target - (ship != null && shipsClient.TryGetVisualPart(new Ships.Interface.Model.Parts.PartContext(shipId, 1), out var v2) ? v2.GameObject.transform.position + v2.GameObject.transform.up * 0.42f : target - up2)).normalized;
@@ -571,7 +571,7 @@ namespace Mining.Diagnostics
             Quaternion rot = transpose.Rotation(planetSpace, physicsSpace, Quaternion.LookRotation(fwdPlanet, best));
             var shipsServer = ServiceCache.Get<Ships.Services.ShipsServerTracker>();
             var shipsBefore = new HashSet<uint>(shipsServer.Ships.Select(sh => sh.Id));
-            var interaction = UnityEngine.Object.FindObjectOfType<Managers.Server.Services.ShipInteractionService>();
+            var interaction = UnityEngine.Object.FindAnyObjectByType<Managers.Server.Services.ShipInteractionService>();
             var conn = FishNet.InstanceFinder.ServerManager.Clients.Values.FirstOrDefault();
             var testPlayer = conn != null ? ServiceCache.Get<Players.Services.PlayersServerTracker>().GetTrackedPlayerFromConnectionId(conn.ClientId) : null;
             testPlayer?.AddItemToInventory(new ItemDrop { ItemId = 101, Quantity = 30 });
@@ -622,7 +622,7 @@ namespace Mining.Diagnostics
                     {
                         var pumpInteraction = Resources.FindObjectsOfTypeAll<Content.WaterPumpInteraction>().FirstOrDefault();
                         if (pumpInteraction != null) pumpInteraction.HoseDown = true;
-                        var tips = UnityEngine.Object.FindObjectOfType<UI.Interaction.InteractionTooltipsActivator>();
+                        var tips = UnityEngine.Object.FindAnyObjectByType<UI.Interaction.InteractionTooltipsActivator>();
                         log.Msg($"[pump] interaction: {(pumpInteraction != null ? "present, hose " + (pumpInteraction.HoseDown ? "lowered" : "retracted") : "MISSING")}, tooltips: {(tips != null ? "present" : "MISSING")}");
                         if (pumpInteraction != null && tips != null)
                         {
@@ -777,7 +777,7 @@ namespace Mining.Diagnostics
                 Transform part = pv.GameObject.transform;
                 Vector3 center = part.position + part.up * 0.7f;
                 int mask = Tools.Common.RaycastMasks.BuildDetectionLayer | (1 << LayerMask.NameToLayer("Interactable"));
-                var sockets = UnityEngine.Object.FindObjectsOfType<Ships.Cables.VisualObjects.SocketInteractionObject>().Where(s => s.ShipId == id).ToList();
+                var sockets = UnityEngine.Object.FindObjectsByType<Ships.Cables.VisualObjects.SocketInteractionObject>(FindObjectsSortMode.None).Where(s => s.ShipId == id).ToList();
                 log.Msg($"[sockets] {label}: {sockets.Count} sockets");
                 foreach (var socket in sockets)
                 {
@@ -790,7 +790,7 @@ namespace Mining.Diagnostics
                             (isSocket ? "OK" : ok ? $"BLOCKED by '{PathOf(hit.collider.transform)}'" : "nothing hit"));
                 }
             }
-            var storageUi = UnityEngine.Object.FindObjectOfType<UI.Inventory.StorageMenuActivator>(true);
+            var storageUi = UnityEngine.Object.FindAnyObjectByType<UI.Inventory.StorageMenuActivator>(FindObjectsInactive.Include);
             GameObject chestPrefab = storageUi != null ? Traverse.Create(storageUi).Field<GameObject>("smallStorageMenu").Value : null;
             if (chestPrefab != null)
             {
@@ -877,7 +877,7 @@ namespace Mining.Diagnostics
                 yield return null;
                 yield return new WaitForSeconds(0.5f);
                 ScreenCapture.CaptureScreenshot(Path.Combine(OutDir, "test_build_menu.png"));
-                UI.BuildMenu.BuildMenu opened = UnityEngine.Object.FindObjectOfType<UI.BuildMenu.BuildMenu>();
+                UI.BuildMenu.BuildMenu opened = UnityEngine.Object.FindAnyObjectByType<UI.BuildMenu.BuildMenu>();
                 if (opened != null)
                 {
                     foreach (RectTransform rt in opened.GetComponentsInChildren<RectTransform>(true).Where(r => r.GetComponentInParent<UI.BuildMenu.BuildPartButton>() == null && r.GetComponentInParent<UI.BuildMenu.TabButton>() == null))
@@ -911,7 +911,7 @@ namespace Mining.Diagnostics
         private static IEnumerator RunDoorsTest()
         {
             var log = Melon<MiningMod>.Logger;
-            var preview = UnityEngine.Object.FindObjectOfType<Tools.Build.PartPreview>(true);
+            var preview = UnityEngine.Object.FindAnyObjectByType<Tools.Build.PartPreview>(FindObjectsInactive.Include);
             var thumbs = ServiceCache.Get<Ships.Interface.Services.IPartThumbnailProvider>();
             var select = AccessTools.Method(typeof(Tools.Build.PartPreview), "OnPartSelected");
             var unselect = AccessTools.Method(typeof(Tools.Build.PartPreview), "OnPartUnselected");
@@ -1036,7 +1036,7 @@ namespace Mining.Diagnostics
             }
 
             sb.AppendLine("== HULL ==");
-            foreach (Ships.Visuals.ShipHullVisuals hull in UnityEngine.Object.FindObjectsOfType<Ships.Visuals.ShipHullVisuals>().Take(1))
+            foreach (Ships.Visuals.ShipHullVisuals hull in UnityEngine.Object.FindObjectsByType<Ships.Visuals.ShipHullVisuals>(FindObjectsSortMode.None).Take(1))
             {
                 foreach (Renderer r in hull.GetComponentsInChildren<Renderer>(true).Take(4))
                 {
@@ -1063,7 +1063,7 @@ namespace Mining.Diagnostics
 
             sb.AppendLine("== AUDIO ==");
             sb.AppendLine($"unity audio config: {AudioSettings.GetConfiguration().sampleRate} Hz, speakers {AudioSettings.GetConfiguration().speakerMode}");
-            sb.AppendLine($"AudioListeners: {UnityEngine.Object.FindObjectsOfType<AudioListener>().Length}, FMOD listeners: {UnityEngine.Object.FindObjectsOfType<FMODUnity.StudioListener>().Length}");
+            sb.AppendLine($"AudioListeners: {UnityEngine.Object.FindObjectsByType<AudioListener>(FindObjectsSortMode.None).Length}, FMOD listeners: {UnityEngine.Object.FindObjectsByType<FMODUnity.StudioListener>(FindObjectsSortMode.None).Length}");
 
             sb.AppendLine("== TERRAIN ==");
             foreach (Planets.Terrain.PlanetTerrain terrain in Resources.FindObjectsOfTypeAll<Planets.Terrain.PlanetTerrain>())

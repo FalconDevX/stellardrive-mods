@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.16.4", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.16.5", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -23,6 +23,7 @@ namespace Mining
         internal static MelonPreferences_Entry<float> RotorLeverAngle;
         internal static MelonPreferences_Entry<bool> RotorCollision;
         internal static MelonPreferences_Entry<bool> KeepNearbyShipsLoaded;
+        internal static MelonPreferences_Entry<float> KeepNearbyShipsDistance;
         internal static MelonPreferences_Entry<float> JetpackSecondsPerWood;
         internal static MelonPreferences_Entry<float> JetpackAcceleration;
         internal static MelonPreferences_Entry<float> JetpackMaxSpeed;
@@ -91,7 +92,8 @@ namespace Mining
             FastRooms = category.CreateEntry("FastRooms", true, description: "Fast room/oxygen recalculation after a ship change (less lag while building). false = like the game. Computed by the host");
             RotorLeverAngle = category.CreateEntry("RotorLeverAngle", 90f, description: "Rotor angle for a signal of 1, e.g. from a lever (degrees). Signals between -1 and 1 are multiplied by it, bigger signals are degrees. Host only");
             RotorCollision = category.CreateEntry("RotorCollision", false, description: "When true, a turning rotor stops before its moving part hits something. When false, it turns through everything. Host only");
-            KeepNearbyShipsLoaded = category.CreateEntry("KeepNearbyShipsLoaded", true, description: "Keep the physics of ships within 3 km loaded even when they are in another space, so walking between areas does not rebuild their colliders (removes hitches). Host only");
+            KeepNearbyShipsLoaded = category.CreateEntry("KeepNearbyShipsLoaded", true, description: "Keep the physics of ships within KeepNearbyShipsDistance loaded even when they are in another space, so walking between areas does not rebuild their colliders (removes hitches). Host only");
+            KeepNearbyShipsDistance = category.CreateEntry("KeepNearbyShipsDistance", 3000f, description: "Distance (m) for KeepNearbyShipsLoaded. Every ship inside it is simulated all the time, so a smaller value means less CPU work with many ships. Host only");
             RotorSpeed = category.CreateEntry("RotorSpeed", 90f, description: "Rotor turning speed (degrees per second). Host only");
             HydrogenThrustMultiplier = category.CreateEntry("HydrogenThrustMultiplier", 1.8f, description: "How many times stronger the hydrogen thruster is than the chemical one. Host only");
             DevAutoLoadWorld = category.CreateEntry("DevAutoLoadWorld", "",

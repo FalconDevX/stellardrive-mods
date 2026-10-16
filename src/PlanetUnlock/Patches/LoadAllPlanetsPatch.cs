@@ -32,7 +32,7 @@ namespace PlanetUnlock.Patches
             {
                 return;
             }
-            foreach (Planet planet in Object.FindObjectsOfType<Planet>(true))
+            foreach (Planet planet in Object.FindObjectsByType<Planet>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
                 if (!planet.gameObject.activeInHierarchy)
                 {
@@ -84,7 +84,7 @@ namespace PlanetUnlock.Patches
         {
             var planets = Traverse.Create(__instance).Field("_planets").GetValue() as System.Collections.IDictionary;
             Melon<PlanetUnlockMod>.Logger.Msg($"{__instance.GetType().Name}: loaded planets: {planets?.Count}");
-            foreach (Planet planet in Object.FindObjectsOfType<Planet>(true))
+            foreach (Planet planet in Object.FindObjectsByType<Planet>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
                 Melon<PlanetUnlockMod>.Logger.Msg($"  '{planet.name}' id {planet.Id}, radius {planet.Radius / 1000f:0} km, " +
                                                   $"gravity {planet.PhysicalProperties.gravityInG:0.##} g, active {planet.gameObject.activeInHierarchy}");

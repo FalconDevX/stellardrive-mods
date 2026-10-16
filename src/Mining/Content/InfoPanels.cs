@@ -258,7 +258,7 @@ namespace Mining.Content
                 line.enableAutoSizing = true;
                 line.fontSizeMin = 0.01f;
                 line.fontSizeMax = 1000f;
-                line.enableWordWrapping = false;
+                line.textWrappingMode = TextWrappingModes.NoWrap;
                 line.overflowMode = TextOverflowModes.Truncate;
                 line.alignment = TextAlignmentOptions.Midline;
                 line.color = InfoPanelVisuals.TextColor;

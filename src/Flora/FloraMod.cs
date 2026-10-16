@@ -1,7 +1,7 @@
-﻿using Flora;
+using Flora;
 using MelonLoader;
 
-[assembly: MelonInfo(typeof(FloraMod), "Flora", "0.4.0", "mateu")]
+[assembly: MelonInfo(typeof(FloraMod), "Flora", "0.4.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Flora

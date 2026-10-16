@@ -23,7 +23,7 @@ namespace Mining.Server
         private const float WaterPerSecond = 0.05f;
         private const float IdleLevel = 0.35f;
         private static bool _loggedError;
-        private static readonly System.Collections.Generic.Dictionary<(uint, ushort), string> Reasons = new System.Collections.Generic.Dictionary<(uint, ushort), string>();
+        private static readonly System.Collections.Generic.Dictionary<(uint, ushort), int> Masks = new System.Collections.Generic.Dictionary<(uint, ushort), int>();
 
         [HarmonyPrefix]
         [HarmonyPatch(nameof(PowerGeneratorUpdaters.WriteProductionCapacity))]
@@ -115,19 +115,23 @@ namespace Mining.Server
             var connections = ServiceCache.Get<ConnectionsServerTracker>();
             var signal = new EntityPartSocket(ship.Id, part.Id, Reactor.SignalSocket);
             bool wired = Reactor.HasSignalSocket && connections.TryGetSignalConnectionGroupWithSocket(signal, out _);
-            var problems = new System.Collections.Generic.List<string>();
-            if (!grouped) problems.Add("power socket not connected");
-            if (Fuel(state, true) <= 0f) problems.Add("no uranium");
-            if (!TryGetWater(ship, part.Id, out _)) problems.Add("no water in the pipe");
-            if (Reactor.HasSignalSocket && !wired) problems.Add("signal socket not wired");
-            else if (Reactor.HasSignalSocket && connections.GetSignalValue(signal) <= 0.5f) problems.Add($"signal off ({connections.GetSignalValue(signal):0.##})");
-            string reason = problems.Count == 0 ? "running" : string.Join(", ", problems);
+            double value = wired ? connections.GetSignalValue(signal) : 0.0;
+            int mask = (grouped ? 0 : 1) | (Fuel(state, true) <= 0f ? 2 : 0) | (TryGetWater(ship, part.Id, out _) ? 0 : 4)
+                       | (Reactor.HasSignalSocket && !wired ? 8 : 0) | (wired && value <= 0.5 ? 16 + (int)(Math.Round(value * 100.0) * 32) : 0);
             var key = (ship.Id, part.Id);
-            if (!Reasons.TryGetValue(key, out string last) || last != reason)
+            if (Masks.TryGetValue(key, out int last) && last == mask)
             {
-                Reasons[key] = reason;
-                Melon<MiningMod>.Logger.Msg($"Reactor {part.Id} on ship {ship.Id}: {reason}");
+                return;
             }
+            Masks[key] = mask;
+            var problems = new System.Collections.Generic.List<string>();
+            if ((mask & 1) != 0) problems.Add("power socket not connected");
+            if ((mask & 2) != 0) problems.Add("no uranium");
+            if ((mask & 4) != 0) problems.Add("no water in the pipe");
+            if ((mask & 8) != 0) problems.Add("signal socket not wired");
+            if ((mask & 16) != 0) problems.Add($"signal off ({value:0.##})");
+            string reason = problems.Count == 0 ? "running" : string.Join(", ", problems);
+            Melon<MiningMod>.Logger.Msg($"Reactor {part.Id} on ship {ship.Id}: {reason}");
         }
 
         private static float Fuel(WoodPowerGeneratorState state, bool reactor)

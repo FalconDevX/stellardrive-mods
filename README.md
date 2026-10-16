@@ -38,18 +38,18 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Mining](#mining)** | 0.16.4 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
-| **[Water](#water)** | 0.4.3 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
+| **[Mining](#mining)** | 0.16.5 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
+| **[Water](#water)** | 0.4.4 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.4 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
-| **[Ship Safety](#ship-safety)** | 0.5.7 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
-| **[Resource Tweaks](#resource-tweaks)** | 0.3.2 | 3x resource yield, stacks of 100, faster mining | Host |
+| **[Ship Safety](#ship-safety)** | 0.5.8 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
+| **[Resource Tweaks](#resource-tweaks)** | 0.5.0 | 3x resource yield, stacks of 100, faster mining | Host |
 | **[Warp Unlock](#warp-unlock)** | 0.1.2 | Reveals the hidden Warp Drive research in the demo | All players |
-| **[Planet Unlock](#planet-unlock)** | 0.1.1 | *Experimental:* loads every planet of the 442 Otrera system | All players |
+| **[Planet Unlock](#planet-unlock)** | 0.1.2 | *Experimental:* loads every planet of the 442 Otrera system | All players |
 | **[Shared Piloting](#shared-piloting)** | 0.1.1 | Multiple pilot seats: whoever moves the mouse steers | Host |
 | **[Velocity Indicator](#velocity-indicator)** | 0.1.0 | Stable ship velocity readout when entering orbit | Each player |
 | **[Crouch](#crouch)** | 0.1.4 | Crouch with Left Ctrl | Each player |
-| **[Drop Items](#drop-items)** | 0.1.1 | Drop items from the toolbar or inventory | Each player |
-| **[Flora](#flora)** | 0.4.0 | Decorative flower fields on the planet | Each player |
+| **[Drop Items](#drop-items)** | 0.1.2 | Drop items from the toolbar or inventory | Each player |
+| **[Flora](#flora)** | 0.4.1 | Decorative flower fields on the planet | Each player |
 | **[FPS Counter](#fps-counter)** | 0.1.0 | FPS counter in the top-right corner (F3) | Each player |
 
 Current versions are always listed in [`dist/VERSIONS.txt`](dist/VERSIONS.txt).
@@ -123,11 +123,13 @@ A few commonly tweaked options:
 |---|---|---|---|
 | Resource Tweaks | `DropMultiplier` | `3` | Resource yield multiplier |
 | Resource Tweaks | `MaxStackSize` | `100` | Maximum stack size |
+| Resource Tweaks | `InventoryScale` | `1.5` | Size of the Tab inventory window (1 = like the game) |
 | Mining | `HydrogenThrustMultiplier` | `1.8` | Hydrogen thruster strength relative to the chemical one |
 | Mining | `ReactorPower` | `20000` | Reactor output in watts |
 | Mining | `RotorLeverAngle` | `90` | Rotor angle for a signal of 1 |
 | Mining | `RotorCollision` | `false` | Stop a turning rotor before its moving part hits something |
-| Mining | `KeepNearbyShipsLoaded` | `true` | Keep ships within 3 km physics-loaded across spaces to avoid hitches |
+| Mining | `KeepNearbyShipsLoaded` | `true` | Keep nearby ships physics-loaded across spaces to avoid hitches |
+| Mining | `KeepNearbyShipsDistance` | `3000` | Range of `KeepNearbyShipsLoaded` in meters; lower it if many ships cost FPS |
 | Mining | `DetailDistance` | `30` | Distance beyond which small ship details are hidden (m) |
 | Pick Block | `AreaMaxSize` | `9` | Largest square side for area building |
 | Ship Safety | `MaxSpeed` | `5000` | Ship speed limit (m/s) |
@@ -249,7 +251,7 @@ Turns the blue terrain of Otrera b's lakes into real water. **All players need i
 
 ### Resource Tweaks
 
-3x resources from tool-less mining, stack size of 100, and faster mining (trees -50% time, everything else -25%). Host only.
+3x resources from tool-less mining, stack size of 100, faster mining (trees -50% time, everything else -25%), a 45-slot personal inventory and a 50% bigger inventory window under Tab (`InventoryScale`). Host only, the window size is per player.
 
 ### Warp Unlock
 

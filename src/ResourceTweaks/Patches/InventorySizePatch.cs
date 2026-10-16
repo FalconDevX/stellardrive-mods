@@ -85,6 +85,7 @@ namespace ResourceTweaks.Patches
             try
             {
                 Expand(__instance, InventoryConstants.GridSize);
+                Enlarge(__instance);
             }
             catch (Exception e)
             {
@@ -94,6 +95,52 @@ namespace ResourceTweaks.Patches
                     Melon<ResourceTweaksMod>.Logger.Error($"Inventory window: {e}");
                 }
             }
+        }
+
+        private static void Enlarge(InventoryGrid grid)
+        {
+            float scale = Mathf.Clamp(ResourceTweaksMod.InventoryScale.Value, 1f, 2.5f);
+            Transform parent = grid.transform.parent;
+            if (scale <= 1.001f || parent == null)
+            {
+                return;
+            }
+            foreach (InventoryGrid other in parent.GetComponentsInChildren<InventoryGrid>(true))
+            {
+                if (other != grid && Traverse.Create(other).Field<InventoryType>("source").Value != InventoryType.MainInventory)
+                {
+                    return;
+                }
+            }
+            Transform target = grid.transform;
+            for (Transform t = grid.transform.parent; t != null; t = t.parent)
+            {
+                Canvas canvas = t.GetComponent<Canvas>();
+                if (canvas != null && canvas.isRootCanvas)
+                {
+                    break;
+                }
+                if (t.GetComponentInChildren<DestroySlotUI>(true) != null)
+                {
+                    if (t.GetComponentsInChildren<InventoryGrid>(true).Length == 1)
+                    {
+                        target = t;
+                    }
+                    break;
+                }
+            }
+            target.localScale *= scale;
+            if (target == grid.transform)
+            {
+                DestroySlotUI trash = parent.root.GetComponentsInChildren<DestroySlotUI>(true)
+                    .OrderBy(d => Vector3.Distance(d.transform.position, target.position)).FirstOrDefault();
+                if (trash != null && !trash.transform.IsChildOf(target))
+                {
+                    trash.transform.position = target.position + (trash.transform.position - target.position) * scale;
+                    trash.transform.localScale *= scale;
+                }
+            }
+            Melon<ResourceTweaksMod>.Logger.Msg($"Inventory window '{target.name}' scaled x{scale:0.##}");
         }
 
         private static void Expand(InventoryGrid grid, int slots)

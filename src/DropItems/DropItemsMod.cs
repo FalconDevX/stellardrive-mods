@@ -10,7 +10,7 @@ using UI.Inventory;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(DropItemsMod), "Drop Items", "0.1.1", "mateu")]
+[assembly: MelonInfo(typeof(DropItemsMod), "Drop Items", "0.1.2", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace DropItems
@@ -94,7 +94,7 @@ namespace DropItems
         private static bool TryGetSelectedToolbarSlot(out byte slot)
         {
             slot = 0;
-            ToolBelt belt = UnityEngine.Object.FindObjectOfType<ToolBelt>();
+            ToolBelt belt = UnityEngine.Object.FindAnyObjectByType<ToolBelt>();
             if (belt == null)
             {
                 return false;
