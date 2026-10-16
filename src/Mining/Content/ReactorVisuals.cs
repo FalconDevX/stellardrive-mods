@@ -208,7 +208,7 @@ namespace Mining.Content
 
         private ParticleSystem CreateSteam()
         {
-            ParticleSystem template = Resources.FindObjectsOfTypeAll<ParticleSystem>().FirstOrDefault(p => p.name == "DustPoof");
+            ParticleSystem template = ParticleTemplates.Get();
             if (template == null)
             {
                 return null;

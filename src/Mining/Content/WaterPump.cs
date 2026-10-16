@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Audio.Interface;
@@ -71,7 +71,8 @@ namespace Mining.Content
             water = false;
             if (!Planets.TryGetValue(planetId, out Planets.Network.TrackedPlanet tracked) || tracked?.Planet == null)
             {
-                Planets[planetId] = tracked = MiningSites.FindTrackedPlanet(planetId);
+                tracked = MiningSites.FindTrackedPlanet(planetId);
+                if (tracked != null) Planets[planetId] = tracked;
             }
             if (tracked?.Planet == null)
             {

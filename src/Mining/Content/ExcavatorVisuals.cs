@@ -60,7 +60,7 @@ namespace Mining.Content
         private ParticleSystem CreateEffect(string templateName, string name, Vector3 localPosition, (float, float) lifetime, (float, float) size,
             (float, float) speed, float rate, float angle, float radius, float grow)
         {
-            ParticleSystem template = Resources.FindObjectsOfTypeAll<ParticleSystem>().FirstOrDefault(p => p.name == templateName);
+            ParticleSystem template = ParticleTemplates.Get(templateName);
             if (template == null)
             {
                 return null;

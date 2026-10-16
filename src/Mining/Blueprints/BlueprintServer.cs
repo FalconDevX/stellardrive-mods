@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Core.Services;
@@ -208,6 +208,7 @@ namespace Mining.Blueprints
             BlueprintTransform t = target.Transform;
             var existingHull = ship != null ? new HashSet<HullPartPosition>(ship.GetHullParts().Keys) : new HashSet<HullPartPosition>();
             var existingStateful = ship != null ? ship.StatefulParts.ToList() : new List<StatefulPart>();
+            var occupied = new HashSet<HullPartPosition>(existingStateful.Select(e => e.Placement).OfType<HullPartPlacement>().Select(e => e.Position));
             foreach (BlueprintHull h in data.hull)
             {
                 if (!(Settings(h.s) is HullPartSettings settings))
@@ -238,7 +239,7 @@ namespace Mining.Blueprints
                 if (p.onHull)
                 {
                     HullPartPosition pos = t.Apply(new Vector3Int(p.hx, p.hy, p.hz), (VoxelPartType)p.ht);
-                    if (existingStateful.Any(e => e.Placement is HullPartPlacement ep && ep.Position == pos))
+                    if (!occupied.Add(pos))
                     {
                         plan.Skipped++;
                         continue;

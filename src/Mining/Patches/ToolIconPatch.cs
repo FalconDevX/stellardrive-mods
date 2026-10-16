@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using Items.Model;
@@ -15,61 +15,60 @@ namespace Mining.Patches
     {
         private static readonly HashSet<uint> Angled = new HashSet<uint> { Blueprints.BlueprintToolItem.PaintToolItemId, Blueprints.BlueprintToolItem.ItemId };
 
-        private static readonly Color[] Blobs = { new Color(0.92f, 0.22f, 0.2f), new Color(1f, 0.6f, 0.15f), new Color(1f, 0.88f, 0.2f), new Color(0.3f, 0.8f, 0.3f), new Color(0.2f, 0.55f, 1f), new Color(0.65f, 0.3f, 0.9f) };
+        private static readonly Color[] Rainbow = { new Color(0.92f, 0.22f, 0.2f), new Color(1f, 0.6f, 0.15f), new Color(1f, 0.88f, 0.2f), new Color(0.3f, 0.8f, 0.3f), new Color(0.2f, 0.55f, 1f), new Color(0.65f, 0.3f, 0.9f) };
+        private static readonly Color Outline = new Color(0.12f, 0.12f, 0.14f), Metal = new Color(0.72f, 0.74f, 0.78f), Dark = new Color(0.2f, 0.22f, 0.26f), Fitting = new Color(0.35f, 0.36f, 0.4f), Accent = new Color(0.95f, 0.55f, 0.12f);
+        private const float IconScale = 0.86f;
 
         internal static Texture2D PaintIcon(int size)
         {
             var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "PaintToolIcon", wrapMode = TextureWrapMode.Clamp };
             var px = new Color[size * size];
-            var wood = new Color(0.86f, 0.7f, 0.48f);
-            var woodEdge = new Color(0.55f, 0.4f, 0.24f);
-            var blobCenters = new Vector2[6];
-            for (int i = 0; i < 6; i++)
-            {
-                float a = Mathf.Lerp(150f, -20f, i / 5f) * Mathf.Deg2Rad;
-                blobCenters[i] = new Vector2(0.47f + Mathf.Cos(a) * 0.27f, 0.47f + Mathf.Sin(a) * 0.22f);
-            }
-            float aa = 1.5f / size;
+            float aa = 1.5f / size / IconScale;
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
                 {
-                    var p = new Vector2((x + 0.5f) / size, (y + 0.5f) / size);
+                    var p = new Vector2(((x + 0.5f) / size - 0.5f) / IconScale + 0.53f, ((y + 0.5f) / size - 0.5f) / IconScale + 0.5f);
                     Color c = Color.clear;
-                    Vector2 q = new Vector2((p.x - 0.47f) / 0.42f, (p.y - 0.47f) / 0.34f);
-                    float palette = (q.magnitude - 1f) * 0.36f;
-                    float hole = 0.07f - Vector2.Distance(p, new Vector2(0.3f, 0.36f));
-                    float notch = 0.1f - Vector2.Distance(p, new Vector2(0.2f, 0.22f));
-                    float shape = Mathf.Max(palette, Mathf.Max(hole, notch));
-                    if (shape < aa)
-                    {
-                        Color body = shape > -0.025f ? Color.Lerp(woodEdge, wood, Mathf.InverseLerp(-0.006f, -0.025f, shape) + 0.35f) : wood;
-                        for (int i = 0; i < 6; i++)
-                        {
-                            float d = Vector2.Distance(p, blobCenters[i]) - 0.075f;
-                            if (d < 0f) body = Color.Lerp(body, Blobs[i], Mathf.Clamp01(-d / aa));
-                        }
-                        body.a = Mathf.Clamp01((aa - shape) / (2f * aa));
-                        c = body;
-                    }
-                    Vector2 a0 = new Vector2(0.62f, 0.28f), a1 = new Vector2(0.95f, 0.02f);
-                    Vector2 dir = (a1 - a0).normalized;
-                    float t = Mathf.Clamp01(Vector2.Dot(p - a0, dir) / Vector2.Distance(a0, a1));
-                    float dist = Vector2.Distance(p, a0 + dir * t * Vector2.Distance(a0, a1));
-                    float width = Mathf.Lerp(0.012f, 0.03f, t);
-                    if (dist < width + aa)
-                    {
-                        Color brush = t < 0.15f ? new Color(0.2f, 0.55f, 1f) : t < 0.3f ? new Color(0.75f, 0.75f, 0.8f) : new Color(0.45f, 0.28f, 0.15f);
-                        brush.a = Mathf.Clamp01((width + aa - dist) / (2f * aa));
-                        c = Color.Lerp(c, new Color(brush.r, brush.g, brush.b, 1f), brush.a);
-                        c.a = Mathf.Max(c.a, brush.a);
-                    }
+                    Paint(ref c, Segment(p, new Vector2(0.4f, 0.46f), new Vector2(0.31f, 0.14f), 0.075f), Dark, Outline, aa);
+                    Paint(ref c, Segment(p, new Vector2(0.52f, 0.44f), new Vector2(0.49f, 0.33f), 0.022f), Fitting, Outline, aa);
+                    Paint(ref c, RoundBox(p, new Vector2(0.5f, 0.53f), new Vector2(0.3f, 0.085f), 0.06f), Metal, Outline, aa);
+                    Paint(ref c, RoundBox(p, new Vector2(0.5f, 0.5f), new Vector2(0.26f, 0.018f), 0.01f), Accent, Accent, aa);
+                    Paint(ref c, RoundBox(p, new Vector2(0.86f, 0.55f), new Vector2(0.07f, 0.04f), 0.015f), Fitting, Outline, aa);
+                    Color band = Rainbow[Mathf.Clamp((int)((p.x - 0.35f) / 0.3f * 6f), 0, 5)];
+                    Paint(ref c, RoundBox(p, new Vector2(0.5f, 0.8f), new Vector2(0.15f, 0.16f), 0.06f), band, Outline, aa);
+                    Paint(ref c, RoundBox(p, new Vector2(0.5f, 0.955f), new Vector2(0.1f, 0.025f), 0.015f), Fitting, Outline, aa);
+                    Paint(ref c, RoundBox(p, new Vector2(0.5f, 0.64f), new Vector2(0.05f, 0.03f), 0f), Fitting, Outline, aa);
+                    Paint(ref c, Vector2.Distance(p, new Vector2(0.95f, 0.65f)) - 0.022f, Rainbow[0], Rainbow[0], aa);
+                    Paint(ref c, Vector2.Distance(p, new Vector2(0.965f, 0.55f)) - 0.025f, Rainbow[2], Rainbow[2], aa);
+                    Paint(ref c, Vector2.Distance(p, new Vector2(0.95f, 0.45f)) - 0.022f, Rainbow[4], Rainbow[4], aa);
                     px[y * size + x] = c;
                 }
             }
             tex.SetPixels(px);
             tex.Apply();
             return tex;
+        }
+
+        private static void Paint(ref Color c, float d, Color fill, Color outline, float aa)
+        {
+            float a = Mathf.Clamp01((aa - d) / (2f * aa));
+            if (a <= 0f) return;
+            Color col = Color.Lerp(fill, outline, Mathf.Clamp01((d + 0.022f) / 0.008f));
+            c = new Color(Mathf.Lerp(c.r, col.r, a), Mathf.Lerp(c.g, col.g, a), Mathf.Lerp(c.b, col.b, a), Mathf.Max(c.a, a));
+        }
+
+        private static float RoundBox(Vector2 p, Vector2 center, Vector2 half, float r)
+        {
+            Vector2 q = new Vector2(Mathf.Abs(p.x - center.x), Mathf.Abs(p.y - center.y)) - half + new Vector2(r, r);
+            return Vector2.Max(q, Vector2.zero).magnitude + Mathf.Min(Mathf.Max(q.x, q.y), 0f) - r;
+        }
+
+        private static float Segment(Vector2 p, Vector2 a, Vector2 b, float r)
+        {
+            Vector2 pa = p - a, ba = b - a;
+            float t = Mathf.Clamp01(Vector2.Dot(pa, ba) / Vector2.Dot(ba, ba));
+            return (pa - ba * t).magnitude - r;
         }
 
         private static bool Prefix(ItemThumbnailTextureCache __instance, uint itemId, Dictionary<uint, Texture2D> ____thumbnails, ObjectThumbnailRenderer ____thumbnailRenderer, ItemSettingsList ___items, ref Texture2D __result)

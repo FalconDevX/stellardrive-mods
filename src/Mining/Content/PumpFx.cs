@@ -108,7 +108,7 @@ namespace Mining.Content
             {
                 return _particles;
             }
-            ParticleSystem template = Resources.FindObjectsOfTypeAll<ParticleSystem>().FirstOrDefault(p => p.name == "DustPoof");
+            ParticleSystem template = ParticleTemplates.Get();
             if (template == null)
             {
                 return null;

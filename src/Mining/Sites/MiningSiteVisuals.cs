@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Core.Services;
 using Core.Values;
@@ -147,7 +147,7 @@ namespace Mining.Sites
                 return go;
             }
 
-            var tracked = TrackedPlanetFor(site.PlanetId);
+            var tracked = MiningSites.FindTrackedPlanet(site.PlanetId);
             var rng = new System.Random(site.Seed);
             Vector3 rockSize = rockInfo.Bounds.size;
             float rockDiameter = Mathf.Max(0.05f, Mathf.Max(rockSize.x, rockSize.z));
@@ -254,21 +254,6 @@ namespace Mining.Sites
             }
             RockCache[prefab] = rock;
             return rock;
-        }
-
-        private static TrackedPlanet TrackedPlanetFor(ulong planetId)
-        {
-            foreach (MonoBehaviour tracker in new MonoBehaviour[] { Object.FindObjectOfType<Planets.Services.PlanetsClientTracker>(), Object.FindObjectOfType<Planets.Services.PlanetsServerTracker>() })
-            {
-                if (tracker != null && Traverse.Create(tracker).Field("_planets").GetValue() is System.Collections.IDictionary planets)
-                {
-                    foreach (System.Collections.DictionaryEntry entry in planets)
-                    {
-                        if (entry.Value is TrackedPlanet p && p.Id == planetId) return p;
-                    }
-                }
-            }
-            return null;
         }
 
         internal static MiningSite FindNearest(float maxDistance, out float distance)

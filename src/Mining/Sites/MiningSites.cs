@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -324,9 +324,19 @@ namespace Mining.Sites
             return kinds.ToArray();
         }
 
+        private static PlanetsServerTracker _serverTracker;
+        private static PlanetsClientTracker _clientTracker;
+        private static float _nextTrackerSearch;
+
         internal static TrackedPlanet FindTrackedPlanet(ulong planetId)
         {
-            foreach (MonoBehaviour tracker in new MonoBehaviour[] { Object.FindObjectOfType<PlanetsServerTracker>(), Object.FindObjectOfType<PlanetsClientTracker>() })
+            if ((_serverTracker == null || _clientTracker == null) && Time.unscaledTime >= _nextTrackerSearch)
+            {
+                _nextTrackerSearch = Time.unscaledTime + 2f;
+                if (_serverTracker == null) _serverTracker = Object.FindObjectOfType<PlanetsServerTracker>();
+                if (_clientTracker == null) _clientTracker = Object.FindObjectOfType<PlanetsClientTracker>();
+            }
+            foreach (MonoBehaviour tracker in new MonoBehaviour[] { _serverTracker, _clientTracker })
             {
                 if (tracker != null && Traverse.Create(tracker).Field("_planets").GetValue() is IDictionary planets)
                 {

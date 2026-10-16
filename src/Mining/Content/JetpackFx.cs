@@ -158,7 +158,7 @@ namespace Mining.Content
                 return _additive;
             }
             _additiveTried = true;
-            ParticleSystem template = Resources.FindObjectsOfTypeAll<ParticleSystem>().FirstOrDefault(p => p.name == "DustPoof");
+            ParticleSystem template = ParticleTemplates.Get();
             ParticleSystemRenderer templateRenderer = template != null ? template.GetComponent<ParticleSystemRenderer>() : null;
             Material source = templateRenderer != null ? templateRenderer.sharedMaterial : null;
             Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
@@ -222,7 +222,7 @@ namespace Mining.Content
         private ParticleSystem CreateEffect(string name, (float, float) lifetime, (float, float) size, (float, float) speed, float rate, float angle, float radius, float grow,
             Transform parent, int maxParticles, Material material, ParticleSystemSimulationSpace space)
         {
-            ParticleSystem template = Resources.FindObjectsOfTypeAll<ParticleSystem>().FirstOrDefault(p => p.name == "DustPoof");
+            ParticleSystem template = ParticleTemplates.Get();
             if (template == null)
             {
                 return null;

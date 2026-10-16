@@ -24,6 +24,7 @@ namespace Mining.Content
         private static string HullStyle(string color) => HullColors.TryGetValue(color, out string c) ? c : color;
 
         internal const string ModelName = "BigDoorModel";
+        internal const string NarrowMarker = "Narrow";
         internal const float Frame = 0.22f;
         internal const float NarrowFrame = 0.06f, NarrowTop = 0.1f;
 
@@ -170,17 +171,28 @@ namespace Mining.Content
             PartFactory.CreateRenderer("Frame", model, m.ToMesh("BigDoorFrame"), material, look);
 
             float d = Mathf.Min(0.1f, depth * 0.6f), wl = ix1 - ix0 - 0.01f, hl = iy1 - iy0, lcx = (ix0 + ix1) / 2, lcy = (iy0 + iy1) / 2;
-            var leaf = new List<Box> { new Box(new Vector3(lcx, lcy, z), new Vector3(wl, hl, d), "light") };
+            int slats = Mathf.Max(1, Mathf.CeilToInt(hl / Strip));
+            float pitch = hl / slats;
+            var leaf = new List<Box> { new Box(new Vector3(lcx, lcy, z), new Vector3(wl, hl, d * 0.6f), "dark") };
+            for (int i = 0; i < slats; i++)
+            {
+                float sy = iy0 + pitch * (i + 0.5f);
+                leaf.Add(new Box(new Vector3(lcx, sy, z), new Vector3(wl, pitch - 0.03f, d), "light"));
+                foreach (float side in new[] { -1f, 1f })
+                {
+                    float fz = z + side * (d / 2 + 0.004f);
+                    leaf.Add(new Box(new Vector3(lcx, sy + pitch * 0.18f, fz), new Vector3(wl - 0.04f, 0.022f, 0.008f), "grey"));
+                    leaf.Add(new Box(new Vector3(lcx, sy - pitch * 0.18f, fz), new Vector3(wl - 0.04f, 0.022f, 0.008f), "grey"));
+                }
+            }
             foreach (float side in new[] { -1f, 1f })
             {
-                float fz = z + side * (d / 2 + 0.006f);
-                leaf.Add(new Box(new Vector3(lcx, iy1 - 0.04f, fz), new Vector3(wl, 0.08f, 0.012f), "grey"));
-                leaf.Add(new Box(new Vector3(lcx, iy0 + 0.04f, fz), new Vector3(wl, 0.08f, 0.012f), "grey"));
-                leaf.Add(new Box(new Vector3(lcx, lcy - 0.15f, fz), new Vector3(wl - 0.12f, 0.03f, 0.012f), "grey"));
-                leaf.Add(new Box(new Vector3(lcx, iy1 - 0.45f, fz), new Vector3(wl * 0.55f, 0.42f, 0.016f), "dark"));
-                leaf.Add(new Box(new Vector3(lcx, iy1 - 0.45f, fz + side * 0.004f), new Vector3(wl * 0.55f - 0.06f, 0.36f, 0.012f), "screen"));
+                float fz = z + side * (d / 2 + 0.008f);
+                leaf.Add(new Box(new Vector3(lcx, iy0 + pitch * 0.5f, fz), new Vector3(0.22f, 0.05f, 0.03f), "steel"));
             }
+            leaf.Add(new Box(new Vector3(lcx, iy0 + 0.02f, z), new Vector3(wl, 0.04f, d + 0.02f), "rubber"));
             AddLeaf(model, material, look, leaf, 'y', 1, hl, iy0, iy1, iy0, iy1);
+            new GameObject(NarrowMarker).transform.SetParent(model, false);
         }
 
         private static List<Box> SlideLeaf(float x0, float x1, float y0, float y1, float z, float d, float mid)
@@ -487,7 +499,8 @@ namespace Mining.Content
         private float _seconds = 1.6f;
         private float _pitch = 1f, _hear = 40f;
         private bool _moving;
-        private readonly Audio.LoopEmitter _sound = new Audio.LoopEmitter("bigdoor", 45f, MiningMod.DoorVolume);
+        private string _soundName = "bigdoor";
+        private Audio.LoopEmitter _sound;
 
         private struct Piece
         {
@@ -505,6 +518,11 @@ namespace Mining.Content
         private void Awake()
         {
             Transform model = transform.Find(BigDoorModel.ModelName);
+            if (model != null && model.Find(BigDoorModel.NarrowMarker) != null)
+            {
+                _soundName = "smalldoor";
+            }
+            _sound = new Audio.LoopEmitter(_soundName, 45f, MiningMod.DoorVolume);
             if (model == null)
             {
                 return;
@@ -548,7 +566,7 @@ namespace Mining.Content
             bool wasOpen = ((IDoorState)change.PreviousState).IsOpen, open = ((IDoorState)change.NewState).IsOpen;
             if (wasOpen != open)
             {
-                Audio.OneShot.Play("bigdoor_start", transform.position, _hear, MiningMod.DoorVolume.Value, _pitch);
+                Audio.OneShot.Play(_soundName + "_start", transform.position, _hear, MiningMod.DoorVolume.Value, _pitch);
             }
             _target = open ? 1f : 0f;
         }
@@ -560,19 +578,19 @@ namespace Mining.Content
                 if (_moving)
                 {
                     _moving = false;
-                    _sound.Stop();
-                    Audio.OneShot.Play("bigdoor_stop", transform.position, _hear, MiningMod.DoorVolume.Value, _pitch);
+                    _sound?.Stop();
+                    Audio.OneShot.Play(_soundName + "_stop", transform.position, _hear, MiningMod.DoorVolume.Value, _pitch);
                 }
                 return;
             }
             _moving = true;
             _t = Mathf.MoveTowards(_t, _target, Time.deltaTime / _seconds);
             float edge = Mathf.Min(Mathf.Abs(_t - _target), 1f - Mathf.Abs(_t - _target));
-            _sound.Update(transform.position, Mathf.Clamp01(0.35f + edge * 4f), _pitch);
+            _sound?.Update(transform.position, Mathf.Clamp01(0.35f + edge * 4f), _pitch);
             Apply();
         }
 
-        private void OnDisable() => _sound.Stop();
+        private void OnDisable() => _sound?.Stop();
 
         private void Apply()
         {
