@@ -91,6 +91,21 @@ namespace Mining.Patches
         }
     }
 
+    [HarmonyPatch(typeof(Ships.Physics.ShipInteractionColliders), nameof(Ships.Physics.ShipInteractionColliders.AddStatefulPart))]
+    internal static class HatchInteractionShiftPatch
+    {
+        private static readonly AccessTools.FieldRef<Ships.Physics.ShipInteractionColliders, Dictionary<ushort, Ships.Parts.Common.Model.Reactions.IShipPartInteractions>> Parts =
+            AccessTools.FieldRefAccess<Ships.Physics.ShipInteractionColliders, Dictionary<ushort, Ships.Parts.Common.Model.Reactions.IShipPartInteractions>>("_statefulParts");
+
+        private static void Postfix(Ships.Physics.ShipInteractionColliders __instance, StatefulPart part)
+        {
+            if (BigDoors.IsHatch(part.Settings) && Parts(__instance).TryGetValue(part.Id, out var interactions) && interactions?.GameObject != null)
+            {
+                interactions.GameObject.transform.localPosition += HatchPlacement.Shift(part.Settings, part.LocalRotation);
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(Ships.Physics.Collision.ShipStatefulColliders), nameof(Ships.Physics.Collision.ShipStatefulColliders.AddStatefulPart))]
     internal static class HatchColliderShiftPatch
     {
