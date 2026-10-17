@@ -70,6 +70,7 @@ namespace Mining.Patches
             (BigDoors.Variants[14].id, p => BigDoors.GetOrCreate(BigDoors.Variants[14].id, p), () => BigDoors.Get(BigDoors.Variants[14].id), BigDoors.DoorPartId),
             (BigDoors.Variants[15].id, p => BigDoors.GetOrCreate(BigDoors.Variants[15].id, p), () => BigDoors.Get(BigDoors.Variants[15].id), BigDoors.DoorPartId),
             (PowerMeter.PartId, PowerMeter.GetOrCreatePart, () => PowerMeter.Part, 0),
+            (GasMeterSignal.PartId, GasMeterSignal.GetOrCreatePart, () => GasMeterSignal.Part, GasMeterSignal.GasMeterPartId),
             (HeavyGyroscope.PartId, HeavyGyroscope.GetOrCreatePart, () => HeavyGyroscope.Part, HeavyGyroscope.GyroscopePartId),
         };
 
@@ -114,7 +115,7 @@ namespace Mining.Patches
             (Items.Model.ItemsConstants.IronItemId, 20), (Items.Model.ItemsConstants.WoodItemId, 30));
 
         internal static readonly ModResearch InfoPanelsResearch = new ModResearch(InfoPanels.ResearchId, "Info Panels", new Vector2Int(6, 0), 5,
-            () => InfoPanels.All.Concat(new[] { PowerMeter.Part }).Where(p => p != null).ToArray(),
+            () => InfoPanels.All.Concat(new[] { PowerMeter.Part, GasMeterSignal.Part }).Where(p => p != null).ToArray(),
             (Items.Model.ItemsConstants.IronItemId, 15), (112, 10), (Items.Model.ItemsConstants.GlassItemId, 10));
 
         internal static readonly ModResearch NuclearResearch = new ModResearch(204, "Nuclear Power", new Vector2Int(6, 4), 201,
@@ -217,7 +218,7 @@ namespace Mining.Patches
             ("Control", new ushort[] { 3, 29, 17, 46, 18, 50, 54, 45, 48, 82, 56, 49, 68, 39, 247, 225, 226, 227, PowerMeter.PartId }),
             ("Propulsion", new ushort[] { 69, 19, 201, 228, 229, 230, 53, 248, 16, 58, 222, Pontoon.MediumPartId, Pontoon.LargePartId }),
             ("Power", new ushort[] { 61, 65, 60, 203, Reactor.LargePartId }),
-            ("Fluids", new ushort[] { 24, 81, 57, 23, 218, 215, 79, 66, 67, 202, 214, 80 }),
+            ("Fluids", new ushort[] { 24, 81, 57, 23, 218, 215, 79, 66, 67, GasMeterSignal.PartId, 202, 214, 80 }),
             ("Doors", new ushort[] { DoorPartId, 42, Barrier.PartId, Stairs.PartId, RetractableStairs.PartId, 244, 217, 210, 211, 212, 213, 216, 223, 224, 253, 254, 255, 256, 257, 258, 259 }),
             ("Utility", new ushort[] { 22, Blueprints.Workbench.PartId, 15, 38, 30, 219, 220, 232, 43, 41, 200, 221, 55 }),
         };

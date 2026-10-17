@@ -53,6 +53,18 @@ for k in range(8):
     a = 2 * math.pi * k / 8
     vent.box((math.cos(a) * 0.19, VENT_H - 0.012, math.sin(a) * 0.19), (0.34, 0.012, 0.012), 'light', rot=(0, -math.degrees(a), 0))
 vent.cylinder((0, VENT_H - 0.01, 0), 0.04, 0.016, 'orange', 12)
+GRATE_Y = VENT_H + 0.004
+for k in range(13):
+    t = -0.42 + k * 0.07
+    vent.box((t, GRATE_Y, 0), (0.008, 0.008, 0.86), 'steel')
+    vent.box((0, GRATE_Y + 0.008, t), (0.86, 0.008, 0.008), 'steel')
+for sx in (-1, 1):
+    for k in range(6):
+        y = 0.17 + k * 0.022
+        for side in (-1, 1):
+            vent.box((sx * 0.451, y, side * 0.22), (0.004, 0.009, 0.3), 'black')
+            if sx > 0:
+                vent.box((side * 0.22, y, 0.451), (0.3, 0.009, 0.004), 'black')
 vent.box((0.3, 0.18, -0.452), (0.18, 0.1, 0.01), 'blue')
 vent.box((0.3, 0.18, -0.458), (0.12, 0.05, 0.004), 'white')
 socket_stub(vent, SOCKET_Y, -0.49)
@@ -108,5 +120,6 @@ socket_stub(intake, SOCKET_Y, -0.49)
 
 if __name__ == '__main__':
     vent.write(os.path.join(OUT, 'vent_big.bin'))
-    intake.write(os.path.join(OUT, 'intake_big.bin'))
+    if 'intake' in sys.argv:
+        intake.write(os.path.join(OUT, 'intake_big.bin'))
     fan.write(os.path.join(OUT, 'vent_fan.bin'))
