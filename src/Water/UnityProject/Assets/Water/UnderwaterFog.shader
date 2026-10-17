@@ -67,11 +67,13 @@ Shader "StellarDriveMods/UnderwaterFog"
 #endif
                 float3 up = normalize(_Up.xyz);
                 float rise = dot(dir, up);
-                if (rise > 1e-3)
+                float toSurface = rise > 1e-3 ? max(_CamDepth, 0) / rise : 1e5;
+                float fogDist = dist;
+                if (toSurface < dist)
                 {
-                    dist = min(dist, max(_CamDepth, 0) / rise);
+                    fogDist = toSurface * lerp(0.35, 0.12, saturate(rise));
                 }
-                float fog = 1 - exp(-dist * _Density);
+                float fog = 1 - exp(-fogDist * _Density);
 
                 Light sun = GetMainLight();
                 half3 ambient = SampleSH(up);

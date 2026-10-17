@@ -33,6 +33,8 @@ namespace Water.Swimming
         private static float _lastSplash;
 
         internal static float LocalDepth { get; private set; } = -100f;
+        internal static float LocalSpeed { get; private set; }
+        internal static bool LocalSwimming { get; private set; }
 
         private static void Postfix(ref PlayerPhysicsState __0, PlayerControlInput __1, Vector3 ____currentUp, Vector3 ____currentGravity, float ____deltaTime, ISpace ____currentSpace)
         {
@@ -67,6 +69,7 @@ namespace Water.Swimming
             }
             SetLocal(depth, position, state.Velocity);
             Vector3 v = state.Velocity;
+            LocalSwimming = SwimPredictionContextPatch.Local ? !state.IsOnGround && depth >= 0.2f : LocalSwimming;
             if (state.IsOnGround)
             {
                 if (depth > SwimDepth)
@@ -134,6 +137,8 @@ namespace Water.Swimming
                 return;
             }
             LocalDepth = depth;
+            LocalSpeed = velocity.magnitude;
+            if (depth <= 0f) LocalSwimming = false;
             bool wet = depth > 0.1f;
             if (wet && !_localWet && Time.time - _lastSplash > 0.6f)
             {

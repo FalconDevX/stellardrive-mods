@@ -157,8 +157,9 @@ Shader "StellarDriveMods/StylizedWater"
                     half3 ambientBelow = SampleSH(up);
                     float shimmer = saturate((abs(ripple.x) + abs(ripple.y)) * 1.5);
                     half4 under;
-                    under.rgb = _ShallowColor.rgb * (sunBelow.color * 0.6 + ambientBelow * 0.7) + (sunBelow.color + ambientBelow) * shimmer * 0.12;
-                    under.a = 0.16 + shimmer * 0.12;
+                    under.rgb = _ShallowColor.rgb * (sunBelow.color * 0.7 + ambientBelow * 0.8) + (sunBelow.color + ambientBelow) * shimmer * 0.3;
+                    float grazing = 1 - saturate(-dot(viewDir, up) * 2.5);
+                    under.a = lerp(0.22 + shimmer * 0.25, 0.85, grazing * grazing);
                     under.rgb *= _Exposure;
                     under.rgb = MixFog(under.rgb, i.fog);
                     return under;
@@ -198,6 +199,7 @@ Shader "StellarDriveMods/StylizedWater"
                 float foam = max(Band(shore * (0.55 + foamTex * 0.9), 0.7), wavesBand * Band(foamTex, 0.35));
                 col.rgb = lerp(col.rgb, _FoamColor.rgb * (sun.color * 0.6 + ambient * 0.6), foam);
                 col.a = max(col.a, foam);
+                col.a *= smoothstep(0.0, 0.45, edgeDepth);
 
                 col.rgb *= _Exposure;
                 col.rgb = MixFog(col.rgb, i.fog);

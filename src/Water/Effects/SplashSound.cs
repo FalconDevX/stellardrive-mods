@@ -41,7 +41,7 @@ namespace Water.Effects
             return _created;
         }
 
-        private static FMOD.Sound Create(byte[] data, FMOD.MODE loop)
+        internal static FMOD.Sound Create(byte[] data, FMOD.MODE loop)
         {
             var info = new FMOD.CREATESOUNDEXINFO { cbsize = Marshal.SizeOf(typeof(FMOD.CREATESOUNDEXINFO)), length = (uint)data.Length };
             FMOD.MODE mode = loop | FMOD.MODE._2D | FMOD.MODE.CREATESAMPLE | FMOD.MODE.OPENMEMORY;
@@ -53,7 +53,7 @@ namespace Water.Effects
             return sound;
         }
 
-        private static FMOD.Channel Play(FMOD.Sound sound, float volume, float pitch, float pan)
+        internal static FMOD.Channel Play(FMOD.Sound sound, float volume, float pitch, float pan)
         {
             FMOD.System core = FMODUnity.RuntimeManager.CoreSystem;
             core.getMasterChannelGroup(out FMOD.ChannelGroup master);
@@ -119,7 +119,7 @@ namespace Water.Effects
             }
         }
 
-        private static float Pan(Vector3 position)
+        internal static float Pan(Vector3 position)
         {
             Camera cam = Camera.main;
             if (cam == null)

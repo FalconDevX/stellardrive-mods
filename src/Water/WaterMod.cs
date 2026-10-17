@@ -3,7 +3,7 @@ using MelonLoader;
 using UnityEngine;
 using Water;
 
-[assembly: MelonInfo(typeof(WaterMod), "Water", "0.5.0", "mateu")]
+[assembly: MelonInfo(typeof(WaterMod), "Water", "0.5.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Water
@@ -43,7 +43,7 @@ namespace Water
             UnderwaterCrashSpeed = category.CreateEntry("UnderwaterCrashSpeed", 30f,
                 description: "Ships in a lake take no collision damage below this speed (m/s), e.g. when settling on the bottom. Host only");
             Splashes = category.CreateEntry("Splashes", true, description: "Splashes, spray and sound when ships hit or move through water");
-            SplashVolume = category.CreateEntry("SplashVolume", 0.8f, description: "Splash and wake volume (0-1)");
+            SplashVolume = category.CreateEntry("SplashVolume", 0.8f, description: "Volume of splashes, wakes, swimming strokes and waves at the shore (0-1)");
             LakeBedTexture = category.CreateEntry("LakeBedTexture", "auto",
                 description: "Lake bottom texture: auto (wet sand of the planet), off (game texture), or part of a texture name from the log");
             UnderwaterVisibility = category.CreateEntry("UnderwaterVisibility", 12f,
@@ -63,10 +63,11 @@ namespace Water
             Buoyancy.ShipWaterPhysics.Clear();
             Effects.Splashes.Clear();
             Effects.GlassDroplets.Clear();
+            Effects.WaterAmbience.Clear();
             Diagnostics.WaterDevTest.OnSceneLoaded(sceneName);
         }
 
-        private static bool _surfaceFailed;
+        private static bool _surfaceFailed, _ambienceFailed;
 
         public override void OnUpdate()
         {
@@ -85,6 +86,18 @@ namespace Water
             if (Enabled.Value && Splashes.Value)
             {
                 Effects.Splashes.Update();
+                if (!_ambienceFailed)
+                {
+                    try
+                    {
+                        Effects.WaterAmbience.Update();
+                    }
+                    catch (Exception e)
+                    {
+                        LoggerInstance.Error($"Swimming and shore sounds disabled for this session: {e}");
+                        _ambienceFailed = true;
+                    }
+                }
             }
         }
     }

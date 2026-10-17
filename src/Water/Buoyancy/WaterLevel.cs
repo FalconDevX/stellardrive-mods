@@ -55,6 +55,8 @@ namespace Water.Buoyancy
 
         internal static float SeaRadius => _tracked.Planet.Radius + LakeTerrainPatch.SeaLevel;
 
+        internal static float Ground(Vector3 direction) => _tracked.PointsProvider.GetElevationAtPoint(direction) - PlanetRadius;
+
         internal static bool IsLake(Vector3Double planetPos, LakeCache cache)
         {
             Vector3 dir = (Vector3)planetPos.Normalized;

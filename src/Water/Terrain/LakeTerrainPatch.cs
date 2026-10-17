@@ -103,8 +103,18 @@ namespace Water.Terrain
             int index = materials.Length;
             terrain.materials = materials.Concat(new[] { bed }).ToArray();
             last.outputId = BedStepId;
-            var bedStep = new ColorElevationStep { inputId = BedStepId, outputId = 100, bellowThreshold = SeaLevel + 0.6f, smoothness = 0.5f, materialIndex = index };
+            var bedStep = new ColorElevationStep { inputId = BedStepId, outputId = 100, bellowThreshold = SeaLevel + 0.8f, smoothness = 1.2f, materialIndex = index };
             config.colorElevationSteps = (config.colorElevationSteps ?? new ColorElevationStep[0]).Concat(new[] { bedStep }).ToArray();
+            foreach (ColorElevationStep step in config.colorElevationSteps)
+            {
+                Texture2D a = step != bedStep && step.materialIndex < materials.Length ? materials[step.materialIndex].albedoTexture : null;
+                if (a != null && a.name.IndexOf("ice", StringComparison.OrdinalIgnoreCase) >= 0 && step.bellowThreshold < SeaLevel + 3f)
+                {
+                    log.Msg($"Lake bed: shore step {step.inputId}->{step.outputId} ({a.name} below {step.bellowThreshold}) now uses the lake bed sand");
+                    step.materialIndex = index;
+                    step.smoothness = Mathf.Max(step.smoothness, 1f);
+                }
+            }
             log.Msg($"Lake bed: material {index} = {source.albedoTexture?.name}" + (sand != null ? " (wet sand)" : fromOtherPlanet ? " (from another planet)" : " (tinted copy)"));
         }
 
