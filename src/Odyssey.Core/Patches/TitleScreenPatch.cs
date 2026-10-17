@@ -15,7 +15,7 @@ namespace Odyssey.Patches
         private const string Title = "ODYSSEY";
         private const float LineLength = 62f, LineGap = 26f, LineThickness = 3f;
         private const int ArcTextureWidth = 1024;
-        private const float LogoScale = 0.82f, MenuGap = 40f;
+        private const float LogoScale = 0.82f, MenuGap = 40f, LogoDrop = 0.07f;
 
         private static void Postfix(MainMenuTitle __instance, GameObject ___demoText)
         {
@@ -107,7 +107,7 @@ namespace Odyssey.Patches
             {
                 RectTransform logoRect = logoGraphic.rectTransform;
                 logoRect.localScale *= LogoScale;
-                logoRect.anchoredPosition += logo.center - RectIn(parent, logoRect).center;
+                logoRect.anchoredPosition += logo.center - RectIn(parent, logoRect).center - new Vector2(0f, logo.height * LogoDrop);
             }
             var orbits = new GameObject("OdysseyOrbits", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
             RectTransform rect = orbits.rectTransform;

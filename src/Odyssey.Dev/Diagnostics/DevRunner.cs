@@ -44,11 +44,27 @@ namespace Odyssey.Diagnostics
                 _dumpStarted = true;
                 MelonCoroutines.Start(MenuShot());
             }
+            if (sceneName == "MainGame" && HasArg("loadshot"))
+            {
+                MelonCoroutines.Start(LoadShot());
+            }
             if (sceneName == "MainGame" && (HasArg("dump") || DevMod.DevDump.Value) && !_dumpStarted)
             {
                 _dumpStarted = true;
                 MelonCoroutines.Start(DumpAfterDelay(25f));
             }
+        }
+
+        private static IEnumerator LoadShot()
+        {
+            for (int shot = 0; shot < 3; shot++)
+            {
+                yield return new WaitForSecondsRealtime(shot == 0 ? 1f : 2.5f);
+                ScreenCapture.CaptureScreenshot(Path.Combine(DevTools.OutDir, $"loading{shot}.png"));
+                Melon<DevMod>.Logger.Msg($"[dev] loading screenshot {shot}");
+            }
+            yield return new WaitForSecondsRealtime(20f);
+            Application.Quit();
         }
 
         private static IEnumerator MenuShot()
@@ -230,6 +246,10 @@ namespace Odyssey.Diagnostics
             else if (HasArg("gyro"))
             {
                 yield return RunGyroTest();
+            }
+            else if (HasArg("showcase"))
+            {
+                yield return Showcase.Run();
             }
             else if (HasArg("hitch"))
             {

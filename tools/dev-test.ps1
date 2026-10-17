@@ -1,5 +1,5 @@
 ﻿param(
-    [ValidateSet("test", "perf", "jetpack", "pump", "tank", "doors", "fps", "seat", "blueprint", "hitch", "gyro")] [string]$Mode = "test",
+    [ValidateSet("test", "perf", "jetpack", "pump", "tank", "doors", "fps", "seat", "blueprint", "hitch", "gyro", "showcase")] [string]$Mode = "test",
     [string]$World = "test_wszystko",
     [int]$TimeoutSec = 300,
     [string]$GameDir = "C:\Program Files (x86)\Steam\steamapps\common\StellarDrive Demo"

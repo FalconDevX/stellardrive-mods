@@ -4,7 +4,7 @@ using MelonLoader;
 using Odyssey;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(CoreMod), "Odyssey Core", "1.0.5", "mateu")]
+[assembly: MelonInfo(typeof(CoreMod), "Odyssey Core", "1.1.0", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 [assembly: MelonPriority(-1000)]
 
@@ -14,6 +14,7 @@ namespace Odyssey
     {
         internal static MelonPreferences_Entry<float> RoomUpdateDelay;
         internal static MelonPreferences_Entry<float> PartSyncPerSecond;
+        internal static MelonPreferences_Entry<float> LastLoadSeconds;
 
         private static string _message;
         private static float _messageUntil;
@@ -25,6 +26,7 @@ namespace Odyssey
             var category = Settings.Category("OdysseyCore", "Odyssey Core");
             RoomUpdateDelay = Settings.Entry(category, "RoomUpdateDelay", 1.5f, "While you keep building, rooms and oxygen are recalculated only after this many seconds without a hull change (at most 8x this long; the visual copy on each player waits 2.5x longer), instead of after every part. Big bases otherwise freeze for a moment on every placed part. 0 = after every part like the game");
             PartSyncPerSecond = Settings.Entry(category, "PartSyncPerSecond", 10f, "Host only: how many times per second a part that keeps changing (tanks, reactors, pumps...) is sent to players. The first change is sent at once, faster ones are merged. Less = more FPS on big bases, 0 = like the game (every physics step)");
+            LastLoadSeconds = category.CreateEntry("LastLoadSeconds", 20f, description: "How long the last world took to load (s); the loading bar is paced by it. Updated automatically");
             category.SaveToFile(false);
         }
 
