@@ -48,6 +48,10 @@ namespace Mining.Server
 
         internal static List<ushort> Get(TrackedShipServer ship, ushort settingsId)
         {
+            if (Indexed.Add(settingsId))
+            {
+                foreach (Entry stale in Entries.Values) stale.PartCount = -1;
+            }
             Entry entry = Refresh(ship);
             return entry.Parts.TryGetValue(settingsId, out List<ushort> list) ? list : None;
         }
