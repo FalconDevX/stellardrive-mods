@@ -7,7 +7,7 @@ Ship Safety 0.6.1
 Velocity Indicator 0.1.0
 Warp Unlock 0.1.2
 Planet Unlock 0.1.2
-Mining 0.18.12
+Mining 0.18.13
 Drop Items 0.1.2
 FPS Counter 0.1.0
 Water 0.4.5

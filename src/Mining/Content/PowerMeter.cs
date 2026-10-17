@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using HarmonyLib;
 using MelonLoader;
 using Ships.Cables;
 using Ships.Interface.Model.Parts;
@@ -17,9 +18,9 @@ namespace Mining.Content
     internal static class PowerMeter
     {
         internal const ushort PartId = 243;
-        internal const byte SignalSocket = 0, PowerSocket = 1;
+        internal const byte SignalSocket = 0, PowerSocket = 1, SignalSocket2 = 2, PowerSocket2 = 3;
         private const ushort GeneratorPartId = 60;
-        private const float Width = 0.5f, Height = 0.25f, Depth = 0.25f, SocketX = 0.23f, SocketY = 0.11f;
+        private const float Width = 0.25f, Height = 0.25f, Depth = 0.25f, SocketX = 0.115f, SocketY = 0.125f;
         private static PartSettings _part;
         private static bool _failed;
 
@@ -90,12 +91,14 @@ namespace Mining.Content
             }
 
             var body = new MeshBuilder();
+            body.Box(new Vector3(0f, Height * 0.5f, 0f), new Vector3(Width - 0.04f, Height - 0.04f, Depth - 0.04f), "steel");
             body.Box(new Vector3(0f, 0.01f, 0f), new Vector3(Width - 0.02f, 0.02f, Depth - 0.02f), "grey");
-            body.Box(new Vector3(0f, Height * 0.5f + 0.005f, 0f), new Vector3(Width - 0.05f, Height - 0.03f, Depth - 0.05f), "steel");
-            body.Box(new Vector3(0f, Height - 0.02f, 0f), new Vector3(Width - 0.03f, 0.02f, Depth - 0.03f), "grey");
-            body.Box(new Vector3(0f, Height - 0.008f, 0f), new Vector3(Width - 0.12f, 0.006f, Depth - 0.12f), "screen");
-            body.Box(new Vector3(-SocketX, SocketY, 0f), new Vector3(0.012f, 0.08f, 0.08f), "dark");
-            body.Box(new Vector3(SocketX, SocketY, 0f), new Vector3(0.012f, 0.08f, 0.08f), "yellow");
+            body.Box(new Vector3(0f, Height - 0.01f, 0f), new Vector3(Width - 0.02f, 0.02f, Depth - 0.02f), "grey");
+            body.Box(new Vector3(0f, Height - 0.002f, 0f), new Vector3(Width - 0.1f, 0.006f, Depth - 0.1f), "screen");
+            body.Cylinder(new Vector3(-SocketX, SocketY, 0f), new Vector3(-Width * 0.5f + 0.002f, SocketY, 0f), 0.045f, "dark");
+            body.Cylinder(new Vector3(SocketX, SocketY, 0f), new Vector3(Width * 0.5f - 0.002f, SocketY, 0f), 0.045f, "dark");
+            body.Cylinder(new Vector3(0f, SocketY, -SocketX), new Vector3(0f, SocketY, -Depth * 0.5f + 0.002f), 0.045f, "yellow");
+            body.Cylinder(new Vector3(0f, SocketY, SocketX), new Vector3(0f, SocketY, Depth * 0.5f - 0.002f), 0.045f, "yellow");
             Mesh mesh = body.Build("PowerMeterBody");
             GameObject meter = PartFactory.CreateRenderer("Body", visual, mesh, material, lookCopy);
             Matrix4x4 place = (root.transform.worldToLocalMatrix * visual.localToWorldMatrix).inverse;
@@ -118,9 +121,20 @@ namespace Mining.Content
             Quaternion local = Quaternion.Inverse(parent.rotation) * root.transform.rotation;
             signal.transform.localPosition = parent.InverseTransformPoint(root.transform.TransformPoint(new Vector3(-Width * 0.5f, SocketY, 0f)));
             signal.transform.localRotation = local * Quaternion.Euler(0f, 90f, 0f);
-            SocketObject power = PartFactory.CloneSocket(PartFactory.FindSocket(generator, CableType.Power), parent, PowerSocket, Vector3.zero, 0f);
-            power.transform.localPosition = parent.InverseTransformPoint(root.transform.TransformPoint(new Vector3(Width * 0.5f, SocketY, 0f)));
-            power.transform.localRotation = local * Quaternion.Euler(0f, 270f, 0f);
+            SocketObject signal2 = PartFactory.CloneSocket(signal, parent, SignalSocket2, Vector3.zero, 0f);
+            signal2.transform.localPosition = parent.InverseTransformPoint(root.transform.TransformPoint(new Vector3(Width * 0.5f, SocketY, 0f)));
+            signal2.transform.localRotation = local * Quaternion.Euler(0f, 270f, 0f);
+            Traverse.Create(signal).Field("relayedSockets").SetValue(new[] { signal2 });
+            Traverse.Create(signal2).Field("relayedSockets").SetValue(new[] { signal });
+            SocketObject powerSource = PartFactory.FindSocket(generator, CableType.Power);
+            SocketObject power = PartFactory.CloneSocket(powerSource, parent, PowerSocket, Vector3.zero, 0f);
+            power.transform.localPosition = parent.InverseTransformPoint(root.transform.TransformPoint(new Vector3(0f, SocketY, -Depth * 0.5f)));
+            power.transform.localRotation = local;
+            SocketObject power2 = PartFactory.CloneSocket(powerSource, parent, PowerSocket2, Vector3.zero, 0f);
+            power2.transform.localPosition = parent.InverseTransformPoint(root.transform.TransformPoint(new Vector3(0f, SocketY, Depth * 0.5f)));
+            power2.transform.localRotation = local * Quaternion.Euler(0f, 180f, 0f);
+            Traverse.Create(power).Field("relayedSockets").SetValue(new[] { power2 });
+            Traverse.Create(power2).Field("relayedSockets").SetValue(new[] { power });
             Melon<MiningMod>.Logger.Msg($"Power Meter: constant size {constant.size}, snapping {constant.snappingStyle}");
 
             PartSettings settings = Object.Instantiate(constant);
@@ -129,9 +143,9 @@ namespace Mining.Content
             settings.hideFlags = HideFlags.DontUnloadUnusedAsset;
             settings.id = PartId;
             settings.fullLabel = "Power Meter";
-            settings.description = "Connect its power socket to a power network and its signal socket to an info panel or other logic. " +
+            settings.description = "A small cube like a valve: two power sockets (yellow, front and back) pass power straight through, two signal sockets (dark, left and right) both send the reading. " +
                                    "It sends the network load in percent: power needed divided by what the generators can give (100 = fully used, above 100 = overloaded). " +
-                                   "The meter itself uses no power. Sockets on opposite ends: signal (left, dark) and power (right, yellow).";
+                                   "The meter itself uses no power.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
             PartFactory.SetCost(settings, (Items.Model.ItemsConstants.IronItemId, 2), (112, 3));
