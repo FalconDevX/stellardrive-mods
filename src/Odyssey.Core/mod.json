@@ -2,6 +2,6 @@
   "id": "stellardrive-odyssey-core",
   "name": "Odyssey Core",
   "author": "mateu",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Shared base of Stellar Drive: Odyssey - part and research registration, build menu tabs, research tree layout, assets, performance helpers and the freeze watchdog. Required by every Odyssey module."
 }

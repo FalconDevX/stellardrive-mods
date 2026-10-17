@@ -184,17 +184,20 @@ namespace Odyssey.Patches
             int w = ArcTextureWidth, h = Mathf.Max(64, Mathf.RoundToInt(ArcTextureWidth * size.y / Mathf.Max(size.x, 1f)));
             var pixels = new Color32[w * h];
             float scale = w / Mathf.Max(size.x, 1f);
-            DrawArc(pixels, w, h, new Vector2(0.5f, 0.47f), new Vector2(0.47f, 0.47f), 26f, 170f, 3.2f * scale, Color.white, 0.95f);
-            DrawArc(pixels, w, h, new Vector2(0.47f, 0.5f), new Vector2(0.48f, 0.44f), -64f, 30f, 3.6f * scale, red, 1f);
-            float a = 30f * Mathf.Deg2Rad;
-            star = new Vector2(0.47f + 0.48f * Mathf.Cos(a), 0.5f + 0.44f * Mathf.Sin(a));
+            var center = new Vector2(0.48f, 0.48f);
+            var radius = new Vector2(0.475f, 0.455f);
+            const float starAngle = 30f;
+            DrawArc(pixels, w, h, center, radius, starAngle, 172f, 3.2f * scale, Color.white, 0.95f, false, true);
+            DrawArc(pixels, w, h, center, radius, -64f, starAngle, 3.6f * scale, red, 1f, true, false);
+            float a = starAngle * Mathf.Deg2Rad;
+            star = new Vector2(center.x + radius.x * Mathf.Cos(a), center.y + radius.y * Mathf.Sin(a));
             var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { name = "OdysseyOrbits", wrapMode = TextureWrapMode.Clamp };
             tex.SetPixels32(pixels);
             tex.Apply(false, true);
             return tex;
         }
 
-        private static void DrawArc(Color32[] pixels, int w, int h, Vector2 center, Vector2 radius, float fromDeg, float toDeg, float thickness, Color color, float alpha)
+        private static void DrawArc(Color32[] pixels, int w, int h, Vector2 center, Vector2 radius, float fromDeg, float toDeg, float thickness, Color color, float alpha, bool taperStart, bool taperEnd)
         {
             float rx = radius.x * w, ry = radius.y * h, cx = center.x * w, cy = center.y * h;
             int steps = Mathf.CeilToInt(Mathf.Max(rx, ry) * (toDeg - fromDeg) * Mathf.Deg2Rad * 1.5f);
@@ -203,7 +206,7 @@ namespace Odyssey.Patches
             {
                 float t = i / (float)steps;
                 float angle = Mathf.Lerp(fromDeg, toDeg, t) * Mathf.Deg2Rad;
-                float taper = Mathf.Sin(t * Mathf.PI);
+                float taper = Mathf.Min(taperStart ? Mathf.Sin(Mathf.Min(t, 0.5f) * Mathf.PI) : 1f, taperEnd ? Mathf.Sin(Mathf.Max(t, 0.5f) * Mathf.PI) : 1f);
                 float half = Mathf.Max(0.6f, thickness * 0.5f * Mathf.Lerp(0.35f, 1f, taper));
                 float px = cx + rx * Mathf.Cos(angle), py = cy + ry * Mathf.Sin(angle);
                 float fade = alpha * Mathf.Clamp01(taper * 2.2f);
