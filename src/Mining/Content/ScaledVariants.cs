@@ -120,7 +120,7 @@ namespace Mining.Content
                     return $"A {size} fluid pump: moves up to {5f * v.Rate:0} units per second ({v.Rate:0} times the small pump) from the inlet pipe into the outlet pipe until the outlet side is full, also against a fuller tank. The signal sets the speed (0 = off, 0.5 = half, 1 = full). Connect the two tanks only through the pump, a direct pipe between them makes them one network that just evens out.";
                 case Kind.Intake:
                     return $"An {size} gas intake: put it outside a room and pipe it to a tank, it collects oxygen from the atmosphere {v.Rate:0} times faster than the small intake. " +
-                           "The pipe socket is on the back.";
+                           "It looks like the small intake grate, only larger.";
                 case Kind.WaterPump:
                     return $"A {size} water pump with a thick hose: press F over a lake on Otrera b to lower it, or set the hose length with a signal (1 = full, 0 = up). " +
                            $"Pumps {v.Rate:0} times more water than the small pump and uses {v.Rate:0} times the power. " +
@@ -218,7 +218,7 @@ namespace Mining.Content
                 root = settings.part;
                 root.name = v.Label.Replace(" ", "");
             }
-            else if (v.Kind == Kind.Vent || v.Kind == Kind.Intake)
+            else if (v.Kind == Kind.Vent)
             {
                 root = BuildGasModel(source, v, PartFactory.Find(parts, 30));
                 settings = Object.Instantiate(source);
@@ -227,7 +227,8 @@ namespace Mining.Content
             {
                 root = Object.Instantiate(source.part, PartFactory.Holder);
                 root.name = v.Label.Replace(" ", "");
-                PartFactory.ScaleUniform(root, source.size, v.Scale, v.Label, v.Kind != Kind.Pump, v.Kind == Kind.Pump);
+                bool ownSockets = v.Kind == Kind.Pump || v.Kind == Kind.Intake;
+                PartFactory.ScaleUniform(root, source.size, v.Scale, v.Label, !ownSockets, ownSockets);
                 settings = Object.Instantiate(source);
             }
             settings.name = "Mining" + root.name;

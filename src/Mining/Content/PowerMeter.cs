@@ -62,7 +62,7 @@ namespace Mining.Content
             {
                 throw new Exception("constant has no signal socket");
             }
-            Transform visual = root.transform.Find("Visual") ?? root.transform;
+            Transform visual = (root.GetComponentInChildren<Ships.Parts.Common.Model.Reactions.IShipPartVisual>(true) as Component)?.transform ?? root.transform;
             MeshRenderer look = visual.GetComponentsInChildren<MeshRenderer>(true).FirstOrDefault(r => r.GetComponent<TMP_Text>() == null && r.GetComponentInParent<SocketObject>() == null);
             if (look == null)
             {
@@ -98,8 +98,11 @@ namespace Mining.Content
             body.Box(new Vector3(SocketX, SocketY, 0f), new Vector3(0.012f, 0.08f, 0.08f), "yellow");
             Mesh mesh = body.Build("PowerMeterBody");
             GameObject meter = PartFactory.CreateRenderer("Body", visual, mesh, material, lookCopy);
-            meter.transform.localPosition = visual.InverseTransformPoint(root.transform.position);
-            meter.transform.localRotation = Quaternion.Inverse(visual.rotation) * root.transform.rotation;
+            Matrix4x4 place = (root.transform.worldToLocalMatrix * visual.localToWorldMatrix).inverse;
+            meter.transform.localPosition = place.GetColumn(3);
+            meter.transform.localRotation = place.rotation;
+            meter.transform.localScale = place.lossyScale;
+            Melon<MiningMod>.Logger.Msg($"Power Meter: body under {visual.name}");
             Object.DestroyImmediate(lookCopy.gameObject);
 
             var bounds = new Bounds(new Vector3(0f, Height * 0.5f, 0f), new Vector3(Width, Height, Depth));
