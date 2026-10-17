@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Odyssey.Core</AssemblyName>
+    <RootNamespace>Odyssey</RootNamespace>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\*" LogicalName="Odyssey.Assets.%(Filename)%(Extension)" />
+    <None Remove="AssetSource\**" />
+    <Compile Remove="AssetSource\**" />
+    <InternalsVisibleTo Include="Odyssey.Mining" />
+    <InternalsVisibleTo Include="Odyssey.Power" />
+    <InternalsVisibleTo Include="Odyssey.Building" />
+    <InternalsVisibleTo Include="Odyssey.Logic" />
+    <InternalsVisibleTo Include="Odyssey.Gear" />
+    <InternalsVisibleTo Include="Odyssey.Tweaks" />
+    <InternalsVisibleTo Include="Odyssey.Dev" />
+  </ItemGroup>
+</Project>

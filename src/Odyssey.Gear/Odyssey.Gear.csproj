@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Odyssey.Gear</AssemblyName>
+    <RootNamespace>Odyssey</RootNamespace>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\*" LogicalName="Odyssey.Assets.%(Filename)%(Extension)" />
+    <InternalsVisibleTo Include="Odyssey.Dev" />
+    <ProjectReference Include="..\Odyssey.Core\Odyssey.Core.csproj" Private="false" />
+  </ItemGroup>
+</Project>

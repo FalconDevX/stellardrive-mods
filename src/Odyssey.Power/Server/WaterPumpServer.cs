@@ -1,0 +1,271 @@
+using System;
+using System.Collections.Generic;
+using Core.Services;
+using Core.Values;
+using HarmonyLib;
+using MelonLoader;
+using Odyssey.Content;
+using Ships;
+using Ships.Cables;
+using Ships.Cables.Fluids;
+using Ships.Cables.Power;
+using Ships.Interface.Model.Parts;
+using Ships.Interface.Model.Parts.Common;
+using Ships.Interface.Model.Parts.State;
+using Ships.Interface.Model.State;
+using Ships.Services;
+using UnityEngine;
+using WorldTracking.Interface.Model.Spaces;
+using WorldTracking.Interface.Services;
+
+namespace Odyssey.Server
+{
+    [HarmonyPatch(typeof(TrackedShipServer))]
+    internal static class WaterPumpServer
+    {
+        private const float PowerWatts = 800f;
+        private const float AutoRaiseSeconds = 3f;
+
+        private sealed class PumpRuntime
+        {
+            public float Deployed, OutOfReach;
+            public string Status;
+        }
+
+        private static readonly Dictionary<(uint ship, ushort part), PumpRuntime> Runtime = new Dictionary<(uint, ushort), PumpRuntime>();
+        private static bool _loggedError;
+
+        internal static void Reset() => Runtime.Clear();
+
+        [HarmonyPostfix]
+        [HarmonyPatch(nameof(TrackedShipServer.PrepareConsumers))]
+        private static void PrepareConsumers(TrackedShipServer __instance, float deltaTime)
+        {
+            List<ushort> ids = Pumps(__instance);
+            if (ids.Count == 0)
+            {
+                return;
+            }
+            try
+            {
+                var power = ServiceCache.Get<PowerServerTracker>();
+                var connections = ServiceCache.Get<ConnectionsServerTracker>();
+                foreach (ushort id in ids)
+                {
+                    if (!__instance.TryGetStatefulPart(id, out StatefulPart part) || !(part.State is DoorState))
+                    {
+                        continue;
+                    }
+                    if (Plan(__instance, connections, part, 0f, out _, out _, out _) &&
+                        power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, part.Id, WaterPump.PowerSocket), out PowerGroupServerState group))
+                    {
+                        group.TotalPowerNeeded += deltaTime * PowerWatts * ScaledVariants.Rate(part.Settings);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                LogError(e);
+            }
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPatch(nameof(TrackedShipServer.UpdateParts))]
+        private static void UpdateParts(TrackedShipServer __instance, float deltaTime)
+        {
+            List<ushort> ids = Pumps(__instance);
+            if (ids.Count == 0)
+            {
+                return;
+            }
+            try
+            {
+                var power = ServiceCache.Get<PowerServerTracker>();
+                var connections = ServiceCache.Get<ConnectionsServerTracker>();
+                foreach (ushort id in ids)
+                {
+                    if (!__instance.TryGetStatefulPart(id, out StatefulPart part) || !(part.State is DoorState))
+                    {
+                        continue;
+                    }
+                    var key = (__instance.Id, part.Id);
+                    if (!Runtime.TryGetValue(key, out PumpRuntime rt))
+                    {
+                        Runtime[key] = rt = new PumpRuntime();
+                    }
+                    var state = (DoorState)part.State;
+
+                    float limit = WaterPump.HoseLimit(connections, __instance.Id, part.Id, Scale(part), out bool signalled, out float signal);
+                    if (signalled)
+                    {
+                        bool wanted = signal > 0.01f;
+                        if (wanted != state.IsOpen)
+                        {
+                            state = state with { IsOpen = wanted };
+                            __instance.UpdatePartState(part.Id, state);
+                        }
+                    }
+                    rt.Deployed = state.IsOpen ? rt.Deployed + deltaTime : 0f;
+
+                    string status;
+                    bool reach = Probe(__instance, part, out float needed, out bool water);
+                    if (state.IsOpen && !signalled && (!reach || needed > limit + 2f))
+                    {
+                        rt.OutOfReach += deltaTime;
+                        if (rt.OutOfReach >= AutoRaiseSeconds)
+                        {
+                            __instance.UpdatePartState(part.Id, state with { IsOpen = false });
+                            rt.OutOfReach = 0f;
+                        }
+                    }
+                    else
+                    {
+                        rt.OutOfReach = 0f;
+                    }
+
+                    bool planned = Plan(__instance, connections, part, rt.Deployed, out bool fromLake,
+                        out FluidGroupServerState outA, out FluidGroupServerState outB);
+                    PowerGroupServerState group = null;
+                    if (!planned)
+                    {
+                        status = outA == null && outB == null ? "no room in the output pipes" :
+                                 state.IsOpen && water && reach && needed <= limit ? "lowering the hose" :
+                                 state.IsOpen && water && reach ? "hose too short to reach the water" :
+                                 state.IsOpen ? "no water under the hose" : "hose up";
+                    }
+                    else if (!power.TryGetGroupFromSocket(new EntityPartSocket(__instance.Id, part.Id, WaterPump.PowerSocket), out group))
+                    {
+                        status = "no power cable";
+                    }
+                    else if (group.NormalizedConsumerRate <= 0f)
+                    {
+                        status = "not enough power";
+                    }
+                    else
+                    {
+                        float amount = Mathf.Max(0f, PowerMod.PumpRate.Value) * ScaledVariants.Rate(part.Settings) * group.NormalizedConsumerRate * deltaTime;
+                        Deliver(outA, outB, amount);
+                        status = "pumping from the lake";
+                    }
+                    if (rt.Status != status)
+                    {
+                        rt.Status = status;
+                        Melon<PowerMod>.Logger.Msg($"{part.Settings?.fullLabel ?? "Water Pump"} (ship {key.Item1}, part {key.Item2}): {status}" +
+                                                    (reach ? $" (hose needs {needed:0.0} m of {limit:0.0} m, water {water})" : " (no planet under the pump)"));
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                LogError(e);
+            }
+        }
+
+        private static bool Plan(TrackedShipServer ship, ConnectionsServerTracker connections, StatefulPart part, float deployed,
+            out bool fromLake, out FluidGroupServerState outA, out FluidGroupServerState outB)
+        {
+            fromLake = false;
+            outA = Output(ship, connections, part.Id, WaterPump.OutSocketA);
+            outB = Output(ship, connections, part.Id, WaterPump.OutSocketB);
+            if (ReferenceEquals(outA, outB))
+            {
+                outB = null;
+            }
+            if (outA == null && outB == null)
+            {
+                return false;
+            }
+            var state = (DoorState)part.State;
+            float limit = WaterPump.HoseLimit(connections, ship.Id, part.Id, Scale(part), out _, out _);
+            if (state.IsOpen && Probe(ship, part, out float needed, out bool water) && water && needed <= limit)
+            {
+                fromLake = deployed <= 0f ? RuntimeDeployed(ship, part) >= needed / WaterPump.HoseSpeed : deployed >= needed / WaterPump.HoseSpeed;
+            }
+            return fromLake;
+        }
+
+        private static readonly List<ushort> Found = new List<ushort>();
+
+        private static List<ushort> Pumps(TrackedShipServer ship)
+        {
+            Found.Clear();
+            foreach (ushort settingsId in WaterPump.Ids)
+            {
+                Found.AddRange(ShipPartIndex.Get(ship, settingsId));
+            }
+            return Found;
+        }
+
+        private static float Scale(StatefulPart part) => Mathf.Sqrt(ScaledVariants.Rate(part.Settings));
+
+        private static float RuntimeDeployed(TrackedShipServer ship, StatefulPart part) =>
+            Runtime.TryGetValue((ship.Id, part.Id), out PumpRuntime rt) ? rt.Deployed : 0f;
+
+        private static FluidGroupServerState Output(TrackedShipServer ship, ConnectionsServerTracker connections, ushort partId, byte socket)
+        {
+            return connections.TryGetFluidGroupCacheFromSocket(new EntityPartSocket(ship.Id, partId, socket), out FluidGroupServerState group) &&
+                   (group.FluidItemId == HydrogenThruster.WaterItemId || group.FluidItemId == 0) && group.ReceivingCapacity > 0.0001f
+                ? group
+                : null;
+        }
+
+        private static float Deliver(FluidGroupServerState a, FluidGroupServerState b, float amount)
+        {
+            if (amount <= 0f)
+            {
+                return 0f;
+            }
+            float moved = 0f;
+            if (a != null && b != null)
+            {
+                float half = amount / 2f;
+                float toA = Mathf.Min(half, a.ReceivingCapacity), toB = Mathf.Min(half, b.ReceivingCapacity);
+                float rest = amount - toA - toB;
+                toA += Mathf.Min(rest, a.ReceivingCapacity - toA);
+                rest = amount - toA - toB;
+                toB += Mathf.Min(rest, b.ReceivingCapacity - toB);
+                if (toA > 0f) { a.AddFluid(HydrogenThruster.WaterItemId, toA); moved += toA; }
+                if (toB > 0f) { b.AddFluid(HydrogenThruster.WaterItemId, toB); moved += toB; }
+                return moved;
+            }
+            FluidGroupServerState only = a ?? b;
+            float q = Mathf.Min(amount, only.ReceivingCapacity);
+            if (q > 0f)
+            {
+                only.AddFluid(HydrogenThruster.WaterItemId, q);
+            }
+            return q;
+        }
+
+        private static bool Probe(TrackedShipServer ship, StatefulPart part, out float needed, out bool water)
+        {
+            needed = float.MaxValue;
+            water = false;
+            var ships = ServiceCache.Get<ShipsServerTracker>();
+            var spaces = ServiceCache.Get<ISpacesServerProvider>();
+            var transpose = ServiceCache.Get<IWorldTransposeServer>();
+            if (!ships.TryGetRootShip(ship.Id, out var root) || !(root is TrackedShipServer rootShip) ||
+                !(spaces.GetSpace(rootShip.SpaceId) is PlanetSurfaceSpace surface))
+            {
+                return false;
+            }
+            Vector3Double inSurface = transpose.Position(ship.RelativeSpaceId, surface, (Vector3Double)part.LocalPosition);
+            Vector3 planetPos = (Vector3)(surface.Center + inSurface);
+            if (!WaterPump.TryProbe(surface.PlanetId, planetPos, out float above, out water))
+            {
+                return false;
+            }
+            needed = WaterPump.HoseNeeded(above, water, Scale(part));
+            return true;
+        }
+
+        private static void LogError(Exception e)
+        {
+            if (!_loggedError)
+            {
+                _loggedError = true;
+                Melon<PowerMod>.Logger.Error($"Pump error (server): {e}");
+            }
+        }
+    }
+}

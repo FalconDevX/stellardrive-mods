@@ -1,8 +1,8 @@
 <div align="center">
 
-# StellarDrive Mods
+# Stellar Drive: Odyssey
 
-**A collection of unofficial gameplay, building and quality-of-life mods for _StellarDrive Demo_, built on MelonLoader and Harmony.**
+**An unofficial mod pack for _StellarDrive Demo_: mining, power, building, logic, gear and quality-of-life mods built on MelonLoader and Harmony.**
 
 [![Game](https://img.shields.io/badge/game-StellarDrive%20Demo-1b2838?logo=steam&logoColor=white)](https://store.steampowered.com/search/?term=StellarDrive)
 [![MelonLoader](https://img.shields.io/badge/MelonLoader-0.7.3-6b4fbb)](https://github.com/LavaGang/MelonLoader)
@@ -10,7 +10,7 @@
 [![C#](https://img.shields.io/badge/language-C%23-239120?logo=csharp&logoColor=white)](src)
 [![Harmony](https://img.shields.io/badge/patching-Harmony-orange)](https://github.com/pardeike/Harmony)
 [![Platform](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white)](#requirements)
-[![Mods](https://img.shields.io/badge/mods-13-brightgreen)](dist/VERSIONS.txt)
+[![Mods](https://img.shields.io/badge/mods-19-brightgreen)](dist/VERSIONS.txt)
 [![Last commit](https://img.shields.io/github/last-commit/FalconDevX/stellardrive-mods)](https://github.com/FalconDevX/stellardrive-mods/commits/main)
 
 </div>
@@ -38,7 +38,13 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Mining](#mining)** | 0.18.14 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, floor hatches, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
+| **[Odyssey Core](#odyssey)** | 1.0.0 | Shared base of the Odyssey modules: part and research registration, build menu tabs, research tree layout, title screen | All players (required by every Odyssey module) |
+| **[Odyssey Mining](#odyssey)** | 1.0.0 | Ore, glass and uranium deposits and the excavator | All players |
+| **[Odyssey Power](#odyssey)** | 1.0.0 | Nuclear reactors, hydrogen thruster and heavy engines, electrolyzer, water pump, large tanks, bigger vents | All players |
+| **[Odyssey Building](#odyssey)** | 1.0.0 | Large doors, gates and floor hatches, barriers, stairs, large chests, pontoons, rotors, heavy gyroscope | All players |
+| **[Odyssey Logic](#odyssey)** | 1.0.0 | Info panels, power meter, gas meter signal, extra pilot seat outputs | All players |
+| **[Odyssey Gear](#odyssey)** | 1.0.0 | Jetpack, laser cannon, blueprint tool, paint tool, tool workbench | All players |
+| **[Odyssey Tweaks](#odyssey)** | 1.0.0 | Performance fixes, culling, cable fixes, chase camera (V) | Each player (some fixes host) |
 | **[Water](#water)** | 0.4.5 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.4 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.6.1 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
@@ -125,28 +131,28 @@ A few commonly tweaked options:
 | Resource Tweaks | `MaxStackSize` | `100` | Maximum stack size |
 | Resource Tweaks | `InventorySlots` | `90` | Personal inventory slots (old value 45 is raised to 90) |
 | Resource Tweaks | `InventoryRows` | `0` | Rows of slots visible in the Tab inventory window (0 = all that fit on the screen) |
-| Mining | `HydrogenThrustMultiplier` | `1.8` | Hydrogen thruster strength relative to the chemical one |
-| Mining | `ReactorPower` | `45000` | Reactor output in watts (the large reactor gives 5x) |
-| Mining | `RotorLeverAngle` | `90` | Rotor angle for a signal of 1 |
-| Mining | `RotorCollision` | `false` | Stop a turning rotor before its moving part hits something |
-| Mining | `KeepNearbyShipsLoaded` | `true` | Keep nearby ships physics-loaded across spaces to avoid hitches |
-| Mining | `KeepNearbyShipsDistance` | `3000` | Range of `KeepNearbyShipsLoaded` in meters; lower it if many ships cost FPS |
-| Mining | `DetailDistance` | `30` | Distance beyond which small ship details are hidden (m) |
+| Odyssey Power | `HydrogenThrustMultiplier` | `1.8` | Hydrogen thruster strength relative to the chemical one |
+| Odyssey Power | `ReactorPower` | `45000` | Reactor output in watts (the large reactor gives 5x) |
+| Odyssey Building | `RotorLeverAngle` | `90` | Rotor angle for a signal of 1 |
+| Odyssey Building | `RotorCollision` | `false` | Stop a turning rotor before its moving part hits something |
+| Odyssey Tweaks | `KeepNearbyShipsLoaded` | `true` | Keep nearby ships physics-loaded across spaces to avoid hitches |
+| Odyssey Tweaks | `KeepNearbyShipsDistance` | `3000` | Range of `KeepNearbyShipsLoaded` in meters; lower it if many ships cost FPS |
+| Odyssey Tweaks | `DetailDistance` | `30` | Distance beyond which small ship details are hidden (m) |
 | Pick Block | `AreaMaxSize` | `9` | Largest square side for area building |
 | Ship Safety | `MaxSpeed` | `5000` | Ship speed limit (m/s) |
 | Ship Safety | `GuestShipCollision` | `true` | Collision between parked ships |
-| Mining | `PartSyncPerSecond` | `10` | Host: how often a constantly changing part (tank, reactor, pump) is sent to players; less = more FPS on big bases, 0 = every physics step like the game |
-| Mining | `FastSignals` | `true` | Remember which parts feed each signal cable until cables or parts change instead of searching every connection every physics step (big bases with many signal cables) |
+| Odyssey Core | `PartSyncPerSecond` | `10` | Host: how often a constantly changing part (tank, reactor, pump) is sent to players; less = more FPS on big bases, 0 = every physics step like the game |
+| Odyssey Tweaks | `FastSignals` | `true` | Remember which parts feed each signal cable until cables or parts change instead of searching every connection every physics step (big bases with many signal cables) |
 | Ship Safety | `KeepJumpingPlayersInShip` | `true` | Jumping inside a flying ship's open hangar or deck keeps you moving with the ship |
 | Ship Safety | `CarryShipsInHangars` | `true` | A smaller ship inside a bigger ship moves and turns with it |
 | Ship Safety | `WeldParkedShipsInHangars` | `true` | A parked ship with an empty pilot seat is welded in the hangar |
 | Ship Safety | `SleepParkedShips` | `true` | Host: a ship standing still with unchanged thrust sleeps in the physics engine until something hits it, it fires thrusters or its mass changes (more FPS with many parked ships) |
-| Mining | `DoorSignalReturnSeconds` | `30` | A wired door opened or closed by hand goes back to its signal after this many seconds; 0 = stays until the signal changes |
-| Mining | `RoomUpdateDelay` | `1.5` | While building, rooms and oxygen are recalculated once after this many seconds without a hull change instead of after every part (big bases freeze on each recalculation); 0 = like the game |
-| Mining | `VentVolume` | `0.5` | Quiet fan hum of air vents while they blow oxygen (0 = silent) |
-| Mining | `HideSealedRooms` | `true` | Parts inside a closed room without windows are not drawn while the camera is outside that room |
-| Mining | `GpuOcclusionCulling` | `false` | Experimental: the graphics card skips what walls hide (Unity GPU resident drawer); set back to false if objects vanish |
-| Mining | `PartCullScreenSize` | `0.01` | Ship parts and their shadows are not drawn when smaller than this part of the screen height; 0 = always draw like the game |
+| Odyssey Building | `DoorSignalReturnSeconds` | `30` | A wired door opened or closed by hand goes back to its signal after this many seconds; 0 = stays until the signal changes |
+| Odyssey Core | `RoomUpdateDelay` | `1.5` | While building, rooms and oxygen are recalculated once after this many seconds without a hull change instead of after every part (big bases freeze on each recalculation); 0 = like the game |
+| Odyssey Power | `VentVolume` | `0.5` | Quiet fan hum of air vents while they blow oxygen (0 = silent) |
+| Odyssey Tweaks | `HideSealedRooms` | `true` | Parts inside a closed room without windows are not drawn while the camera is outside that room |
+| Odyssey Tweaks | `GpuOcclusionCulling` | `false` | Experimental: the graphics card skips what walls hide (Unity GPU resident drawer); set back to false if objects vanish |
+| Odyssey Tweaks | `PartCullScreenSize` | `0.01` | Ship parts and their shadows are not drawn when smaller than this part of the screen height; 0 = always draw like the game |
 | Water | `LakeDepth` | `10` | How far lake beds are lowered (m) |
 | Water | `UnderwaterAirSeconds` | `30` | Breath time underwater with a full oxygen tank |
 | FPS Counter | `ToggleKey` | `F3` | Toggles the counter |
@@ -155,9 +161,9 @@ A few commonly tweaked options:
 
 ## Mod details
 
-### Mining
+### Odyssey
 
-The largest mod in the collection. It adds resource extraction, new power sources, propulsion and a set of new parts. **All players need it.**
+The heart of the pack, split into modules: **Odyssey Core** (required by all others), **Mining**, **Power**, **Building**, **Logic**, **Gear** and **Tweaks**. Together they add resource extraction, new power sources, propulsion and a set of new parts. Part ids are unchanged, so worlds built with the old single Mining mod load as before. Settings moved from the `[Mining]` section to `[OdysseyCore]`, `[OdysseyMining]`, `[OdysseyPower]`, `[OdysseyBuilding]`, `[OdysseyGear]` and `[OdysseyTweaks]`; values you changed are carried over on the first start. The main menu shows **ODYSSEY** instead of DEMO. **All players need it.**
 
 <details>
 <summary><b>Deposits and excavator</b></summary>
@@ -175,7 +181,7 @@ The largest mod in the collection. It adds resource extraction, new power source
 - **Hydrogen thruster** (research *Hydrogen Propulsion*): needs hydrogen, oxygen and power, is 1.8x stronger than the chemical thruster and burns with a sky-blue flame.
 - **Electrolyzer:** turns ice or water plus power into hydrogen, oxygen and water. All sockets sit on one service panel at the back (also on Electrolyzer M / L): hydrogen out (orange), power (yellow), signal (white), water (blue) and oxygen out (light blue); ice goes into the front container. Without a signal cable it always runs, with one it runs only while the signal is above 0.
 - **Water pump (1x1):** above a lake on Otrera b it lowers a hose (up to 30 m, length controllable by signal) and pumps water to two outlets.
-- **Heavy hydrogen engines** (research *Heavy Hydrogen Engines*): sizes **M** (2x2x3, 4x thrust), **L** (3x3x4, 4 nozzles, 9x) and **XL** (4x4x6, large nozzle plus 6 small, 20x), with proportionally higher consumption. Every nozzle shows its own sky-blue flame; the XL flame is longer. All hydrogen engines have their own rough, sputtering roar (deep combustion rumble, popping and crackle, high-pressure jet hiss); larger engines sound deeper and carry further. Cutting the throttle winds the roar down with a shutdown sound instead of cutting it off. Volume: `HydrogenEngineVolume` in the Mining preferences.
+- **Heavy hydrogen engines** (research *Heavy Hydrogen Engines*): sizes **M** (2x2x3, 4x thrust), **L** (3x3x4, 4 nozzles, 9x) and **XL** (4x4x6, large nozzle plus 6 small, 20x), with proportionally higher consumption. Every nozzle shows its own sky-blue flame; the XL flame is longer. All hydrogen engines have their own rough, sputtering roar (deep combustion rumble, popping and crackle, high-pressure jet hiss); larger engines sound deeper and carry further. Cutting the throttle winds the roar down with a shutdown sound instead of cutting it off. Volume: `HydrogenEngineVolume` in the Odyssey Power preferences.
 
 </details>
 
@@ -246,7 +252,7 @@ The largest mod in the collection. It adds resource extraction, new power source
 Turns the blue terrain of Otrera b's lakes into real water. **All players need it** (it lowers lake beds by 10 m).
 
 - Stylized shader with turquoise shallows, deep blue depths, caustics and shoreline foam; a light, translucent surface when seen from below.
-- Ships in a lake brake, bounce and slowly sink. With inflated pontoons from Mining they float, with buoyancy computed per pontoon so ships stay upright.
+- Ships in a lake brake, bounce and slowly sink. With inflated pontoons from Odyssey Building they float, with buoyancy computed per pontoon so ships stay upright.
 - Gentle waves, sandy lake beds, impact splashes, pontoon spray and wakes.
 - Submerged ships take on water, which drains from the cockpit and hull once they surface; droplets run down the glass.
 - **Swimming:** WASD to swim where you look, Space up, Crouch down, Shift faster.
@@ -342,6 +348,9 @@ In VS Code use `Ctrl+Shift+B` (build) or the **build + run game** task.
 Directory.Build.props    shared settings: net472, references to MelonLoader and all game assemblies
 Directory.Build.targets  path checks and automatic copy of built DLLs to <game>\Mods
 src/<Mod>/               one folder per mod (csproj, MelonMod class, Patches/, mod.json)
+src/Odyssey.Core/        shared base for the Odyssey modules (registries for parts, research, menu, assets)
+src/Odyssey.<Module>/    Mining, Power, Building, Logic, Gear, Tweaks - each registers its parts with Odyssey.Core
+src/Odyssey.Dev/         local test tools (--mining-dev-* arguments), not shipped in dist
 tools/                   MelonLoader install/uninstall, run-game, new-mod, pack, player installer
 dist/Mods/               prebuilt DLLs for players (updated by tools\pack.ps1)
 install.bat, update.bat  player install and update entry points

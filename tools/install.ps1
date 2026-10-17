@@ -40,6 +40,13 @@ if (-not (Test-Path (Join-Path $GameDir "MelonLoader\net35\MelonLoader.dll"))) {
 
 $modsDir = Join-Path $GameDir "Mods"
 New-Item -ItemType Directory -Force $modsDir | Out-Null
+foreach ($old in @("Mining.dll", "Mining.pdb")) {
+    $path = Join-Path $modsDir $old
+    if (Test-Path $path) {
+        Remove-Item $path -Force -Confirm:$false
+        Write-Host "  removed old $old (replaced by the Odyssey modules)"
+    }
+}
 $dlls = Get-ChildItem (Join-Path $root "dist\Mods") -Filter *.dll
 foreach ($dll in $dlls) {
     Copy-Item $dll.FullName $modsDir -Force

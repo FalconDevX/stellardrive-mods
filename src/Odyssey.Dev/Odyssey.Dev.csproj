@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Odyssey.Dev</AssemblyName>
+    <RootNamespace>Odyssey</RootNamespace>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Odyssey.Core\Odyssey.Core.csproj" Private="false" />
+    <ProjectReference Include="..\Odyssey.Mining\Odyssey.Mining.csproj" Private="false" />
+    <ProjectReference Include="..\Odyssey.Power\Odyssey.Power.csproj" Private="false" />
+    <ProjectReference Include="..\Odyssey.Building\Odyssey.Building.csproj" Private="false" />
+    <ProjectReference Include="..\Odyssey.Logic\Odyssey.Logic.csproj" Private="false" />
+    <ProjectReference Include="..\Odyssey.Gear\Odyssey.Gear.csproj" Private="false" />
+    <ProjectReference Include="..\Odyssey.Tweaks\Odyssey.Tweaks.csproj" Private="false" />
+  </ItemGroup>
+</Project>

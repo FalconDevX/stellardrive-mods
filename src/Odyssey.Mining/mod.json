@@ -1,0 +1,7 @@
+{
+  "id": "stellardrive-odyssey-mining",
+  "name": "Odyssey Mining",
+  "author": "mateu",
+  "version": "1.0.0",
+  "description": "Ore, glass and uranium deposits on planets and the excavator that mines them by itself. Keys N, U, K point to the nearest deposit."
+}
