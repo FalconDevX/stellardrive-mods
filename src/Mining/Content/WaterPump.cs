@@ -28,6 +28,7 @@ namespace Mining.Content
         internal const byte PowerSocket = 0, SignalSocket = 1, OutSocketB = 2, OutSocketA = 3;
 
         internal const float FanY = 0.835f;
+        private const float SocketY = 0.3f;
         internal const float NozzleTop = 0.36f;
         internal const float NozzleDepth = 0.26f;
         internal const float Immersion = 0.3f;
@@ -202,16 +203,15 @@ namespace Mining.Content
 
             SocketObject fluid = PartFactory.FindSocket(distiller, CableType.Fluid);
             SocketObject power = PartFactory.FindSocket(generator, CableType.Power);
-            const float y = 0.3f;
-            float back = n - 0.5f, side = n - 0.5f;
-            float powerX = n == 1 ? 0.15f : n - 1f, signalX = n == 1 ? -0.15f : 0f;
-            PartFactory.CloneSocket(power, root.transform, PowerSocket, new Vector3(powerX, y, back), 180f);
-            PartFactory.CloneSocket(fluid, root.transform, OutSocketA, new Vector3(side, y, n == 1 ? -0.2f : 0f), 270f);
-            PartFactory.CloneSocket(fluid, root.transform, OutSocketB, new Vector3(side, y, n == 1 ? 0.2f : n - 1f), 270f);
+            float face = body.bounds.max.z * n + 0.02f;
+            Vector3 At(float x) => centre + new Vector3(x * n, SocketY * n, 0f) + new Vector3(0f, 0f, face);
+            PartFactory.CloneSocket(power, root.transform, PowerSocket, At(-0.33f), 180f).transform.localScale *= n;
+            PartFactory.CloneSocket(fluid, root.transform, OutSocketA, At(0.11f), 180f).transform.localScale *= n;
+            PartFactory.CloneSocket(fluid, root.transform, OutSocketB, At(0.33f), 180f).transform.localScale *= n;
             SocketObject signalSource = Resources.FindObjectsOfTypeAll<SocketObject>().FirstOrDefault(s => s.Type == CableType.Signal && s.visualObject != null && s.interactive != null);
             if (signalSource != null)
             {
-                PartFactory.CloneSocket(signalSource, root.transform, SignalSocket, new Vector3(signalX, y, back), 180f);
+                PartFactory.CloneSocket(signalSource, root.transform, SignalSocket, At(-0.11f), 180f).transform.localScale *= n;
             }
             else
             {
@@ -228,7 +228,7 @@ namespace Mining.Content
             settings.description = "Pumps water from lakes into pipes. Press F to lower the hose over a lake on Otrera b " +
                                    $"(hose {MiningMod.PumpHoseLength.Value:0} m), or connect a signal: its value sets the hose length (1 = full, 0 = up). " +
                                    "Needs power. " +
-                                   "Sockets: right - two water outputs, back - power and signal.";
+                                   "All four sockets are on the service panel at the back: power (yellow), signal (white) and two water outputs (blue).";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
             settings.thumbnailRotation = Quaternion.Euler(0f, 150f, 0f);

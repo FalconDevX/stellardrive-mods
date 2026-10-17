@@ -11,6 +11,7 @@ using Ships.Interface.Model.Parts.State;
 using Ships.Interface.Model.State;
 using Ships.Parts.FluidPump;
 using Ships.Parts.GasExhaust;
+using Ships.Parts.GasIntake;
 using UnityEngine;
 
 namespace Mining.Server
@@ -54,6 +55,27 @@ namespace Mining.Server
             }
             __result = new GasExhaustState { FluidItemId = group.FluidItemId, OutputRate = flow / deltaTime / rate };
             return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(GasIntakesUpdater), "CalculateNewState")]
+    internal static class ScaledIntakePatch
+    {
+        private static void Postfix(StatefulPart part, float deltaTime, IShipStateWrite ____ship, ConnectionsServerTracker ____connections, ref GasIntakeState __result)
+        {
+            float rate = ScaledVariants.Rate(part.Settings);
+            if (rate <= 1f || __result == null || __result.IntakeRate <= 0f ||
+                !____connections.TryGetFluidGroupCacheFromSocket(new EntityPartSocket(____ship.Id, part.Id, 0), out var group))
+            {
+                return;
+            }
+            float extra = Mathf.Min(__result.IntakeRate * deltaTime * (rate - 1f), group.ReceivingCapacity);
+            if (extra <= 0f)
+            {
+                return;
+            }
+            group.AddFluid(ItemsConstants.OxygenItemId, extra);
+            __result = __result with { FluidItemId = group.FluidItemId, IntakeRate = __result.IntakeRate + extra / deltaTime };
         }
     }
 
