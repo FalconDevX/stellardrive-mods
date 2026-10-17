@@ -189,7 +189,7 @@ Shader "StellarDriveMods/StylizedWater"
                     half4 under;
                     under.rgb = _ShallowColor.rgb * (sunBelow.color * 0.7 + ambientBelow * 0.8) + (sunBelow.color + ambientBelow) * shimmer * 0.3;
                     float grazing = 1 - saturate(-dot(viewDir, up) * 2.5);
-                    under.a = lerp(0.22 + shimmer * 0.25, 0.85, grazing * grazing);
+                    under.a = lerp(0.55 + shimmer * 0.2, 0.9, grazing * grazing);
                     under.rgb *= _Exposure;
                     under.rgb = MixFog(under.rgb, i.fog);
                     return under;
