@@ -37,6 +37,7 @@ namespace Water.Surface
         {
             if (_object != null) Object.Destroy(_object);
             _object = null;
+            UnderwaterFog.Clear();
             _hasAnchor = false;
             _building = false;
             _hasTriangles = false;
@@ -49,6 +50,7 @@ namespace Water.Surface
             if (!(ClientOrigin.LocalVisualSpace is PlanetSurfaceSpace space) || space.PlanetId != PlanetId || cam == null)
             {
                 if (_object != null) _object.SetActive(false);
+                UnderwaterFog.Hide();
                 return;
             }
             var transpose = ServiceCache.Get<IWorldTransposeClient>();
@@ -70,6 +72,7 @@ namespace Water.Surface
             _object.SetActive(altitude < MaxAltitude);
             if (altitude >= MaxAltitude)
             {
+                UnderwaterFog.Hide();
                 return;
             }
             Vector3 under = camPlanet.normalized * _radius;
@@ -87,8 +90,18 @@ namespace Water.Surface
             {
                 ContinueBuild(RingsPerFrame);
             }
-            UpdateExposure(transpose.Rotation(planetSpace, ClientOrigin.LocalVisualSpace, Quaternion.identity) * camPlanet.normalized);
+            Vector3 upVisual = transpose.Rotation(planetSpace, ClientOrigin.LocalVisualSpace, Quaternion.identity) * camPlanet.normalized;
+            UpdateExposure(upVisual);
             UpdateUnderwater(altitude < UnderwaterAltitude);
+            if (altitude < UnderwaterAltitude && _tracked != null && _tracked.PointsProvider != null
+                && _tracked.PointsProvider.GetElevationAtPoint(camPlanet.normalized) - _baseRadius < LakeTerrainPatch.SeaLevel)
+            {
+                UnderwaterFog.Show(cam, -altitude, upVisual, Exposure);
+            }
+            else
+            {
+                UnderwaterFog.Hide();
+            }
             _object.transform.position = (Vector3)transpose.Position(planetSpace, ClientOrigin.LocalVisualSpace, (Vector3Double)_anchor);
             _object.transform.rotation = transpose.Rotation(planetSpace, ClientOrigin.LocalVisualSpace, Quaternion.identity);
         }

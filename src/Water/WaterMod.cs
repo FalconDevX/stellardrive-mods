@@ -3,7 +3,7 @@ using MelonLoader;
 using UnityEngine;
 using Water;
 
-[assembly: MelonInfo(typeof(WaterMod), "Water", "0.4.6", "mateu")]
+[assembly: MelonInfo(typeof(WaterMod), "Water", "0.5.0", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Water
@@ -24,6 +24,7 @@ namespace Water
         internal static MelonPreferences_Entry<float> UnderwaterAirSeconds;
         internal static MelonPreferences_Entry<bool> GlassDroplets;
         internal static MelonPreferences_Entry<string> LakeBedTexture;
+        internal static MelonPreferences_Entry<float> UnderwaterVisibility;
 
         public override void OnInitializeMelon()
         {
@@ -45,6 +46,8 @@ namespace Water
             SplashVolume = category.CreateEntry("SplashVolume", 0.8f, description: "Splash and wake volume (0-1)");
             LakeBedTexture = category.CreateEntry("LakeBedTexture", "auto",
                 description: "Lake bottom texture: auto (wet sand of the planet), off (game texture), or part of a texture name from the log");
+            UnderwaterVisibility = category.CreateEntry("UnderwaterVisibility", 12f,
+                description: "How far you can see under water (m) before the dense water hides everything (0 = no underwater fog)");
             GlassDroplets = category.CreateEntry("GlassDroplets", true, description: "Water droplets on ship windows after a nearby splash or when the glass comes out of the water; they slide down the glass");
             UnderwaterAirSeconds = category.CreateEntry("UnderwaterAirSeconds", 30f, description: "Seconds a full oxygen tank lasts with the head under water; then the player starts drowning (0 = off). Host only");
             Swimming = category.CreateEntry("Swimming", true,

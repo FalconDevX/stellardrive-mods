@@ -38,21 +38,46 @@ namespace Water.Surface
             return m;
         }
 
+        internal static Material CreateFog()
+        {
+            try
+            {
+                Shader shader = Bundle()?.LoadAllAssets<Shader>().FirstOrDefault(s => s.name == "StellarDriveMods/UnderwaterFog");
+                if (shader == null || !shader.isSupported)
+                {
+                    Melon<WaterMod>.Logger.Warning($"Underwater fog shader not available: {shader?.name}");
+                    return null;
+                }
+                return new Material(shader) { name = "UnderwaterFog" };
+            }
+            catch (System.Exception e)
+            {
+                Melon<WaterMod>.Logger.Warning($"Could not load the underwater fog shader: {e.Message}");
+                return null;
+            }
+        }
+
+        private static AssetBundle Bundle()
+        {
+            if (_bundle == null)
+            {
+                using (Stream s = Assembly.GetExecutingAssembly().GetManifestResourceStream("Water.water.bundle"))
+                {
+                    if (s == null) return null;
+                    var data = new byte[s.Length];
+                    s.Read(data, 0, data.Length);
+                    _bundle = AssetBundle.LoadFromMemory(data);
+                }
+            }
+            return _bundle;
+        }
+
         private static Material TryStylized()
         {
             try
             {
-                if (_bundle == null)
-                {
-                    using (Stream s = Assembly.GetExecutingAssembly().GetManifestResourceStream("Water.water.bundle"))
-                    {
-                        if (s == null) return null;
-                        var data = new byte[s.Length];
-                        s.Read(data, 0, data.Length);
-                        _bundle = AssetBundle.LoadFromMemory(data);
-                    }
-                }
-                Shader shader = _bundle.LoadAllAssets<Shader>().FirstOrDefault();
+                if (Bundle() == null) return null;
+                Shader shader = _bundle.LoadAllAssets<Shader>().FirstOrDefault(s => s.name == "StellarDriveMods/StylizedWater");
                 if (shader == null || !shader.isSupported)
                 {
                     Melon<WaterMod>.Logger.Warning($"Water shader not supported: {shader?.name}");

@@ -9,6 +9,7 @@ public static class BuildWaterBundle
         string[] assets =
         {
             "Assets/Water/StylizedWater.shader",
+            "Assets/Water/UnderwaterFog.shader",
             "Assets/Water/water_caustics.png",
             "Assets/Water/water_foam.png",
             "Assets/Water/water_normal.png",
