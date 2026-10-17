@@ -16,15 +16,26 @@ namespace Odyssey.Patches
         private const float LineLength = 62f, LineGap = 26f, LineThickness = 3f;
         private const int ArcTextureWidth = 1024;
 
-        private static void Postfix(GameObject ___demoText)
+        private static void Postfix(MainMenuTitle __instance, GameObject ___demoText)
         {
+            if (___demoText != null && ___demoText.transform.parent.Find("OdysseyTitle") == null)
+            {
+                MelonCoroutines.Start(ApplyLater(__instance, ___demoText));
+            }
+        }
+
+        private static System.Collections.IEnumerator ApplyLater(MainMenuTitle title, GameObject demo)
+        {
+            yield return null;
+            yield return null;
+            if (title == null || demo == null)
+            {
+                yield break;
+            }
             try
             {
-                if (___demoText == null || ___demoText.transform.parent.Find("OdysseyTitle") != null)
-                {
-                    return;
-                }
-                Apply(___demoText);
+                Canvas.ForceUpdateCanvases();
+                Apply(title, demo);
             }
             catch (Exception e)
             {
@@ -32,7 +43,7 @@ namespace Odyssey.Patches
             }
         }
 
-        private static void Apply(GameObject demo)
+        private static void Apply(MainMenuTitle titleScreen, GameObject demo)
         {
             var demoRect = (RectTransform)demo.transform;
             TMP_Text original = demo.GetComponentInChildren<TMP_Text>(true);
@@ -66,7 +77,8 @@ namespace Odyssey.Patches
             text.alignment = TextAlignmentOptions.Center;
             text.textWrappingMode = TextWrappingModes.NoWrap;
             text.fontSize = original != null ? original.fontSize : height * 0.8f;
-            text.characterSpacing = 38f;
+            text.characterSpacing = 30f;
+            text.fontFeatures.Clear();
             text.raycastTarget = false;
             text.ForceMeshUpdate();
             float half = text.GetPreferredValues(Title).x * 0.5f;
@@ -76,18 +88,23 @@ namespace Odyssey.Patches
                 float inner = side * (half + LineGap);
                 Shape(root, "Line", new Vector2(inner + side * LineLength * 0.5f, 0f), new Vector2(LineLength, LineThickness), 0f, color);
             }
-            AddOrbits((RectTransform)demoRect.parent, demoRect, root, color);
+            AddOrbits((RectTransform)titleScreen.transform, demoRect, root, color);
             Melon<CoreMod>.Logger.Msg($"Title screen: '{Title}' (was {(original != null ? "text '" + original.text + "'" : "an image")}, {demoRect.rect.size})");
         }
 
-        private static void AddOrbits(RectTransform parent, RectTransform demo, RectTransform title, Color red)
+        private static void AddOrbits(RectTransform titleScreen, RectTransform demo, RectTransform title, Color red)
         {
-            Rect logo = FindLogo(parent, demo, title);
-            var area = new Rect(logo.center.x - logo.width * 0.66f, logo.yMin - logo.height * 0.45f, logo.width * 1.32f, logo.height * 1.75f);
+            Graphic logoGraphic = FindLogo(titleScreen, demo, title);
+            var parent = (RectTransform)(logoGraphic != null ? logoGraphic.rectTransform.parent : demo.parent);
+            Rect logo = logoGraphic != null ? RectIn(parent, logoGraphic.rectTransform) : FallbackLogo(parent, demo);
+            var area = new Rect(logo.center.x - logo.width * 0.72f, logo.yMin - logo.height * 0.42f, logo.width * 1.44f, logo.height * 1.72f);
             var orbits = new GameObject("OdysseyOrbits", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
             RectTransform rect = orbits.rectTransform;
             rect.SetParent(parent, false);
-            rect.SetSiblingIndex(title.GetSiblingIndex());
+            if (logoGraphic != null && logoGraphic.transform.parent == parent)
+            {
+                rect.SetSiblingIndex(logoGraphic.transform.GetSiblingIndex() + 1);
+            }
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
             rect.pivot = new Vector2(0.5f, 0.5f);
             var parentCenter = new Vector2((0.5f - parent.pivot.x) * parent.rect.width, (0.5f - parent.pivot.y) * parent.rect.height);
@@ -107,37 +124,52 @@ namespace Odyssey.Patches
             starImage.texture = DrawStar(128);
             starImage.color = red;
             starImage.raycastTarget = false;
-            Melon<CoreMod>.Logger.Msg($"Title screen: logo {logo}, orbits {area}");
+            Melon<CoreMod>.Logger.Msg($"Title screen: logo {(logoGraphic != null ? logoGraphic.name : "not found")} {logo} under {parent.name}, orbits {area}");
         }
 
-        private static Rect FindLogo(RectTransform parent, RectTransform demo, RectTransform title)
+        private static Graphic FindLogo(RectTransform titleScreen, RectTransform demo, RectTransform title)
+        {
+            foreach (Graphic g in UnityEngine.Object.FindObjectsByType<Graphic>(FindObjectsSortMode.None))
+            {
+                string texture = g is Image image && image.sprite != null ? image.sprite.name : g.mainTexture != null ? g.mainTexture.name : "";
+                Melon<CoreMod>.Logger.Msg($"Title screen scene: {g.GetType().Name} {Path(g.transform, null)} texture {texture} {g.rectTransform.rect.size}");
+            }
+            Graphic best = null;
+            float bestArea = 0f;
+            foreach (Graphic g in titleScreen.GetComponentsInChildren<Graphic>(true))
+            {
+                if (g.transform.IsChildOf(demo) || g.transform.IsChildOf(title) || !g.gameObject.activeInHierarchy || g is TMP_Text)
+                {
+                    continue;
+                }
+                Rect r = RectIn(titleScreen, g.rectTransform);
+                Melon<CoreMod>.Logger.Msg($"Title screen: {g.GetType().Name} {Path(g.transform, titleScreen)} {r}");
+                float area = r.width * r.height;
+                if (r.width > Screen.width * 0.9f || area <= bestArea)
+                {
+                    continue;
+                }
+                best = g;
+                bestArea = area;
+            }
+            return best;
+        }
+
+        private static string Path(Transform t, Transform root) => t == root || t.parent == null ? t.name : Path(t.parent, root) + "/" + t.name;
+
+        private static Rect RectIn(RectTransform space, RectTransform target)
         {
             var corners = new Vector3[4];
-            Rect best = Rect.zero;
-            foreach (Graphic g in parent.GetComponentsInChildren<Graphic>(true))
-            {
-                if (g.transform.IsChildOf(demo) || g.transform.IsChildOf(title) || !g.gameObject.activeInHierarchy)
-                {
-                    continue;
-                }
-                g.rectTransform.GetWorldCorners(corners);
-                Vector2 min = parent.InverseTransformPoint(corners[0]), max = parent.InverseTransformPoint(corners[2]);
-                Rect r = Rect.MinMaxRect(Mathf.Min(min.x, max.x), Mathf.Min(min.y, max.y), Mathf.Max(min.x, max.x), Mathf.Max(min.y, max.y));
-                Melon<CoreMod>.Logger.Msg($"Title screen: {g.GetType().Name} {g.name} {r}");
-                if (r.width > Screen.width * 0.9f || r.height > Screen.height * 0.9f || r.width * r.height <= best.width * best.height)
-                {
-                    continue;
-                }
-                best = r;
-            }
-            if (best.width > 0f)
-            {
-                return best;
-            }
-            demo.GetWorldCorners(corners);
-            Vector2 c = (parent.InverseTransformPoint(corners[0]) + parent.InverseTransformPoint(corners[2])) * 0.5f;
-            float h = Mathf.Max(demo.rect.height, 40f);
-            return new Rect(c.x - h * 4.5f, c.y + h * 0.6f, h * 9f, h * 4f);
+            target.GetWorldCorners(corners);
+            Vector2 min = space.InverseTransformPoint(corners[0]), max = space.InverseTransformPoint(corners[2]);
+            return Rect.MinMaxRect(Mathf.Min(min.x, max.x), Mathf.Min(min.y, max.y), Mathf.Max(min.x, max.x), Mathf.Max(min.y, max.y));
+        }
+
+        private static Rect FallbackLogo(RectTransform parent, RectTransform demo)
+        {
+            Rect d = RectIn(parent, demo);
+            float h = Mathf.Max(d.height, 40f);
+            return new Rect(d.center.x - h * 4.5f, d.center.y + h * 0.6f, h * 9f, h * 4f);
         }
 
         private static Texture2D DrawOrbits(Vector2 size, Color red, out Vector2 star)
@@ -145,9 +177,9 @@ namespace Odyssey.Patches
             int w = ArcTextureWidth, h = Mathf.Max(64, Mathf.RoundToInt(ArcTextureWidth * size.y / Mathf.Max(size.x, 1f)));
             var pixels = new Color32[w * h];
             float scale = w / Mathf.Max(size.x, 1f);
-            DrawArc(pixels, w, h, new Vector2(0.5f, 0.47f), new Vector2(0.47f, 0.47f), 28f, 168f, 2.2f * scale, Color.white, 0.9f);
-            DrawArc(pixels, w, h, new Vector2(0.47f, 0.5f), new Vector2(0.48f, 0.44f), -62f, 38f, 3.2f * scale, red, 1f);
-            float a = 38f * Mathf.Deg2Rad;
+            DrawArc(pixels, w, h, new Vector2(0.5f, 0.47f), new Vector2(0.47f, 0.47f), 26f, 170f, 3.2f * scale, Color.white, 0.95f);
+            DrawArc(pixels, w, h, new Vector2(0.47f, 0.5f), new Vector2(0.48f, 0.44f), -64f, 30f, 3.6f * scale, red, 1f);
+            float a = 30f * Mathf.Deg2Rad;
             star = new Vector2(0.47f + 0.48f * Mathf.Cos(a), 0.5f + 0.44f * Mathf.Sin(a));
             var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { name = "OdysseyOrbits", wrapMode = TextureWrapMode.Clamp };
             tex.SetPixels32(pixels);

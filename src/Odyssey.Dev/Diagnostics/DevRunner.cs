@@ -39,11 +39,27 @@ namespace Odyssey.Diagnostics
                 _autoLoaded = true;
                 MelonCoroutines.Start(LoadWorld(world));
             }
+            if (sceneName != "MainGame" && HasArg("menushot") && !_dumpStarted)
+            {
+                _dumpStarted = true;
+                MelonCoroutines.Start(MenuShot());
+            }
             if (sceneName == "MainGame" && (HasArg("dump") || DevMod.DevDump.Value) && !_dumpStarted)
             {
                 _dumpStarted = true;
                 MelonCoroutines.Start(DumpAfterDelay(25f));
             }
+        }
+
+        private static IEnumerator MenuShot()
+        {
+            Melon<DevMod>.Logger.Msg("[dev] menu screenshot in 8 s");
+            yield return new WaitForSecondsRealtime(8f);
+            string path = Path.Combine(DevTools.OutDir, "menu.png");
+            ScreenCapture.CaptureScreenshot(path);
+            yield return new WaitForSecondsRealtime(2f);
+            Melon<DevMod>.Logger.Msg($"[dev] menu screenshot: {path}");
+            Application.Quit();
         }
 
         private static IEnumerator LoadWorld(string world)
