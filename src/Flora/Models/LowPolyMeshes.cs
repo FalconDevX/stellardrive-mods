@@ -28,6 +28,12 @@ namespace Flora.Models
 
             public float ProjectScale { get; set; }
 
+            public int Count => _vertices.Count;
+
+            public Vector3 Position(int index) => _vertices[index];
+
+            public void SetNormal(int index, Vector3 normal) => _normals[index] = normal;
+
             public void Triangle(int submesh, Vector3 a, Vector3 b, Vector3 c)
             {
                 if (ProjectScale > 0f)
@@ -116,7 +122,7 @@ namespace Flora.Models
                 Triangle(submesh, a, c, b, UvA, UvC, UvB);
             }
 
-            public Mesh Build(string name, bool upNormals = false, Vector3? softCenter = null)
+            public Mesh Build(string name, bool upNormals = false, Vector3? softCenter = null, float softBlend = 1f)
             {
                 var mesh = new Mesh { name = name };
                 mesh.SetVertices(_vertices);
@@ -127,7 +133,7 @@ namespace Flora.Models
                 }
                 else if (softCenter.HasValue)
                 {
-                    normals = _vertices.Select(v => ((v - softCenter.Value).normalized + Vector3.up * 0.6f).normalized).ToList();
+                    normals = _vertices.Select((v, i) => (Vector3.Lerp(_normals[i], (v - softCenter.Value).normalized, softBlend).normalized + Vector3.up * 0.6f).normalized).ToList();
                 }
                 mesh.SetNormals(normals);
                 mesh.SetUVs(0, _uvs);
@@ -169,47 +175,46 @@ namespace Flora.Models
             return v;
         }
 
-        private static Vector3[] _smoothVertices;
-        private static int[] _smoothTriangles;
+        private static readonly List<(Vector3[] vertices, int[] triangles)> SmoothLevels = new List<(Vector3[], int[])>();
 
-        private static void EnsureSmoothSphere()
+        private static (Vector3[] vertices, int[] triangles) SmoothSphere(int level)
         {
-            if (_smoothVertices != null)
+            if (SmoothLevels.Count == 0)
             {
-                return;
+                SmoothLevels.Add((IcoVertices, IcoTriangles));
             }
-            var verts = new List<Vector3>(IcoVertices);
-            var tris = new List<int>();
-            var midpoints = new Dictionary<long, int>();
-            int Mid(int a, int c)
+            while (SmoothLevels.Count <= level)
             {
-                long key = a < c ? ((long)a << 32) | (uint)c : ((long)c << 32) | (uint)a;
-                if (!midpoints.TryGetValue(key, out int index))
+                (Vector3[] baseVerts, int[] baseTris) = SmoothLevels[SmoothLevels.Count - 1];
+                var verts = new List<Vector3>(baseVerts);
+                var tris = new List<int>();
+                var midpoints = new Dictionary<long, int>();
+                int Mid(int a, int c)
                 {
-                    index = verts.Count;
-                    verts.Add(((verts[a] + verts[c]) * 0.5f).normalized);
-                    midpoints[key] = index;
+                    long key = a < c ? ((long)a << 32) | (uint)c : ((long)c << 32) | (uint)a;
+                    if (!midpoints.TryGetValue(key, out int index))
+                    {
+                        index = verts.Count;
+                        verts.Add(((verts[a] + verts[c]) * 0.5f).normalized);
+                        midpoints[key] = index;
+                    }
+                    return index;
                 }
-                return index;
+                for (int i = 0; i < baseTris.Length; i += 3)
+                {
+                    int a = baseTris[i], b = baseTris[i + 1], c = baseTris[i + 2];
+                    int ab = Mid(a, b), bc = Mid(b, c), ca = Mid(c, a);
+                    tris.AddRange(new[] { a, ab, ca, b, bc, ab, c, ca, bc, ab, bc, ca });
+                }
+                SmoothLevels.Add((verts.ToArray(), tris.ToArray()));
             }
-            for (int i = 0; i < IcoTriangles.Length; i += 3)
-            {
-                int a = IcoTriangles[i], b = IcoTriangles[i + 1], c = IcoTriangles[i + 2];
-                int ab = Mid(a, b), bc = Mid(b, c), ca = Mid(c, a);
-                tris.AddRange(new[] { a, ab, ca, b, bc, ab, c, ca, bc, ab, bc, ca });
-            }
-            _smoothVertices = verts.ToArray();
-            _smoothTriangles = tris.ToArray();
+            return SmoothLevels[level];
         }
 
-        internal static void Blob(Builder b, int submesh, Vector3 center, Vector3 radius, System.Random rng, float jitter, bool smooth = false)
+        internal static void Blob(Builder b, int submesh, Vector3 center, Vector3 radius, System.Random rng, float jitter, bool smooth = false, int detail = 1,
+            bool roundNormals = false)
         {
-            if (smooth)
-            {
-                EnsureSmoothSphere();
-            }
-            Vector3[] source = smooth ? _smoothVertices : IcoVertices;
-            int[] triangles = smooth ? _smoothTriangles : IcoTriangles;
+            (Vector3[] source, int[] triangles) = SmoothSphere(smooth ? detail : 0);
             var verts = new Vector3[source.Length];
             for (int i = 0; i < verts.Length; i++)
             {
@@ -217,9 +222,19 @@ namespace Flora.Models
                 Vector3 v = source[i] * j;
                 verts[i] = center + Vector3.Scale(v, radius);
             }
+            var inverse = new Vector3(1f / (radius.x * radius.x), 1f / (radius.y * radius.y), 1f / (radius.z * radius.z));
             for (int i = 0; i < triangles.Length; i += 3)
             {
+                int first = b.Count;
                 b.OutwardTriangle(submesh, center, verts[triangles[i]], verts[triangles[i + 1]], verts[triangles[i + 2]]);
+                if (!roundNormals)
+                {
+                    continue;
+                }
+                for (int k = first; k < b.Count; k++)
+                {
+                    b.SetNormal(k, Vector3.Scale(b.Position(k) - center, inverse).normalized);
+                }
             }
         }
 

@@ -402,7 +402,7 @@ namespace Flora.Models
                 var c = d * dist + Vector3.up * r * (i == 0 ? 0.75f : Range(rng, 0.55f, 0.95f));
                 centers.Add(c);
                 radii.Add(r);
-                LowPolyMeshes.Blob(b, 0, c, new Vector3(r, r * 0.85f, r), rng, 0.08f, smooth: true);
+                LowPolyMeshes.Blob(b, 0, c, new Vector3(r, r * 0.85f, r), rng, 0.05f, smooth: true, detail: 2, roundNormals: true);
             }
             if (berries)
             {
@@ -415,7 +415,7 @@ namespace Flora.Models
                         0.05f, smooth: true);
                 }
             }
-            return b.Build($"FloraBush_{seed}", softCenter: new Vector3(0f, size * 0.45f, 0f));
+            return b.Build($"FloraBush_{seed}", softCenter: new Vector3(0f, size * 0.45f, 0f), softBlend: 0.45f);
         }
     }
 }

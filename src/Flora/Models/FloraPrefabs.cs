@@ -24,7 +24,7 @@ namespace Flora.Models
 
         private static readonly Color Bark = new Color(0.60f, 0.50f, 0.42f);
         private static readonly Color DarkBark = new Color(0.44f, 0.37f, 0.31f);
-        private static readonly Color Moss = new Color(0.38f, 0.50f, 0.24f);
+        private static readonly Color Moss = new Color(0.30f, 0.40f, 0.19f);
         private static readonly Color Stone = new Color(0.52f, 0.52f, 0.50f);
         private static readonly Color MushroomStem = new Color(0.90f, 0.86f, 0.76f);
         private static readonly Color[] MushroomCaps = { new Color(0.78f, 0.25f, 0.20f), new Color(0.60f, 0.42f, 0.27f) };
@@ -33,7 +33,7 @@ namespace Flora.Models
         private static readonly Color TuftDry = new Color(0.62f, 0.60f, 0.36f);
         private static readonly Color[] BushGreens =
         {
-            new Color(0.33f, 0.45f, 0.26f), new Color(0.40f, 0.50f, 0.28f), new Color(0.28f, 0.40f, 0.25f),
+            new Color(0.44f, 0.60f, 0.31f), new Color(0.52f, 0.65f, 0.34f), new Color(0.38f, 0.54f, 0.29f),
         };
         private static readonly Color[] Berries = { new Color(0.70f, 0.20f, 0.20f), new Color(0.30f, 0.30f, 0.62f) };
         private static readonly Color[] BellColors = { new Color(0.55f, 0.45f, 0.82f), new Color(0.95f, 0.93f, 0.88f), new Color(0.90f, 0.55f, 0.75f) };

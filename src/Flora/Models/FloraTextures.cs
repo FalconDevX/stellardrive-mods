@@ -95,7 +95,7 @@ namespace Flora.Models
             var pixels = new Color[size * size];
             for (int i = 0; i < pixels.Length; i++)
             {
-                pixels[i] = new Color(0.5f, 0.5f, 0.5f, 1f);
+                pixels[i] = new Color(0.8f, 0.8f, 0.8f, 1f);
             }
             for (int l = 0; l < leaves; l++)
             {
@@ -103,7 +103,7 @@ namespace Flora.Models
                 float angle = (float)rng.NextDouble() * Mathf.PI * 2f;
                 float len = size * (0.05f + 0.04f * (float)rng.NextDouble());
                 float width = len * 0.45f;
-                float shade = 0.75f + 0.4f * (float)rng.NextDouble();
+                float shade = 0.9f + 0.25f * (float)rng.NextDouble();
                 float ca = Mathf.Cos(angle), sa = Mathf.Sin(angle);
                 int reach = Mathf.CeilToInt(len);
                 for (int oy = -reach; oy <= reach; oy++)
