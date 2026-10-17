@@ -17,7 +17,6 @@ namespace Water.Terrain
         internal const float SeaLevel = 64f;
         private const int BedStepId = 9001;
         private const int MaxMaterials = 4;
-        private const float ShoreBlend = 5f;
         private static readonly string[] Preferred = { "mud", "silt", "clay", "gravel", "pebble", "moss", "dirt", "soil", "wet", "swamp" };
 
         private static void Postfix(PlanetTerrain __instance)
@@ -104,7 +103,7 @@ namespace Water.Terrain
             int index = materials.Length;
             terrain.materials = materials.Concat(new[] { bed }).ToArray();
             last.outputId = BedStepId;
-            var bedStep = new ColorElevationStep { inputId = BedStepId, outputId = 100, bellowThreshold = SeaLevel + 0.8f, smoothness = 2.5f, materialIndex = index };
+            var bedStep = new ColorElevationStep { inputId = BedStepId, outputId = 100, bellowThreshold = SeaLevel + 0.8f, smoothness = 1.5f, materialIndex = index };
             config.colorElevationSteps = (config.colorElevationSteps ?? new ColorElevationStep[0]).Concat(new[] { bedStep }).ToArray();
             foreach (ColorElevationStep step in config.colorElevationSteps)
             {
@@ -114,11 +113,6 @@ namespace Water.Terrain
                     log.Msg($"Lake bed: shore step {step.inputId}->{step.outputId} ({a.name} below {step.bellowThreshold}) now uses the lake bed sand");
                     step.materialIndex = index;
                     step.smoothness = Mathf.Max(step.smoothness, 1f);
-                }
-                else if (a != null && a.name.IndexOf("sand", StringComparison.OrdinalIgnoreCase) >= 0 && step.bellowThreshold < SeaLevel + 20f)
-                {
-                    step.smoothness = Mathf.Max(step.smoothness, ShoreBlend);
-                    log.Msg($"Lake bed: beach step {step.inputId}->{step.outputId} ({a.name} below {step.bellowThreshold}) blends over {step.smoothness} m");
                 }
             }
             log.Msg($"Lake bed: material {index} = {source.albedoTexture?.name}" + (sand != null ? " (wet sand)" : fromOtherPlanet ? " (from another planet)" : " (tinted copy)"));

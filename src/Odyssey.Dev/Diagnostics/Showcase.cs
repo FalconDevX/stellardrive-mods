@@ -23,10 +23,55 @@ using WorldTracking.Interface.Values;
 
 namespace Odyssey.Diagnostics
 {
+    [HarmonyLib.HarmonyPatch(typeof(Planets.Network.TrackedPlanetClient), nameof(Planets.Network.TrackedPlanetClient.UpdateVisuals))]
+    internal static class ShowcaseObserverPatch
+    {
+        private static void Prefix(ref Vector3 observerPos)
+        {
+            if (Showcase.Observer != null)
+            {
+                observerPos = Showcase.Observer.position;
+            }
+        }
+    }
+
     internal static class Showcase
     {
         private const ushort FloorPartId = 70;
+        internal static Transform Observer;
+
         private const float MaxFootprint = 10f, RowWidth = 19f, Gap = 0.5f, MaxHatch = 4f, LakeSearch = 4000f;
+
+        private static float ForestScore(Planets.EnvironmentGeneration.Configs.PlanetDensePlacementConfig forest, ulong planetId, Vector3 center, Vector3 right, Vector3 look, float reach)
+        {
+            float total = 0f;
+            int samples = 0;
+            for (float along = reach + 30f; along <= reach + 230f; along += 40f)
+            {
+                for (float side = -120f; side <= 120f; side += 40f)
+                {
+                    Vector3 p = (center + look * along + right * side).normalized * center.magnitude;
+                    samples++;
+                    if (WaterPump.TryProbe(planetId, p, out _, out bool wet) && !wet)
+                    {
+                        total += Mathf.Clamp01(forest.EvaluateNoiseAtPosition(p.normalized));
+                    }
+                }
+            }
+            return total / samples;
+        }
+
+        private static void SetInstancerCamera(Camera camera)
+        {
+            System.Type manager = HarmonyLib.AccessTools.TypeByName("GPUInstancer.GPUInstancerManager");
+            System.Reflection.MethodInfo set = manager != null ? HarmonyLib.AccessTools.Method(manager, "SetCamera") : null;
+            if (set == null) return;
+            foreach (Object m in Object.FindObjectsByType(manager, FindObjectsSortMode.None))
+            {
+                HarmonyLib.Traverse.Create(m).Field("isOcclusionCulling").SetValue(false);
+                set.Invoke(m, new object[] { camera });
+            }
+        }
 
         internal static IEnumerator Run()
         {
@@ -110,13 +155,15 @@ namespace Odyssey.Diagnostics
             Vector3 right = Vector3.Cross(up, look);
             var centerLocal = new Vector3(maxX * 0.5f, 0f, (minZ + maxZ) * 0.5f);
             float reach = Mathf.Max(maxX, maxZ - minZ) * 0.75f + 4f;
+            var tracked = Worlds.FindTrackedPlanet(surface.PlanetId);
+            var forest = tracked.Planet.GetComponent<Planets.EnvironmentGeneration.PlanetDenseEnvironment>()?.configs?.FirstOrDefault(c => c != null && c.generatesAmbientOcclusion);
             Vector3 lake = Vector3.zero;
-            float best = float.MaxValue;
+            float best = float.MaxValue, bestScore = -1f;
             for (float dx = -LakeSearch; dx <= LakeSearch; dx += 50f)
             {
                 for (float dy = -LakeSearch; dy <= LakeSearch; dy += 50f)
                 {
-                    if (dx * dx + dy * dy >= best) continue;
+                    float distance = dx * dx + dy * dy;
                     Vector3 c = (camPlanet + right * dx + look * dy).normalized * camPlanet.magnitude;
                     bool water = true;
                     for (int k = 0; k < 9 && water; k++)
@@ -124,9 +171,12 @@ namespace Odyssey.Diagnostics
                         Vector3 probe = (c + right * reach * (k % 3 - 1) + look * reach * (k / 3 - 1)).normalized * c.magnitude;
                         water = WaterPump.TryProbe(surface.PlanetId, probe, out _, out bool w) && w;
                     }
-                    if (water)
+                    if (!water) continue;
+                    float score = forest != null ? ForestScore(forest, surface.PlanetId, c, right, look, reach) : 0f;
+                    if (score > bestScore + 0.05f || (Mathf.Abs(score - bestScore) <= 0.05f && distance < best))
                     {
-                        best = dx * dx + dy * dy;
+                        best = distance;
+                        bestScore = score;
                         lake = c.normalized;
                     }
                 }
@@ -136,7 +186,7 @@ namespace Odyssey.Diagnostics
                 log.Msg("[showcase] no lake big enough nearby");
                 yield break;
             }
-            var tracked = Worlds.FindTrackedPlanet(surface.PlanetId);
+            log.Msg($"[showcase] forest behind the lake: {bestScore:0.00}");
             Vector3 originDir = (lake * camPlanet.magnitude - right * centerLocal.x - look * centerLocal.z).normalized;
             float ground = tracked.Planet.Radius + Worlds.SeaLevel + 0.5f;
             log.Msg($"[showcase] lake {Mathf.Sqrt(best):0} m from the camera");
@@ -179,6 +229,8 @@ namespace Odyssey.Diagnostics
             var hidden = Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None).Where(c => c.enabled).ToList();
             System.Reflection.FieldInfo waterCamera = HarmonyLib.AccessTools.Field(HarmonyLib.AccessTools.TypeByName("Water.Surface.WaterSurface"), "OverrideCamera");
             waterCamera?.SetValue(null, shotCam);
+            Observer = shotCam.transform;
+            SetInstancerCamera(shotCam);
 
             Vector3 extent = new Vector3(maxX + 1, 0f, maxZ - minZ + 1);
             float size = Mathf.Max(extent.x, extent.z);
@@ -222,7 +274,9 @@ namespace Odyssey.Diagnostics
             foreach (Canvas c in hidden) if (c != null) c.enabled = true;
             if (fps != null) fps.Value = fpsShown;
             waterCamera?.SetValue(null, null);
+            Observer = null;
             cam.enabled = true;
+            SetInstancerCamera(cam);
             Object.Destroy(shotCam.gameObject);
         }
     }

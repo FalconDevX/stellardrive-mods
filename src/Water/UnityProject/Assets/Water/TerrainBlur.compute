@@ -1,0 +1,44 @@
+#pragma kernel BlurSingle
+#pragma kernel BlurColor
+
+Texture2DArray<float> SourceSingle;
+RWTexture2DArray<float> TargetSingle;
+Texture2DArray<float4> SourceColor;
+RWTexture2DArray<float4> TargetColor;
+int TexRes;
+int Radius;
+int2 Direction;
+
+[numthreads(8, 8, 1)]
+void BlurSingle(uint3 id : SV_DispatchThreadID)
+{
+    if ((int)id.x >= TexRes || (int)id.y >= TexRes) return;
+    float sigma = max(Radius * 0.5, 0.5);
+    float sum = 0;
+    float total = 0;
+    for (int i = -Radius; i <= Radius; i++)
+    {
+        int2 p = clamp((int2)id.xy + Direction * i, 0, TexRes - 1);
+        float w = exp(-(i * i) / (2 * sigma * sigma));
+        sum += SourceSingle[uint3(p, id.z)] * w;
+        total += w;
+    }
+    TargetSingle[id] = sum / total;
+}
+
+[numthreads(8, 8, 1)]
+void BlurColor(uint3 id : SV_DispatchThreadID)
+{
+    if ((int)id.x >= TexRes || (int)id.y >= TexRes) return;
+    float sigma = max(Radius * 0.5, 0.5);
+    float4 sum = 0;
+    float total = 0;
+    for (int i = -Radius; i <= Radius; i++)
+    {
+        int2 p = clamp((int2)id.xy + Direction * i, 0, TexRes - 1);
+        float w = exp(-(i * i) / (2 * sigma * sigma));
+        sum += SourceColor[uint3(p, id.z)] * w;
+        total += w;
+    }
+    TargetColor[id] = sum / total;
+}

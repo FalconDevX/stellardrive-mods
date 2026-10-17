@@ -10,6 +10,7 @@ public static class BuildWaterBundle
         {
             "Assets/Water/StylizedWater.shader",
             "Assets/Water/UnderwaterFog.shader",
+            "Assets/Water/TerrainBlur.compute",
             "Assets/Water/water_caustics.png",
             "Assets/Water/water_foam.png",
             "Assets/Water/water_normal.png",

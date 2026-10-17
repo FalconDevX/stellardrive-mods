@@ -57,7 +57,7 @@ namespace Water.Surface
             }
         }
 
-        private static AssetBundle Bundle()
+        internal static AssetBundle Bundle()
         {
             if (_bundle == null)
             {
