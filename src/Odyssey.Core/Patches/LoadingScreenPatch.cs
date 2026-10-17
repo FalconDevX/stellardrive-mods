@@ -16,6 +16,7 @@ namespace Odyssey.Patches
         private static readonly string[] Images = { "loading_0.jpg", "loading_1.jpg" };
         private static readonly Color Accent = new Color(0.93f, 0.36f, 0.32f);
         private static Texture2D[] _textures;
+        private static int _picture = -1;
 
         private static void Postfix(LoadingScreenDisabler __instance)
         {
@@ -36,16 +37,27 @@ namespace Odyssey.Patches
             {
                 return;
             }
+            BuildContent(root, early: false);
+            EarlyLoadingScreenPatch.Hide();
+            Melon<CoreMod>.Logger.Msg($"Loading screen: {root.name} ({string.Join(", ", root.Cast<Transform>().Select(t => t.name))})");
+        }
+
+        internal static void BuildContent(RectTransform root, bool early)
+        {
             _textures = _textures ?? Images.Select(n => ModAssets.LoadTexture(n)).ToArray();
+            if (_picture < 0)
+            {
+                _picture = UnityEngine.Random.Range(0, _textures.Length);
+            }
             var layer = Rect("OdysseyLoading", root);
             Stretch(layer, Vector2.zero, Vector2.one);
-            Transform background = root.Find("Image");
+            Transform background = root.Find(early ? "Background" : "Image");
             layer.SetSiblingIndex(background != null ? background.GetSiblingIndex() + 1 : 0);
             Transform spinner = root.Find("Loading");
             if (spinner != null) spinner.gameObject.SetActive(false);
 
             var picture = layer.gameObject.AddComponent<RawImage>();
-            picture.texture = _textures[UnityEngine.Random.Range(0, _textures.Length)];
+            picture.texture = _textures[_picture % _textures.Length];
             picture.raycastTarget = false;
             var fitter = layer.gameObject.AddComponent<AspectRatioFitter>();
             fitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
@@ -78,9 +90,10 @@ namespace Odyssey.Patches
             TMP_Text tip = Label(hud, "Tip", font, "", 24f, new Vector2(0.94f, 0.155f), TextAlignmentOptions.BottomRight, new Color(1f, 1f, 1f, 0.85f), 1f);
             Label(hud, "World", font, WorldName(), 26f, new Vector2(0.94f, 0.9f), TextAlignmentOptions.BottomRight, new Color(1f, 1f, 1f, 0.9f), 4f);
             AddLogo(hud);
-            hud.gameObject.AddComponent<LoadingProgress>().Init(fill.rectTransform, stage, percent, tip);
-            Melon<CoreMod>.Logger.Msg($"Loading screen: {root.name} ({string.Join(", ", root.Cast<Transform>().Select(t => t.name))})");
+            hud.gameObject.AddComponent<LoadingProgress>().Init(fill.rectTransform, stage, percent, tip, early);
         }
+
+        internal static void ResetPicture() => _picture = -1;
 
         private static string WorldName()
         {
@@ -191,22 +204,39 @@ namespace Odyssey.Patches
             "Large doors and gates go back to what their signal says 30 seconds after you use them by hand.",
         };
 
+        internal static AsyncOperation Operation;
+
+        private static float _start = -1f;
+        private static float _shown;
+        private static int _tipIndex = -1;
+        private static float _nextTip;
+
         private RectTransform _fill;
         private TMP_Text _stage, _percent, _tip;
-        private int _tipIndex = -1;
-        private float _nextTip;
-        private float _start, _shown;
+        private bool _early;
 
-        internal void Init(RectTransform fill, TMP_Text stage, TMP_Text percent, TMP_Text tip)
+        internal static void Begin()
         {
-            _tip = tip;
+            _start = Time.realtimeSinceStartup;
+            _shown = 0f;
             _tipIndex = UnityEngine.Random.Range(0, Tips.Length);
+            _nextTip = _start + 6f;
+            Operation = null;
+        }
+
+        internal void Init(RectTransform fill, TMP_Text stage, TMP_Text percent, TMP_Text tip, bool early)
+        {
+            if (_start < 0f)
+            {
+                Begin();
+            }
+            _early = early;
+            _tip = tip;
             _tip.text = Tips[_tipIndex];
-            _nextTip = Time.realtimeSinceStartup + 6f;
             _fill = fill;
             _stage = stage;
             _percent = percent;
-            _start = Time.realtimeSinceStartup;
+            Refresh();
         }
 
         private void Update()
@@ -214,26 +244,42 @@ namespace Odyssey.Patches
             float expected = Mathf.Max(3f, CoreMod.LastLoadSeconds.Value);
             float elapsed = Time.realtimeSinceStartup - _start;
             float target = 0.95f * (1f - Mathf.Exp(-2.6f * elapsed / expected));
+            if (Operation != null && !Operation.isDone)
+            {
+                target = Mathf.Max(target, Mathf.Clamp01(Operation.progress / 0.9f) * 0.6f);
+            }
             _shown = Mathf.MoveTowards(_shown, target, Time.unscaledDeltaTime * 0.5f);
-            _fill.anchorMax = new Vector2(_shown, 1f);
-            _percent.text = $"{Mathf.FloorToInt(_shown * 100f)}%";
-            _stage.text = Stages.Last(s => _shown >= s.at).text;
             if (Time.realtimeSinceStartup >= _nextTip)
             {
                 _nextTip = Time.realtimeSinceStartup + 6f;
                 _tipIndex = (_tipIndex + 1) % Tips.Length;
-                _tip.text = Tips[_tipIndex];
             }
+            Refresh();
+        }
+
+        private void Refresh()
+        {
+            _fill.anchorMax = new Vector2(_shown, 1f);
+            _percent.text = $"{Mathf.FloorToInt(_shown * 100f)}%";
+            _stage.text = Stages.Last(s => _shown >= s.at).text;
+            _tip.text = Tips[_tipIndex];
         }
 
         private void OnDisable()
         {
+            if (_early || _start < 0f)
+            {
+                return;
+            }
             float elapsed = Time.realtimeSinceStartup - _start;
             if (elapsed > 1f && elapsed < 600f)
             {
                 CoreMod.LastLoadSeconds.Value = elapsed;
                 MelonPreferences.Save();
             }
+            _start = -1f;
+            Operation = null;
+            LoadingScreenPatch.ResetPicture();
         }
     }
 }
