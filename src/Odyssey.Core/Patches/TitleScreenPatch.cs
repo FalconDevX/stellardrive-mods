@@ -183,7 +183,7 @@ namespace Odyssey.Patches
             return new Rect(d.center.x - h * 4.5f, d.center.y + h * 0.6f, h * 9f, h * 4f);
         }
 
-        private static Texture2D DrawOrbits(Vector2 size, Color red, out Vector2 star)
+        internal static Texture2D DrawOrbits(Vector2 size, Color red, out Vector2 star)
         {
             int w = ArcTextureWidth, h = Mathf.Max(64, Mathf.RoundToInt(ArcTextureWidth * size.y / Mathf.Max(size.x, 1f)));
             var pixels = new Color32[w * h];
@@ -231,7 +231,7 @@ namespace Odyssey.Patches
             }
         }
 
-        private static Texture2D DrawStar(int size)
+        internal static Texture2D DrawStar(int size)
         {
             var pixels = new Color32[size * size];
             float edge = 12f / size;

@@ -61,7 +61,7 @@ namespace Odyssey.Patches
             var hud = Rect("OdysseyLoadingHud", root);
             Stretch(hud, Vector2.zero, Vector2.one);
             hud.SetAsLastSibling();
-            Label(hud, "Title", font, "STELLAR DRIVE  <color=#ED5C52>ODYSSEY</color>", 46f, new Vector2(0.06f, 0.155f), TextAlignmentOptions.BottomLeft, Color.white, 8f);
+            Label(hud, "Title", font, "ODYSSEY", 46f, new Vector2(0.06f, 0.155f), TextAlignmentOptions.BottomLeft, Accent, 14f);
             TMP_Text stage = Label(hud, "Stage", font, "", 26f, new Vector2(0.06f, 0.105f), TextAlignmentOptions.BottomLeft, new Color(1f, 1f, 1f, 0.8f), 2f);
             TMP_Text percent = Label(hud, "Percent", font, "", 26f, new Vector2(0.94f, 0.105f), TextAlignmentOptions.BottomRight, Accent, 2f);
 
@@ -75,8 +75,45 @@ namespace Odyssey.Patches
             fill.color = Accent;
             fill.raycastTarget = false;
 
-            hud.gameObject.AddComponent<LoadingProgress>().Init(fill.rectTransform, stage, percent);
+            TMP_Text tip = Label(hud, "Tip", font, "", 24f, new Vector2(0.94f, 0.155f), TextAlignmentOptions.BottomRight, new Color(1f, 1f, 1f, 0.85f), 1f);
+            Label(hud, "World", font, WorldName(), 26f, new Vector2(0.94f, 0.9f), TextAlignmentOptions.BottomRight, new Color(1f, 1f, 1f, 0.9f), 4f);
+            AddLogo(hud);
+            hud.gameObject.AddComponent<LoadingProgress>().Init(fill.rectTransform, stage, percent, tip);
             Melon<CoreMod>.Logger.Msg($"Loading screen: {root.name} ({string.Join(", ", root.Cast<Transform>().Select(t => t.name))})");
+        }
+
+        private static string WorldName()
+        {
+            string file = Managers.Interface.MainGameSceneLoadData.SaveFileFullName;
+            string folder = string.IsNullOrEmpty(file) ? null : System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(file));
+            return string.IsNullOrEmpty(folder) ? "JOINING A WORLD" : "WORLD  <color=#ED5C52>" + folder.ToUpperInvariant() + "</color>";
+        }
+
+        private static void AddLogo(RectTransform hud)
+        {
+            Texture2D logo = Resources.FindObjectsOfTypeAll<Texture2D>().FirstOrDefault(t => t.name == "sd_white_small");
+            var size = new Vector2(630f, 280f) * 0.62f;
+            var area = new Vector2(size.x * 1.44f, size.y * 1.72f);
+            var orbits = Rect("Orbits", hud).gameObject.AddComponent<RawImage>();
+            orbits.rectTransform.anchorMin = orbits.rectTransform.anchorMax = new Vector2(0.04f, 0.95f);
+            orbits.rectTransform.pivot = new Vector2(0f, 1f);
+            orbits.rectTransform.sizeDelta = area;
+            orbits.texture = TitleScreenPatch.DrawOrbits(area, Accent, out Vector2 starAt);
+            orbits.raycastTarget = false;
+            if (logo != null)
+            {
+                var image = Rect("Logo", orbits.rectTransform).gameObject.AddComponent<RawImage>();
+                image.rectTransform.anchorMin = image.rectTransform.anchorMax = new Vector2(0.5f, 0.5f - 0.07f * 0.6f);
+                image.rectTransform.sizeDelta = size * 0.82f;
+                image.texture = logo;
+                image.raycastTarget = false;
+            }
+            var star = Rect("Star", orbits.rectTransform).gameObject.AddComponent<RawImage>();
+            star.rectTransform.anchorMin = star.rectTransform.anchorMax = starAt;
+            star.rectTransform.sizeDelta = Vector2.one * size.y * 0.42f;
+            star.texture = TitleScreenPatch.DrawStar(128);
+            star.color = Accent;
+            star.raycastTarget = false;
         }
 
         private static RectTransform Rect(string name, Transform parent)
@@ -138,12 +175,34 @@ namespace Odyssey.Patches
             (0.88f, "Preparing your arrival"),
         };
 
+        private static readonly string[] Tips =
+        {
+            "Press N to find the nearest ore deposit, U for uranium and K for glass.",
+            "An excavator mines on its own - give it power and a signal of 1.",
+            "Hydrogen thrusters are 1.8x stronger than chemical ones. The electrolyzer makes their fuel from water.",
+            "A nuclear reactor needs uranium, water and a signal of 1. The large reactor gives five times more power.",
+            "Inflate pontoons with oxygen and your ship floats on the lakes of Otrera b.",
+            "Press J to toggle the jetpack and L to hold your altitude. It burns wood from the last backpack slot.",
+            "Scan a part of your ship with the Blueprint Tool and press B to open the blueprint catalog.",
+            "Press V in a pilot seat for the chase camera. Hold the right mouse button to look around the ship.",
+            "The Power Meter shows how loaded your power network is, in percent.",
+            "Info panels show any signal as text. Press F on a panel to edit what it says.",
+            "Floor hatches turn with R, in 90 degree steps.",
+            "Large doors and gates go back to what their signal says 30 seconds after you use them by hand.",
+        };
+
         private RectTransform _fill;
-        private TMP_Text _stage, _percent;
+        private TMP_Text _stage, _percent, _tip;
+        private int _tipIndex = -1;
+        private float _nextTip;
         private float _start, _shown;
 
-        internal void Init(RectTransform fill, TMP_Text stage, TMP_Text percent)
+        internal void Init(RectTransform fill, TMP_Text stage, TMP_Text percent, TMP_Text tip)
         {
+            _tip = tip;
+            _tipIndex = UnityEngine.Random.Range(0, Tips.Length);
+            _tip.text = Tips[_tipIndex];
+            _nextTip = Time.realtimeSinceStartup + 6f;
             _fill = fill;
             _stage = stage;
             _percent = percent;
@@ -159,6 +218,12 @@ namespace Odyssey.Patches
             _fill.anchorMax = new Vector2(_shown, 1f);
             _percent.text = $"{Mathf.FloorToInt(_shown * 100f)}%";
             _stage.text = Stages.Last(s => _shown >= s.at).text;
+            if (Time.realtimeSinceStartup >= _nextTip)
+            {
+                _nextTip = Time.realtimeSinceStartup + 6f;
+                _tipIndex = (_tipIndex + 1) % Tips.Length;
+                _tip.text = Tips[_tipIndex];
+            }
         }
 
         private void OnDisable()

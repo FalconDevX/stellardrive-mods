@@ -177,6 +177,8 @@ namespace Odyssey.Diagnostics
             var mainData = cam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
             if (mainData != null) data.renderPostProcessing = mainData.renderPostProcessing;
             var hidden = Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None).Where(c => c.enabled).ToList();
+            System.Reflection.FieldInfo waterCamera = HarmonyLib.AccessTools.Field(HarmonyLib.AccessTools.TypeByName("Water.Surface.WaterSurface"), "OverrideCamera");
+            waterCamera?.SetValue(null, shotCam);
 
             Vector3 extent = new Vector3(maxX + 1, 0f, maxZ - minZ + 1);
             float size = Mathf.Max(extent.x, extent.z);
@@ -185,6 +187,7 @@ namespace Odyssey.Diagnostics
                 new Vector3(-0.55f, 0.36f, -0.78f),
                 new Vector3(0.5f, 0.3f, -0.8f),
                 new Vector3(-0.1f, 0.5f, -0.85f),
+                Vector3.zero,
             };
             MelonPreferences_Entry<bool> fps = MelonPreferences.GetEntry<bool>("FpsCounter", "ShowFps");
             bool fpsShown = fps != null && fps.Value;
@@ -198,6 +201,11 @@ namespace Odyssey.Diagnostics
                     {
                         Vector3 target = visual.TransformPoint(centerLocal + new Vector3(0f, 0.6f, 0f));
                         Vector3 offset = visual.TransformDirection(views[shot]) * size * 0.85f;
+                        if (views[shot] == Vector3.zero)
+                        {
+                            target = visual.TransformPoint(new Vector3(centerLocal.x, -1.5f, minZ - 18f));
+                            offset = visual.TransformPoint(new Vector3(centerLocal.x - 4f, 2.5f, minZ - 1f)) - target;
+                        }
                         shotCam.transform.position = target + offset;
                         shotCam.transform.rotation = Quaternion.LookRotation(target - shotCam.transform.position, visual.up);
                         cam.enabled = false;
@@ -213,6 +221,7 @@ namespace Odyssey.Diagnostics
             }
             foreach (Canvas c in hidden) if (c != null) c.enabled = true;
             if (fps != null) fps.Value = fpsShown;
+            waterCamera?.SetValue(null, null);
             cam.enabled = true;
             Object.Destroy(shotCam.gameObject);
         }
