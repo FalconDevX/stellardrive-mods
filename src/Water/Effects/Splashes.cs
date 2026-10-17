@@ -267,9 +267,9 @@ namespace Water.Effects
             Vector3 visualHorizontal = toVisual * horizontal;
             for (int i = 0; i < n; i++)
             {
-                var (id, local) = entry.Pontoons.Points[i];
+                var (id, local, scale) = entry.Pontoons.Points[i];
                 float inflation = Pontoons.InflationOf(entry.Pontoons, id);
-                float radius = Pontoons.Radius * Mathf.Lerp(0.3f, 1f, inflation);
+                float radius = Pontoons.Radius * scale * Mathf.Lerp(0.3f, 1f, inflation);
                 Vector3Double planet = pos + (Vector3Double)(rot * local);
                 float altitude = (float)(planet.Magnitude - sea);
                 bool wet = altitude < radius && altitude > -radius * 4f;

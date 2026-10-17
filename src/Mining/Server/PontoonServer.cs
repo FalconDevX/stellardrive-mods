@@ -29,24 +29,27 @@ namespace Mining.Server
             try
             {
                 ConnectionsServerTracker connections = null;
-                foreach (ushort id in ShipPartIndex.Get(__instance, Pontoon.PartId))
+                foreach (ushort settingsId in Pontoon.Ids)
+                foreach (ushort id in ShipPartIndex.Get(__instance, settingsId))
                 {
                     if (!__instance.TryGetStatefulPart(id, out StatefulPart part) || !(part.State is DoorState))
                     {
                         continue;
                     }
+                    int n = Pontoon.Scale(settingsId);
+                    float volume = n * n * n, full = Pontoon.OxygenToInflate * volume;
                     var key = (__instance.Id, part.Id);
                     var state = (DoorState)part.State;
-                    float air = Air.TryGetValue(key, out float a) ? a : state.IsOpen ? Pontoon.OxygenToInflate : 0f;
+                    float air = Air.TryGetValue(key, out float a) ? a : state.IsOpen ? full : 0f;
                     if (state.IsOpen)
                     {
-                        air -= Mathf.Max(0f, MiningMod.PontoonLeakPerMinute.Value) / 60f * deltaTime;
+                        air -= Mathf.Max(0f, MiningMod.PontoonLeakPerMinute.Value) / 60f * volume * deltaTime;
                     }
                     connections = connections ?? ServiceCache.Get<ConnectionsServerTracker>();
                     string supply = Supply(__instance.Id, part.Id, connections, out FluidGroupServerState group);
                     if (group != null)
                     {
-                        float take = Mathf.Min(group.Available, MaxIntakePerSecond * deltaTime, Pontoon.OxygenToInflate - air);
+                        float take = Mathf.Min(group.Available, MaxIntakePerSecond * volume * deltaTime, full - air);
                         if (take > 0f)
                         {
                             group.RemoveFluid(take);
@@ -61,7 +64,7 @@ namespace Mining.Server
                         continue;
                     }
                     Air[key] = air;
-                    if (!state.IsOpen && air >= Pontoon.OxygenToInflate - 0.0001f)
+                    if (!state.IsOpen && air >= full - 0.0001f)
                     {
                         __instance.UpdatePartState(part.Id, state with { IsOpen = true });
                         Report(key, "inflating");

@@ -27,7 +27,10 @@ namespace Mining.Server
 
         static ShipPartIndex()
         {
-            Indexed.Add(Pontoon.PartId);
+            foreach (ushort id in Pontoon.Ids)
+            {
+                Indexed.Add(id);
+            }
             Indexed.Add(RetractableStairs.PartId);
             Indexed.Add(LaserCannon.PartId);
             Indexed.Add(Excavator.PartId);

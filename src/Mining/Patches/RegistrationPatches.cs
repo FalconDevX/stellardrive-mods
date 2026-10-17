@@ -28,6 +28,8 @@ namespace Mining.Patches
             (HydrogenEngines.Variants[2].Id, p => HydrogenEngines.GetOrCreate(HydrogenEngines.Variants[2].Id, p), () => HydrogenEngines.Get(HydrogenEngines.Variants[2].Id), HydrogenThruster.PartId),
             (LaserCannon.PartId, LaserCannon.GetOrCreatePart, () => LaserCannon.Part, 19),
             (Pontoon.PartId, Pontoon.GetOrCreatePart, () => Pontoon.Part, 19),
+            (Pontoon.MediumPartId, p => Pontoon.GetOrCreate(Pontoon.MediumPartId, p), () => Pontoon.Get(Pontoon.MediumPartId), Pontoon.PartId),
+            (Pontoon.LargePartId, p => Pontoon.GetOrCreate(Pontoon.LargePartId, p), () => Pontoon.Get(Pontoon.LargePartId), Pontoon.MediumPartId),
             (InfoPanels.Variants[0].Id, p => InfoPanels.GetOrCreate(InfoPanels.Variants[0].Id, p), () => InfoPanels.Get(InfoPanels.Variants[0].Id), 0),
             (InfoPanels.Variants[1].Id, p => InfoPanels.GetOrCreate(InfoPanels.Variants[1].Id, p), () => InfoPanels.Get(InfoPanels.Variants[1].Id), 0),
             (InfoPanels.Variants[2].Id, p => InfoPanels.GetOrCreate(InfoPanels.Variants[2].Id, p), () => InfoPanels.Get(InfoPanels.Variants[2].Id), 0),
@@ -101,7 +103,7 @@ namespace Mining.Patches
             (Items.Model.ItemsConstants.IronItemId, 30), (112, 15), (Items.Model.ItemsConstants.GlassItemId, 20));
 
         internal static readonly ModResearch PontoonResearch = new ModResearch(Pontoon.ResearchId, "Pontoons", new Vector2Int(6, 1), 12,
-            () => new[] { Pontoon.Part },
+            () => Pontoon.All,
             (Items.Model.ItemsConstants.IronItemId, 20), (Items.Model.ItemsConstants.WoodItemId, 30));
 
         internal static readonly ModResearch InfoPanelsResearch = new ModResearch(InfoPanels.ResearchId, "Info Panels", new Vector2Int(6, 0), 5,
@@ -206,7 +208,7 @@ namespace Mining.Patches
         private static readonly (string name, ushort[] ids)[] Tabs =
         {
             ("Control", new ushort[] { 3, 29, 17, 46, 18, 50, 54, 45, 48, 82, 56, 49, 68, 39, 247, 225, 226, 227, PowerMeter.PartId }),
-            ("Propulsion", new ushort[] { 69, 19, 201, 228, 229, 230, 53, 248, 16, 58, 222 }),
+            ("Propulsion", new ushort[] { 69, 19, 201, 228, 229, 230, 53, 248, 16, 58, 222, Pontoon.MediumPartId, Pontoon.LargePartId }),
             ("Power", new ushort[] { 61, 65, 60, 203, Reactor.LargePartId }),
             ("Fluids", new ushort[] { 24, 81, 57, 23, 218, 215, 79, 66, 67, 202, 214, 80 }),
             ("Doors", new ushort[] { DoorPartId, 42, Barrier.PartId, Stairs.PartId, RetractableStairs.PartId, 244, 217, 210, 211, 212, 213, 216, 223, 224 }),
