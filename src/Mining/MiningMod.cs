@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.18.5", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.18.6", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -49,6 +49,7 @@ namespace Mining
         internal static MelonPreferences_Entry<bool> GpuOcclusionCulling;
         internal static MelonPreferences_Entry<bool> HideSealedRooms;
         internal static MelonPreferences_Entry<float> RoomUpdateDelay;
+        internal static MelonPreferences_Entry<float> DoorSignalReturnSeconds;
         internal static MelonPreferences_Entry<bool> FastCableVisuals;
         internal static MelonPreferences_Entry<bool> FastSignals;
         internal static MelonPreferences_Entry<string> DevAutoLoadWorld;
@@ -90,6 +91,7 @@ namespace Mining
             HydrogenEngineVolume = category.CreateEntry("HydrogenEngineVolume", 0.8f, description: "Hydrogen engine volume (0-1)");
             DetailDistance = category.CreateEntry("DetailDistance", 30f, description: "Small ship details (cable plugs and cords, socket covers, small bits) are not drawn beyond this distance (m). 0 = always drawn");
             DetailShadows = category.CreateEntry("DetailShadows", false, description: "Small ship details cast shadows (false = faster)");
+            DoorSignalReturnSeconds = category.CreateEntry("DoorSignalReturnSeconds", 30f, description: "A door, gate or hatch with a signal cable that you open or close by hand goes back to what its signal says after this many seconds (signal 0 closes it, 1 opens it). 0 = stays as you left it until the signal changes. Host only");
             RoomUpdateDelay = category.CreateEntry("RoomUpdateDelay", 1.5f, description: "While you keep building, rooms and oxygen are recalculated only after this many seconds without a hull change (at most 8x this long; the visual copy on each player waits 2.5x longer), instead of after every part. Big bases otherwise freeze for a moment on every placed part. 0 = after every part like the game");
             HideSealedRooms = category.CreateEntry("HideSealedRooms", true, description: "Parts inside a closed room without windows are not drawn while the camera is outside that room. Opening a door or adding a window shows them again");
             GpuOcclusionCulling = category.CreateEntry("GpuOcclusionCulling", false, description: "Experimental: let the graphics card draw parts and skip what walls hide (Unity GPU resident drawer with occlusion culling). Moves work from the CPU to the GPU. If objects vanish or flicker, set it back to false");

@@ -8,6 +8,7 @@ using Ships.Cables;
 using Ships.Interface.Model.Parts;
 using Ships.Interface.Model.Parts.Common;
 using Ships.Interface.Model.Parts.StateTypes;
+using UnityEngine;
 
 namespace Mining.Server
 {
@@ -15,9 +16,14 @@ namespace Mining.Server
     internal static class BigDoorSignalServer
     {
         private static readonly Dictionary<(uint ship, ushort part), bool> Last = new Dictionary<(uint, ushort), bool>();
+        private static readonly Dictionary<(uint ship, ushort part), float> Manual = new Dictionary<(uint, ushort), float>();
         private static bool _loggedError;
 
-        internal static void Reset() => Last.Clear();
+        internal static void Reset()
+        {
+            Last.Clear();
+            Manual.Clear();
+        }
 
         private static void Postfix(TrackedShipServer __instance)
         {
@@ -42,18 +48,31 @@ namespace Mining.Server
                         if (!frontWired && !backWired)
                         {
                             Last.Remove(key);
+                            Manual.Remove(key);
                             continue;
                         }
                         bool open = (frontWired && connections.GetSignalValue(front) >= 0.5) || (backWired && connections.GetSignalValue(back) >= 0.5);
-                        if (Last.TryGetValue(key, out bool previous) && previous == open)
-                        {
-                            continue;
-                        }
+                        bool changed = !Last.TryGetValue(key, out bool previous) || previous != open;
                         Last[key] = open;
                         if (!__instance.State.TryGetPart(id, out StatefulPart part) || !(part.State is IDoorState door) || door.IsOpen == open)
                         {
+                            Manual.Remove(key);
                             continue;
                         }
+                        if (!changed)
+                        {
+                            float delay = MiningMod.DoorSignalReturnSeconds.Value;
+                            if (!Manual.TryGetValue(key, out float since))
+                            {
+                                Manual[key] = Time.time;
+                                continue;
+                            }
+                            if (delay <= 0f || Time.time - since < delay)
+                            {
+                                continue;
+                            }
+                        }
+                        Manual.Remove(key);
                         if (open) __instance.OpenDoor(id);
                         else __instance.CloseDoor(id);
                     }
