@@ -216,12 +216,15 @@ namespace Mining.Content
                 Melon<MiningMod>.Logger.Warning($"Door {root.name}: no Interactions object - F zone unchanged");
                 return;
             }
-            Vector3 size = new Vector3(bounds.bounds.x, bounds.bounds.y, Mathf.Max(bounds.bounds.z, 0.2f) + 0.5f);
+            Bounds b = bounds.GetBounds();
+            float frame = BigDoorModel.SideFrame(b), depth = Mathf.Clamp(b.size.z, 0.25f, 0.35f);
+            Vector3 size = new Vector3(bounds.bounds.x - frame, bounds.bounds.y, depth + 0.01f);
+            Vector3 centre = bounds.center + new Vector3(frame / 2f, 0f, 0f);
             foreach (BoxCollider box in interactions.GetComponentsInChildren<BoxCollider>(true))
             {
                 Transform t = box.transform;
                 Vector3 lossy = t.lossyScale, rootScale = root.transform.lossyScale;
-                box.center = t.InverseTransformPoint(root.transform.TransformPoint(bounds.center));
+                box.center = t.InverseTransformPoint(root.transform.TransformPoint(centre));
                 box.size = new Vector3(size.x * rootScale.x / lossy.x, size.y * rootScale.y / lossy.y, size.z * rootScale.z / lossy.z);
             }
         }
