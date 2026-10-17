@@ -35,13 +35,16 @@ namespace Mining.Server
                             return;
                         }
                         var key = (__instance.Id, id);
-                        var socket = new EntityPartSocket(__instance.Id, id, BigDoors.SignalSocket);
-                        if (!connections.TryGetSignalConnectionGroupWithSocket(socket, out _))
+                        var front = new EntityPartSocket(__instance.Id, id, BigDoors.SignalSocket);
+                        var back = new EntityPartSocket(__instance.Id, id, BigDoors.BackSignalSocket);
+                        bool frontWired = connections.TryGetSignalConnectionGroupWithSocket(front, out _);
+                        bool backWired = connections.TryGetSignalConnectionGroupWithSocket(back, out _);
+                        if (!frontWired && !backWired)
                         {
                             Last.Remove(key);
                             continue;
                         }
-                        bool open = connections.GetSignalValue(socket) >= 0.5;
+                        bool open = (frontWired && connections.GetSignalValue(front) >= 0.5) || (backWired && connections.GetSignalValue(back) >= 0.5);
                         if (Last.TryGetValue(key, out bool previous) && previous == open)
                         {
                             continue;

@@ -33,6 +33,20 @@ namespace Mining.Content
         internal static float SideFrame(Bounds b) => IsNarrow(b) ? NarrowFrame : Frame;
 
         internal static float TopFrame(Bounds b) => IsNarrow(b) ? NarrowTop : Frame;
+
+        internal const float PlateDepth = 0.012f;
+
+        internal static float SocketY(Bounds b) => Mathf.Min(b.min.y + 1.2f, b.max.y - TopFrame(b) - 0.2f);
+
+        private static void SocketPlates(MeshBuilder m, Bounds b, float z, float depth)
+        {
+            float frame = SideFrame(b), x = b.min.x + frame / 2, y = SocketY(b);
+            foreach (float side in new[] { -1f, 1f })
+            {
+                m.Box(new Vector3(x, y, z + side * (depth / 2 + PlateDepth / 2)), new Vector3(frame * 0.92f, 0.22f, PlateDepth), "yellow");
+                m.Box(new Vector3(x, y, z + side * (depth / 2 + PlateDepth / 2 + 0.001f)), new Vector3(frame * 0.6f, 0.15f, PlateDepth), "black");
+            }
+        }
         private const float Sill = 0.08f;
         private const float Strip = 0.25f;
 
@@ -52,6 +66,9 @@ namespace Mining.Content
             Vector3 min = b.min, max = b.max;
             float w = b.size.x, h = b.size.y, z = b.center.z;
             float depth = Mathf.Clamp(b.size.z, 0.25f, 0.35f);
+            var plates = new MeshBuilder();
+            SocketPlates(plates, b, z, depth);
+            PartFactory.CreateRenderer("SocketPlates", model, plates.ToMesh("BigDoorSocketPlates"), material, look);
             if (IsNarrow(b))
             {
                 BuildNarrow(model, material, look, min, max, z, depth);

@@ -20,7 +20,7 @@ namespace Mining.Content
     {
         internal const ushort ResearchId = 206;
         internal const ushort DoorPartId = 14;
-        internal const byte SignalSocket = 0;
+        internal const byte SignalSocket = 0, BackSignalSocket = 1;
 
         internal static readonly (ushort id, string name, int width, int height, int iron)[] Variants =
         {
@@ -98,7 +98,7 @@ namespace Mining.Content
             settings.hideFlags = HideFlags.DontUnloadUnusedAsset;
             settings.id = v.id;
             settings.fullLabel = v.name;
-            settings.description = $"A {v.width} x {v.height} door. Opens and closes like the normal door and seals the room when closed. Signal 1 on the socket on the left post opens it, 0 closes it.";
+            settings.description = $"A {v.width} x {v.height} door. Opens and closes like the normal door and seals the room when closed. Signal 1 on a socket on the left post (one on each side) opens it, 0 closes it.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.size = new Vector3(v.width, v.height, door.size.z);
             if (v.name.StartsWith(HatchPrefix))
@@ -194,15 +194,17 @@ namespace Mining.Content
                 Melon<MiningMod>.Logger.Warning($"Door {root.name}: no signal socket found to copy");
                 return;
             }
-            if (root.GetComponentsInChildren<SocketObject>(true).Any(s => s.Id == SignalSocket))
+            if (root.GetComponentsInChildren<SocketObject>(true).Any(s => s.Id == SignalSocket || s.Id == BackSignalSocket))
             {
-                Melon<MiningMod>.Logger.Warning($"Door {root.name}: socket {SignalSocket} already used - no signal input");
+                Melon<MiningMod>.Logger.Warning($"Door {root.name}: socket {SignalSocket} or {BackSignalSocket} already used - no signal input");
                 return;
             }
             Bounds b = root.GetComponent<ShipPartBounds>().GetBounds();
             float frame = BigDoorModel.SideFrame(b), depth = Mathf.Clamp(b.size.z, 0.25f, 0.35f);
-            float y = Mathf.Min(b.min.y + 1.2f, b.max.y - BigDoorModel.TopFrame(b) - 0.2f);
-            PartFactory.CloneSocket(source, root.transform, SignalSocket, new Vector3(b.min.x + frame / 2, y, b.center.z + depth / 2 + 0.01f), 180f);
+            float y = BigDoorModel.SocketY(b);
+            float face = depth / 2 + BigDoorModel.PlateDepth + 0.002f;
+            PartFactory.CloneSocket(source, root.transform, SignalSocket, new Vector3(b.min.x + frame / 2, y, b.center.z + face), 180f);
+            PartFactory.CloneSocket(source, root.transform, BackSignalSocket, new Vector3(b.min.x + frame / 2, y, b.center.z - face), 0f);
         }
 
         private static void CoverInteraction(GameObject root)
