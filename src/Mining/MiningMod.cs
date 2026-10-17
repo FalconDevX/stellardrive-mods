@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.18.8", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.18.9", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -64,6 +64,7 @@ namespace Mining
 
         public override void OnInitializeMelon()
         {
+            Diagnostics.FreezeWatchdog.Start();
             var category = MelonPreferences.CreateCategory("Mining");
             category.DeleteEntry("SecondsPerItem");
             SecondsPerItem = category.CreateEntry("SecondsPerOre", 1f, description: "Seconds per 1 ore mined by the excavator (at full power). Host only");
@@ -149,6 +150,7 @@ namespace Mining
             {
                 return;
             }
+            Diagnostics.FreezeWatchdog.Enter("Mining " + name);
             try
             {
                 action();
@@ -157,6 +159,10 @@ namespace Mining
             {
                 Failed.Add(name);
                 LoggerInstance.Error($"{name} disabled for this session: {e}");
+            }
+            finally
+            {
+                Diagnostics.FreezeWatchdog.Exit();
             }
         }
 
@@ -168,6 +174,7 @@ namespace Mining
 
         public override void OnUpdate()
         {
+            Diagnostics.FreezeWatchdog.Beat();
             Run("Deposits", SitesUpdate);
             Run("Blueprint ghosts", GhostsUpdate);
             Run("Detail culler", CullerUpdate);
