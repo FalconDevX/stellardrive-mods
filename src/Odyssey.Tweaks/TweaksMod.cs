@@ -3,7 +3,7 @@ using MelonLoader;
 using Odyssey;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(TweaksMod), "Odyssey Tweaks", "1.1.0", "mateu")]
+[assembly: MelonInfo(typeof(TweaksMod), "Odyssey Tweaks", "1.1.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 [assembly: MelonAdditionalDependencies("Odyssey.Core")]
 
@@ -22,6 +22,7 @@ namespace Odyssey
         internal static MelonPreferences_Entry<bool> HideSealedRooms;
         internal static MelonPreferences_Entry<bool> FastCableVisuals;
         internal static MelonPreferences_Entry<bool> FastSignals;
+        internal static MelonPreferences_Entry<bool> FastCollisionDestruction;
 
         private static readonly Action CullerUpdate = Diagnostics.DetailCuller.Update;
         private static readonly Action GpuCullingUpdate = Diagnostics.GpuCulling.Update;
@@ -39,6 +40,7 @@ namespace Odyssey
             FastShipBounds = Settings.Entry(category, "FastShipBounds", true, "Remember ship hull bounds until the hull changes instead of scanning every hull voxel twice per frame");
             FastCableVisuals = Settings.Entry(category, "FastCableVisuals", true, "Rebuild the pipe flow graph for cable animations every 4th frame, signal cable glow every 3rd frame, pipes off screen are not animated");
             FastSignals = Settings.Entry(category, "FastSignals", true, "Remember which parts feed each signal cable until cables or parts change instead of searching every connection of every signal cable each physics step");
+            FastCollisionDestruction = Settings.Entry(category, "FastCollisionDestruction", true, "Skip ship collision contacts too weak to break any part before the game searches every part near each contact (same result, much less CPU for big ships resting on the ground)");
             FastRooms = Settings.Entry(category, "FastRooms", true, "Fast room/oxygen recalculation after a ship change (less lag while building). false = like the game. Computed by the host");
             KeepNearbyShipsLoaded = Settings.Entry(category, "KeepNearbyShipsLoaded", true, "Keep the physics of ships within KeepNearbyShipsDistance loaded even when they are in another space, so walking between areas does not rebuild their colliders (removes hitches). Host only");
             KeepNearbyShipsDistance = Settings.Entry(category, "KeepNearbyShipsDistance", 3000f, "Distance (m) for KeepNearbyShipsLoaded. Every ship inside it is simulated all the time, so a smaller value means less CPU work with many ships. Host only");

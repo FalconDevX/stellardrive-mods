@@ -2,6 +2,6 @@
   "id": "stellardrive-odyssey-tweaks",
   "name": "Odyssey Tweaks",
   "author": "mateu",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Performance and quality-of-life fixes: faster rooms, culling, cable fixes, nearby ships kept loaded and the chase camera (V)."
 }
