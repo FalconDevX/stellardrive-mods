@@ -52,5 +52,22 @@ def pump():
     x = soft_clip(hum * 1.3) * 0.55 + whoosh + flow + bubbles * 0.5
     write('pump_loop.wav', x, 0.75)
 
+def fan():
+    seconds = 4.0
+    n = int(RATE * seconds)
+    t = np.arange(n) / RATE
+    blade_pass = 7 * 9.0
+    pulse = 0.82 + 0.18 * (0.5 + 0.5 * np.sin(2 * np.pi * blade_pass * t)) ** 3
+    air = band_noise(n, 300, 2600) * pulse * 0.55
+    soft = band_noise(n, 90, 400) * 0.35
+    whine = np.sin(2 * np.pi * blade_pass * 4 * t) * 0.025 + np.sin(2 * np.pi * 180.0 * t) * 0.04
+    x = air + soft + whine
+    write('fan_loop.wav', x, 0.5)
+
 if __name__ == '__main__':
-    pump()
+    import sys
+    if 'fan' in sys.argv:
+        fan()
+    else:
+        pump()
+        fan()

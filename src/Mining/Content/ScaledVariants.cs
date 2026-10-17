@@ -168,6 +168,11 @@ namespace Mining.Content
             model.transform.localRotation = place.rotation;
             model.transform.localScale = place.lossyScale;
             Melon<MiningMod>.Logger.Msg($"{v.Label}: model under {visual.name}, scale {model.transform.lossyScale}");
+            if (vent)
+            {
+                GameObject fan = PartFactory.CreateRenderer(VentExtras.FanName, model.transform, ModAssets.LoadMesh("vent_fan.bin"), material, lookCopy);
+                fan.transform.localPosition = new Vector3(0f, VentFanY, 0f);
+            }
             Object.DestroyImmediate(lookCopy.gameObject);
 
             var bounds = new Bounds(centre + body.bounds.center * n, body.bounds.size * n);
@@ -183,6 +188,15 @@ namespace Mining.Content
             {
                 fx.transform.position = root.transform.TransformPoint(new Vector3(centre.x, top, centre.z));
                 fx.transform.localScale *= n;
+                if (!vent) continue;
+                for (int k = 0; k < VentJets; k++)
+                {
+                    float a = 2f * Mathf.PI * k / VentJets;
+                    GameObject jet = Object.Instantiate(fx.gameObject, fx.transform.parent);
+                    jet.name = fx.gameObject.name + "_jet" + k;
+                    jet.transform.position = root.transform.TransformPoint(new Vector3(centre.x + Mathf.Cos(a) * 0.22f * n, top, centre.z + Mathf.Sin(a) * 0.22f * n));
+                    jet.transform.localScale = fx.transform.localScale * 0.55f;
+                }
             }
 
             SocketObject[] sockets = root.GetComponentsInChildren<SocketObject>(true);
@@ -201,6 +215,8 @@ namespace Mining.Content
         }
 
         private const float GasSocketY = 0.13f;
+        private const float VentFanY = 0.25f;
+        private const int VentJets = 6;
 
         private static Vector3 Abs(Vector3 v) => new Vector3(Mathf.Abs(v.x), Mathf.Abs(v.y), Mathf.Abs(v.z));
 
