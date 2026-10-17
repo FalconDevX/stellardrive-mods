@@ -3,11 +3,11 @@ Crouch 0.1.4
 Flora 0.4.1
 Pick Block 0.3.4
 Shared Piloting 0.1.1
-Ship Safety 0.5.12
+Ship Safety 0.6.0
 Velocity Indicator 0.1.0
 Warp Unlock 0.1.2
 Planet Unlock 0.1.2
-Mining 0.17.4
+Mining 0.17.5
 Drop Items 0.1.2
 FPS Counter 0.1.0
 Water 0.4.5

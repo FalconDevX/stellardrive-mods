@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.17.4", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.17.5", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -44,6 +44,7 @@ namespace Mining
         internal static MelonPreferences_Entry<float> DetailDistance;
         internal static MelonPreferences_Entry<bool> DetailShadows;
         internal static MelonPreferences_Entry<bool> FastShipBounds;
+        internal static MelonPreferences_Entry<float> PartCullScreenSize;
         internal static MelonPreferences_Entry<bool> FastCableVisuals;
         internal static MelonPreferences_Entry<bool> FastSignals;
         internal static MelonPreferences_Entry<string> DevAutoLoadWorld;
@@ -84,6 +85,7 @@ namespace Mining
             HydrogenEngineVolume = category.CreateEntry("HydrogenEngineVolume", 0.8f, description: "Hydrogen engine volume (0-1)");
             DetailDistance = category.CreateEntry("DetailDistance", 30f, description: "Small ship details (cable plugs and cords, socket covers, small bits) are not drawn beyond this distance (m). 0 = always drawn");
             DetailShadows = category.CreateEntry("DetailShadows", false, description: "Small ship details cast shadows (false = faster)");
+            PartCullScreenSize = category.CreateEntry("PartCullScreenSize", 0.01f, description: "Ship parts (and their shadows) are not drawn when they are smaller than this part of the screen height, e.g. 0.01 = 1%. 0 = always draw like the game");
             FastShipBounds = category.CreateEntry("FastShipBounds", true, description: "Remember ship hull bounds until the hull changes instead of scanning every hull voxel twice per frame");
             FastCableVisuals = category.CreateEntry("FastCableVisuals", true, description: "Rebuild the pipe flow graph for cable animations every 4th frame, signal cable glow every 3rd frame, pipes off screen are not animated");
             FastSignals = category.CreateEntry("FastSignals", true, description: "Remember which parts feed each signal cable until cables or parts change instead of searching every connection of every signal cable each physics step");

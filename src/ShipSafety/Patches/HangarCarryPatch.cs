@@ -11,7 +11,9 @@ using Ships.Parts.Gyroscope;
 using Ships.Physics;
 using Ships.Physics.Forces;
 using Ships.Physics.Model;
+using Ships.Interface.Model;
 using Ships.Interface.Model.Parts;
+using Ships.Interface.Model.Placement;
 using Ships.Interface.Model.Parts.State;
 using Ships.Interface.Model.State;
 using Ships.Services;
@@ -26,6 +28,8 @@ namespace ShipSafety.Patches
         private const float BoundsMargin = 0.5f;
         private const int BoundsRefreshTicks = 50;
         private const float WeldMaxSpeed = 1f;
+        private const int MinEnclosedSides = 4;
+        private const int EnclosureRefreshTicks = 25;
 
         private static readonly AccessTools.FieldRef<TrackedShipServer, ShipServerPhysics> Physics =
             AccessTools.FieldRefAccess<TrackedShipServer, ShipServerPhysics>("_shipServerPhysics");
@@ -37,6 +41,7 @@ namespace ShipSafety.Patches
         private static readonly Dictionary<uint, uint> Carries = new Dictionary<uint, uint>();
         private static readonly Dictionary<uint, (Bounds bounds, int tick)> HullBounds = new Dictionary<uint, (Bounds, int)>();
         private static readonly List<uint> Stale = new List<uint>();
+        private static readonly Dictionary<(uint guest, uint host), (Vector3Int voxel, bool inside, int tick)> Enclosure = new Dictionary<(uint, uint), (Vector3Int, bool, int)>();
         internal static readonly HashSet<ShipDrag> Sheltered = new HashSet<ShipDrag>();
         internal static readonly Dictionary<ShipNewtonianPhysics, (Vector3 force, Vector3 turn, float mass, ShipPhysicsState state)> Pushes = new Dictionary<ShipNewtonianPhysics, (Vector3, Vector3, float, ShipPhysicsState)>();
         internal static readonly Dictionary<uint, Vector3> HostSpin = new Dictionary<uint, Vector3>();
@@ -78,6 +83,7 @@ namespace ShipSafety.Patches
                 Carries.Clear();
                 Welds.Clear();
                 Frozen.Clear();
+                Enclosure.Clear();
                 return;
             }
             IWorldEnvironmentServerProvider environment = null;
@@ -114,9 +120,9 @@ namespace ShipSafety.Patches
                 }
                 else
                 {
-                    guestBody.linearVelocity += (hostAcceleration - gravity) * deltaTime;
-                    guestBody.angularVelocity += turn;
-                    guestBody.linearVelocity += Vector3.Cross(spinAfter, arm) - Vector3.Cross(spin, arm) + Vector3.Cross(spin, Vector3.Cross(spin, arm)) * deltaTime;
+                    Vector3 kick = (hostAcceleration - gravity) * deltaTime + Vector3.Cross(spinAfter, arm) - Vector3.Cross(spin, arm) + Vector3.Cross(spin, Vector3.Cross(spin, arm)) * deltaTime;
+                    if (kick.sqrMagnitude > 1e-8f) guestBody.linearVelocity += kick;
+                    if (turn.sqrMagnitude > 1e-10f) guestBody.angularVelocity += turn;
                     HostSpin[guest.Id] = spinAfter;
                 }
                 if (!Carries.TryGetValue(guest.Id, out uint previous) || previous != host.Id)
@@ -174,6 +180,11 @@ namespace ShipSafety.Patches
             }
             Vector3 position = hostBody.position + hostRotation * weld.Position;
             Quaternion rotation = hostRotation * weld.Rotation;
+            if (hostBody.IsSleeping() && (guestBody.position - position).sqrMagnitude < 1e-6f && Quaternion.Angle(guestBody.rotation, rotation) < 0.01f)
+            {
+                if (!guestBody.IsSleeping()) guestBody.Sleep();
+                return true;
+            }
             guestBody.position = position;
             guestBody.rotation = rotation;
             guestBody.transform.SetPositionAndRotation(position, rotation);
@@ -233,12 +244,57 @@ namespace ShipSafety.Patches
                     continue;
                 }
                 Vector3 local = Quaternion.Inverse(host.Rotation) * (point - host.Position);
-                if (Bounds(host).Contains(local) && (best == null || host.PartCount < best.PartCount))
+                if (Bounds(host).Contains(local) && (best == null || host.PartCount < best.PartCount) && IsEnclosed(guest, host, local))
                 {
                     best = host;
                 }
             }
             return best;
+        }
+
+        private static bool IsEnclosed(TrackedShipServer guest, TrackedShipServer host, Vector3 local)
+        {
+            var voxel = Vector3Int.RoundToInt(local);
+            var key = (guest.Id, host.Id);
+            if (Enclosure.TryGetValue(key, out var cached) && cached.voxel == voxel && _tick - cached.tick < EnclosureRefreshTicks)
+            {
+                return cached.inside;
+            }
+            CoordBounds coords = host.GetHullCoordBounds();
+            Vector3Int lower = coords.LowerCoord, upper = coords.UpperCoord;
+            ShipState state = host.State;
+            int sides = 0;
+            for (int axis = 0; axis < 3; axis++)
+            {
+                if (Blocked(state, voxel, axis, 1, lower, upper)) sides++;
+                if (Blocked(state, voxel, axis, -1, lower, upper)) sides++;
+            }
+            bool inside = sides >= MinEnclosedSides;
+            if (!inside && Carries.TryGetValue(guest.Id, out uint carried) && carried == host.Id)
+            {
+                Melon<ShipSafetyMod>.Logger.Msg($"Ship {guest.Id} touches ship {host.Id} from outside ({sides} closed sides) - not carried");
+            }
+            Enclosure[key] = (voxel, inside, _tick);
+            return inside;
+        }
+
+        private static bool Blocked(ShipState state, Vector3Int start, int axis, int step, Vector3Int lower, Vector3Int upper)
+        {
+            VoxelPartType face = axis == 0 ? VoxelPartType.RightWall : axis == 1 ? VoxelPartType.Floor : VoxelPartType.ForwardWall;
+            bool faceOnNext = axis == 1 ? step > 0 : step < 0;
+            Vector3Int c = start;
+            while (c[axis] >= lower[axis] - 1 && c[axis] <= upper[axis] + 1)
+            {
+                Vector3Int next = c;
+                next[axis] += step;
+                Vector3Int faceCoord = faceOnNext ? next : c;
+                if (state.ContainsHullPart(new HullPartPosition(faceCoord, face)) || state.ContainsHullPart(new HullPartPosition(next, VoxelPartType.Interior)))
+                {
+                    return true;
+                }
+                c = next;
+            }
+            return false;
         }
 
         private static Bounds Bounds(TrackedShipServer ship)
