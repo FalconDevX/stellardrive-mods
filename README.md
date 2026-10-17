@@ -47,7 +47,7 @@
 | **[Odyssey Logic](#odyssey)** | 1.0.0 | Info panels, power meter, gas meter signal, extra pilot seat outputs | All players |
 | **[Odyssey Gear](#odyssey)** | 1.0.0 | Jetpack, laser cannon, blueprint tool, paint tool, tool workbench | All players |
 | **[Odyssey Tweaks](#odyssey)** | 1.0.0 | Performance fixes, culling, cable fixes, chase camera (V) | Each player (some fixes host) |
-| **[Water](#water)** | 0.5.6 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
+| **[Water](#water)** | 0.6.0 | Real, swimmable water in the lakes and oceans of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.4 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.6.1 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
 | **[Resource Tweaks](#resource-tweaks)** | 0.5.2 | 3x resource yield, stacks of 100, faster mining | Host |
@@ -156,6 +156,7 @@ A few commonly tweaked options:
 | Odyssey Tweaks | `GpuOcclusionCulling` | `false` | Experimental: the graphics card skips what walls hide (Unity GPU resident drawer); set back to false if objects vanish |
 | Odyssey Tweaks | `PartCullScreenSize` | `0.01` | Ship parts and their shadows are not drawn when smaller than this part of the screen height; 0 = always draw like the game |
 | Water | `LakeDepth` | `10` | How far lake beds are lowered (m) |
+| Water | `OceanCoverage` | `0.15` | Share of Otrera b covered by large oceans (0 = none) |
 | Water | `UnderwaterAirSeconds` | `30` | Breath time underwater with a full oxygen tank |
 | FPS Counter | `ToggleKey` | `F3` | Toggles the counter |
 
@@ -251,7 +252,7 @@ The heart of the pack, split into modules: **Odyssey Core** (required by all oth
 
 ### Water
 
-Turns the blue terrain of Otrera b's lakes into real water. **All players need it** (it lowers lake beds by 10 m).
+Turns the blue terrain of Otrera b's lakes into real water and adds large oceans (about 15% of the planet, the landing area always stays dry). **All players need it** (it changes the terrain).
 
 - Stylized shader with turquoise shallows, deep blue depths, caustics and shoreline foam; a light, translucent surface when seen from below.
 - Ships in a lake brake, bounce and slowly sink. With inflated pontoons from Odyssey Building they float, with buoyancy computed per pontoon so ships stay upright.

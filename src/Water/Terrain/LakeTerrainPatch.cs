@@ -27,11 +27,24 @@ namespace Water.Terrain
                 return;
             }
             float depth = Mathf.Clamp(WaterMod.LakeDepth.Value, 0f, 60f);
+            ClampStep lakeClamp = null;
             foreach (var clamp in __instance.terrainConfig.clampSteps)
             {
                 if (Mathf.Abs(clamp.min - SeaLevel) < 1f)
                 {
                     clamp.min = SeaLevel - depth;
+                    lakeClamp = lakeClamp ?? clamp;
+                }
+            }
+            if (lakeClamp != null)
+            {
+                try
+                {
+                    OceanTerrain.Apply(__instance, lakeClamp);
+                }
+                catch (Exception e)
+                {
+                    Melon<WaterMod>.Logger.Warning($"Oceans skipped: {e.Message}");
                 }
             }
             Melon<WaterMod>.Logger.Msg($"Lakes on {planet.name}: bottom down to {SeaLevel - depth:0} m (water at {SeaLevel} m)");
@@ -124,7 +137,7 @@ namespace Water.Terrain
             return materials.FirstOrDefault(m => m?.albedoTexture != null && m.albedoTexture.name.IndexOf(word, StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
-        private static List<TerrainGenerationStep> AllSteps(TerrainConfig c)
+        internal static List<TerrainGenerationStep> AllSteps(TerrainConfig c)
         {
             var list = new List<TerrainGenerationStep>();
             if (c.noiseSteps != null) list.AddRange(c.noiseSteps);

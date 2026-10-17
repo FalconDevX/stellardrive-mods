@@ -3,7 +3,7 @@ using MelonLoader;
 using UnityEngine;
 using Water;
 
-[assembly: MelonInfo(typeof(WaterMod), "Water", "0.5.6", "mateu")]
+[assembly: MelonInfo(typeof(WaterMod), "Water", "0.6.0", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Water
@@ -12,6 +12,9 @@ namespace Water
     {
         internal static MelonPreferences_Entry<bool> Enabled;
         internal static MelonPreferences_Entry<float> LakeDepth;
+        internal static MelonPreferences_Entry<float> OceanCoverage;
+        internal static MelonPreferences_Entry<float> OceanDepth;
+        internal static MelonPreferences_Entry<int> OceanSeed;
         internal static MelonPreferences_Entry<float> SurfaceRadius;
         internal static MelonPreferences_Entry<bool> ShipPhysics;
         internal static MelonPreferences_Entry<float> ShipBuoyancy;
@@ -29,9 +32,15 @@ namespace Water
         public override void OnInitializeMelon()
         {
             var category = MelonPreferences.CreateCategory("Water");
-            Enabled = category.CreateEntry("Enabled", true, description: "Water in the lakes of Otrera b");
+            Enabled = category.CreateEntry("Enabled", true, description: "Water in the lakes and oceans of Otrera b");
             LakeDepth = category.CreateEntry("LakeDepth", 10f,
                 description: "How many meters to lower lake bottoms (0 = flat bottom like the game). All players must use the same value - it changes the terrain");
+            OceanCoverage = category.CreateEntry("OceanCoverage", 0.15f,
+                description: "Share of Otrera b covered by large oceans (0 = no oceans, 0.15 = about 15%). The landing area always stays dry. All players must use the same value - it changes the terrain");
+            OceanDepth = category.CreateEntry("OceanDepth", 40f,
+                description: "How much deeper (m) the open ocean gets than the lakes, a few kilometers away from the coast. All players must use the same value");
+            OceanSeed = category.CreateEntry("OceanSeed", 1,
+                description: "Ocean layout number; change it for a different map of oceans. All players must use the same value");
             SurfaceRadius = category.CreateEntry("SurfaceRadius", 3000f, description: "Radius of the water surface around the camera (m)");
             ShipPhysics = category.CreateEntry("ShipPhysics", true,
                 description: "Ships hitting a lake brake hard, bounce off the surface and slowly sink instead of falling to the bottom. Host only");

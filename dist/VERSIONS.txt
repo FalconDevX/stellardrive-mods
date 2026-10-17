@@ -16,4 +16,4 @@ Odyssey Gear 1.0.0
 Odyssey Tweaks 1.1.1
 Drop Items 0.1.2
 FPS Counter 0.1.0
-Water 0.5.6
+Water 0.6.0
