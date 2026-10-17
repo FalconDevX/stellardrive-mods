@@ -81,7 +81,7 @@ namespace Mining.Content
             bounds.bounds = b.size;
         }
 
-        internal static void ScaleUniform(GameObject root, Vector3 size, float scale, string label, bool snapSockets = true)
+        internal static void ScaleUniform(GameObject root, Vector3 size, float scale, string label, bool snapSockets = true, bool scaleSockets = false)
         {
             var bounds = root.GetComponent<ShipPartBounds>();
             Vector3 c0 = bounds.center, b0 = bounds.bounds;
@@ -113,6 +113,7 @@ namespace Mining.Content
                 if (unit.GetComponent<SocketObject>() != null)
                 {
                     unit.localPosition = MapScaled(unit.localPosition);
+                    if (scaleSockets) unit.localScale *= scale;
                     continue;
                 }
                 var sockets = unit.GetComponentsInChildren<SocketObject>(true).Select(x => x.transform)
@@ -137,7 +138,7 @@ namespace Mining.Content
                 foreach (var (t, pos) in sockets)
                 {
                     t.position = root.transform.TransformPoint(MapScaled(pos));
-                    t.localScale /= scale;
+                    if (!scaleSockets) t.localScale /= scale;
                 }
                 foreach (var (t, pos) in gauges)
                 {

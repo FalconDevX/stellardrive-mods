@@ -1,7 +1,7 @@
 using MelonLoader;
 using ResourceTweaks;
 
-[assembly: MelonInfo(typeof(ResourceTweaksMod), "Resource Tweaks", "0.5.1", "mateu")]
+[assembly: MelonInfo(typeof(ResourceTweaksMod), "Resource Tweaks", "0.5.2", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace ResourceTweaks
@@ -30,12 +30,16 @@ namespace ResourceTweaks
                 description: "Tree mining time relative to normal (0.5 = 50% shorter, 1 = unchanged)");
             OtherMiningTime = category.CreateEntry("OtherMiningTime", 0.75f,
                 description: "Mining time of other resources relative to normal (0.75 = 25% shorter)");
-            InventorySlots = category.CreateEntry("InventorySlots", 45,
+            InventorySlots = category.CreateEntry("InventorySlots", 90,
                 description: "Personal inventory slots (15-250, the game has 15). Scroll the inventory window with the mouse wheel. All players must use the same value");
             InventoryRows = category.CreateEntry("InventoryRows", 0,
                 description: "Rows of slots visible in the inventory window opened with Tab, slots keep their size (0 = all rows that fit on the screen). Each player");
             LogDrops = category.CreateEntry("LogDrops", true,
                 description: "Logs every drop to MelonLoader\\Latest.log (for checking, turn off after testing)");
+            if (InventorySlots.Value == 45)
+            {
+                InventorySlots.Value = 90;
+            }
             category.SaveToFile(false);
             Patches.InventorySize.Apply();
 

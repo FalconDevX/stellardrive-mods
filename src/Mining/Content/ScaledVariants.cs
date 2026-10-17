@@ -140,7 +140,7 @@ namespace Mining.Content
             {
                 root = Object.Instantiate(source.part, PartFactory.Holder);
                 root.name = v.Label.Replace(" ", "");
-                PartFactory.ScaleUniform(root, source.size, v.Scale, v.Label);
+                PartFactory.ScaleUniform(root, source.size, v.Scale, v.Label, v.Kind != Kind.Pump, v.Kind == Kind.Pump);
                 settings = Object.Instantiate(source);
             }
             settings.name = "Mining" + root.name;

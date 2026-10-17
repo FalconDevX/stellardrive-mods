@@ -19,7 +19,7 @@ namespace Mining.Content
         internal const ushort PartId = 243;
         internal const byte SignalSocket = 0, PowerSocket = 1;
         private const ushort GeneratorPartId = 60;
-        private const float Width = 0.5f, Height = 0.25f, Depth = 0.25f, SocketX = 0.12f, SocketY = 0.11f;
+        private const float Width = 0.5f, Height = 0.25f, Depth = 0.25f, SocketX = 0.23f, SocketY = 0.11f;
         private static PartSettings _part;
         private static bool _failed;
 
@@ -94,9 +94,8 @@ namespace Mining.Content
             body.Box(new Vector3(0f, Height * 0.5f + 0.005f, 0f), new Vector3(Width - 0.05f, Height - 0.03f, Depth - 0.05f), "steel");
             body.Box(new Vector3(0f, Height - 0.02f, 0f), new Vector3(Width - 0.03f, 0.02f, Depth - 0.03f), "grey");
             body.Box(new Vector3(0f, Height - 0.008f, 0f), new Vector3(Width - 0.12f, 0.006f, Depth - 0.12f), "screen");
-            body.Box(new Vector3(-SocketX, SocketY, Depth * 0.5f - 0.02f), new Vector3(0.08f, 0.08f, 0.012f), "dark");
-            body.Box(new Vector3(SocketX, SocketY, Depth * 0.5f - 0.02f), new Vector3(0.08f, 0.08f, 0.012f), "yellow");
-            body.Box(new Vector3(0f, SocketY, Depth * 0.5f - 0.022f), new Vector3(0.025f, 0.025f, 0.008f), "green");
+            body.Box(new Vector3(-SocketX, SocketY, 0f), new Vector3(0.012f, 0.08f, 0.08f), "dark");
+            body.Box(new Vector3(SocketX, SocketY, 0f), new Vector3(0.012f, 0.08f, 0.08f), "yellow");
             Mesh mesh = body.Build("PowerMeterBody");
             GameObject meter = PartFactory.CreateRenderer("Body", visual, mesh, material, lookCopy);
             meter.transform.localPosition = visual.InverseTransformPoint(root.transform.position);
@@ -113,12 +112,12 @@ namespace Mining.Content
             }
 
             Transform parent = signal.transform.parent;
-            Quaternion facing = Quaternion.Inverse(parent.rotation) * root.transform.rotation * Quaternion.Euler(0f, 180f, 0f);
-            signal.transform.localPosition = parent.InverseTransformPoint(root.transform.TransformPoint(new Vector3(-SocketX, SocketY, Depth * 0.5f)));
-            signal.transform.localRotation = facing;
+            Quaternion local = Quaternion.Inverse(parent.rotation) * root.transform.rotation;
+            signal.transform.localPosition = parent.InverseTransformPoint(root.transform.TransformPoint(new Vector3(-Width * 0.5f, SocketY, 0f)));
+            signal.transform.localRotation = local * Quaternion.Euler(0f, 90f, 0f);
             SocketObject power = PartFactory.CloneSocket(PartFactory.FindSocket(generator, CableType.Power), parent, PowerSocket, Vector3.zero, 0f);
-            power.transform.localPosition = parent.InverseTransformPoint(root.transform.TransformPoint(new Vector3(SocketX, SocketY, Depth * 0.5f)));
-            power.transform.localRotation = facing;
+            power.transform.localPosition = parent.InverseTransformPoint(root.transform.TransformPoint(new Vector3(Width * 0.5f, SocketY, 0f)));
+            power.transform.localRotation = local * Quaternion.Euler(0f, 270f, 0f);
             Melon<MiningMod>.Logger.Msg($"Power Meter: constant size {constant.size}, snapping {constant.snappingStyle}");
 
             PartSettings settings = Object.Instantiate(constant);
@@ -129,7 +128,7 @@ namespace Mining.Content
             settings.fullLabel = "Power Meter";
             settings.description = "Connect its power socket to a power network and its signal socket to an info panel or other logic. " +
                                    "It sends the network load in percent: power needed divided by what the generators can give (100 = fully used, above 100 = overloaded). " +
-                                   "The meter itself uses no power.";
+                                   "The meter itself uses no power. Sockets on opposite ends: signal (left, dark) and power (right, yellow).";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
             PartFactory.SetCost(settings, (Items.Model.ItemsConstants.IronItemId, 2), (112, 3));
