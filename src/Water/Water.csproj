@@ -7,6 +7,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Assets\water.bundle" LogicalName="Water.water.bundle" />
     <EmbeddedResource Include="Assets\Sounds\*.mp3" LogicalName="Water.Sounds.%(Filename).mp3" />
+    <EmbeddedResource Include="Assets\Sounds\*.ogg" LogicalName="Water.Sounds.%(Filename).ogg" />
     <Compile Remove="UnityProject\**" />
   </ItemGroup>
 </Project>

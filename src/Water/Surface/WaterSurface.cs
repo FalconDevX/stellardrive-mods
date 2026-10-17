@@ -93,10 +93,10 @@ namespace Water.Surface
             Vector3 upVisual = transpose.Rotation(planetSpace, ClientOrigin.LocalVisualSpace, Quaternion.identity) * camPlanet.normalized;
             UpdateExposure(upVisual);
             UpdateUnderwater(altitude < UnderwaterAltitude);
-            if (altitude < UnderwaterAltitude && _tracked != null && _tracked.PointsProvider != null
+            if (altitude < FogStartAltitude && _tracked != null && _tracked.PointsProvider != null
                 && _tracked.PointsProvider.GetElevationAtPoint(camPlanet.normalized) - _baseRadius < LakeTerrainPatch.SeaLevel)
             {
-                UnderwaterFog.Show(cam, -altitude, upVisual, Exposure);
+                UnderwaterFog.Show(cam, -altitude, upVisual, Exposure, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(FogStartAltitude, UnderwaterAltitude - 0.25f, altitude)));
             }
             else
             {
@@ -154,6 +154,7 @@ namespace Water.Surface
         }
 
         private const float UnderwaterAltitude = -0.2f;
+        private const float FogStartAltitude = 0.15f;
         private static float _surfaceFoam = -1f;
         private static bool _underwater;
 

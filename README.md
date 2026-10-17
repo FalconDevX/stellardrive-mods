@@ -47,7 +47,7 @@
 | **[Odyssey Logic](#odyssey)** | 1.0.0 | Info panels, power meter, gas meter signal, extra pilot seat outputs | All players |
 | **[Odyssey Gear](#odyssey)** | 1.0.0 | Jetpack, laser cannon, blueprint tool, paint tool, tool workbench | All players |
 | **[Odyssey Tweaks](#odyssey)** | 1.0.0 | Performance fixes, culling, cable fixes, chase camera (V) | Each player (some fixes host) |
-| **[Water](#water)** | 0.4.6 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
+| **[Water](#water)** | 0.5.2 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.4 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.6.1 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
 | **[Resource Tweaks](#resource-tweaks)** | 0.5.2 | 3x resource yield, stacks of 100, faster mining | Host |
@@ -255,7 +255,7 @@ Turns the blue terrain of Otrera b's lakes into real water. **All players need i
 
 - Stylized shader with turquoise shallows, deep blue depths, caustics and shoreline foam; a light, translucent surface when seen from below.
 - Ships in a lake brake, bounce and slowly sink. With inflated pontoons from Odyssey Building they float, with buoyancy computed per pontoon so ships stay upright.
-- Gentle waves, sandy lake beds, impact splashes, pontoon spray and wakes.
+- Gentle waves with ripples that do not visibly repeat, sandy lake beds with soft beach edges, impact splashes, pontoon spray and wakes, and the sound of small waves lapping at the shore.
 - Submerged ships take on water, which drains from the cockpit and hull once they surface; droplets run down the glass.
 - **Swimming:** WASD to swim where you look, Space up, Crouch down, Shift faster.
 - Breath lasts 30 s underwater with a full oxygen tank, after which the player drowns.

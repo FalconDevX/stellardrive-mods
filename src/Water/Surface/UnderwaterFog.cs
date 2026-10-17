@@ -26,10 +26,10 @@ namespace Water.Surface
             if (_object != null && _object.activeSelf) _object.SetActive(false);
         }
 
-        internal static void Show(Camera cam, float depth, Vector3 upVisual, float exposure)
+        internal static void Show(Camera cam, float depth, Vector3 upVisual, float exposure, float fade)
         {
             float visibility = WaterMod.UnderwaterVisibility.Value;
-            if (visibility <= 0f || cam == null || !Ensure())
+            if (visibility <= 0f || fade <= 0f || cam == null || !Ensure())
             {
                 Hide();
                 return;
@@ -41,7 +41,7 @@ namespace Water.Surface
                 _object.transform.localRotation = Quaternion.identity;
             }
             _material.SetColor(ColorId, FogColor);
-            _material.SetFloat(DensityId, 3f / Mathf.Max(visibility, 0.5f));
+            _material.SetFloat(DensityId, 3f / Mathf.Max(visibility, 0.5f) * fade * fade);
             _material.SetFloat(CamDepthId, Mathf.Max(depth, 0f));
             _material.SetVector(UpId, upVisual);
             _material.SetFloat(ExposureId, exposure);

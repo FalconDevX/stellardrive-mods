@@ -118,6 +118,26 @@ Shader "StellarDriveMods/StylizedWater"
 
             float Band(float v, float edge) { return smoothstep(edge - 0.04, edge + 0.04, v); }
 
+            float2 Rotate(float2 p, float a)
+            {
+                float s = sin(a), c = cos(a);
+                return float2(c * p.x - s * p.y, s * p.x + c * p.y);
+            }
+
+            float Mask(float2 p)
+            {
+                return SAMPLE_TEXTURE2D_LOD(_FoamTex, sampler_FoamTex, p, 6).r;
+            }
+
+            float3 NormalVaried(float2 uv, float mask)
+            {
+                float3 a = UnpackNormal(SAMPLE_TEXTURE2D(_NormalTex, sampler_NormalTex, uv));
+                float2 uvB = Rotate(uv, 2.17) + float2(0.37, 0.71);
+                float3 b = UnpackNormal(SAMPLE_TEXTURE2D(_NormalTex, sampler_NormalTex, uvB));
+                b.xy = Rotate(b.xy, -2.17);
+                return lerp(a, b, mask);
+            }
+
             half4 frag(Varyings i) : SV_Target
             {
                 float t = _Time.y;
@@ -140,13 +160,23 @@ Shader "StellarDriveMods/StylizedWater"
                     }
                 }
 
+                float camDist = length(_WorldSpaceCameraPos - i.positionWS);
+                float far = saturate((camDist - 25) / 160);
+                float m1 = smoothstep(0.08, 0.38, Mask(i.uv * 0.0071 + float2(t * 0.0011, -t * 0.0007)));
+                float m2 = smoothstep(0.08, 0.38, Mask(Rotate(i.uv, 0.9) * 0.0053 + float2(0.31, t * 0.0009)));
                 float2 uvN1 = i.uv * _NormalScale + float2(t * 0.012, t * 0.007);
-                float2 uvN2 = i.uv * _NormalScale * 1.7 + float2(-t * 0.009, t * 0.013);
-                float3 n1 = UnpackNormal(SAMPLE_TEXTURE2D(_NormalTex, sampler_NormalTex, uvN1));
-                float3 n2 = UnpackNormal(SAMPLE_TEXTURE2D(_NormalTex, sampler_NormalTex, uvN2));
-                float2 uvN3 = i.uv * _NormalScale * 0.23 + float2(t * 0.004, -t * 0.003);
-                float3 n3 = UnpackNormal(SAMPLE_TEXTURE2D(_NormalTex, sampler_NormalTex, uvN3));
-                float2 ripple = (n1.xy + n2.xy + n3.xy * 1.4) * _NormalStrength - i.slope;
+                float2 uvN2 = Rotate(i.uv, 1.13) * _NormalScale * 1.73 + float2(-t * 0.009, t * 0.013);
+                float3 n1 = NormalVaried(uvN1, m1);
+                float3 n2 = NormalVaried(uvN2, m2);
+                n2.xy = Rotate(n2.xy, -1.13);
+                float2 uvN3 = Rotate(i.uv, -0.61) * _NormalScale * 0.23 + float2(t * 0.004, -t * 0.003);
+                float3 n3 = NormalVaried(uvN3, 1 - m1);
+                n3.xy = Rotate(n3.xy, 0.61);
+                float2 uvN4 = Rotate(i.uv, 2.45) * _NormalScale * 0.071 + float2(-t * 0.0021, t * 0.0016);
+                float3 n4 = UnpackNormal(SAMPLE_TEXTURE2D(_NormalTex, sampler_NormalTex, uvN4));
+                n4.xy = Rotate(n4.xy, -2.45);
+                float gust = lerp(0.65, 1.35, m2 * (1 - m1 * 0.5));
+                float2 ripple = ((n1.xy + n2.xy) * (1 - far * 0.75) + n3.xy * 1.4 + n4.xy * lerp(0.6, 1.6, far)) * _NormalStrength * gust - i.slope;
                 float3 tangent = normalize(cross(up, abs(up.y) < 0.9 ? float3(0, 1, 0) : float3(1, 0, 0)));
                 float3 bitangent = cross(up, tangent);
                 float3 normal = normalize(up + tangent * ripple.x + bitangent * ripple.y);
@@ -170,9 +200,9 @@ Shader "StellarDriveMods/StylizedWater"
 
                 float2 cuv = i.uv * _CausticsScale + ripple * 0.15;
                 float c1 = SAMPLE_TEXTURE2D(_CausticsTex, sampler_CausticsTex, cuv + float2(t, t * 0.6) * _CausticsSpeed).r;
-                float c2 = SAMPLE_TEXTURE2D(_CausticsTex, sampler_CausticsTex, cuv * 1.4 + float2(-t * 0.7, t) * _CausticsSpeed).r;
+                float c2 = SAMPLE_TEXTURE2D(_CausticsTex, sampler_CausticsTex, Rotate(cuv, 1.87) * 1.43 + float2(-t * 0.7, t) * _CausticsSpeed).r;
                 float caustics = pow(saturate(min(c1, c2) * 1.8), 1.5) + max(c1, c2) * 0.18;
-                caustics *= _CausticsStrength * saturate(1.2 - depth / (_DeepDepth * 1.4));
+                caustics *= _CausticsStrength * saturate(1.2 - depth / (_DeepDepth * 1.4)) * lerp(0.45, 1.25, m1) * (1 - far * 0.6);
                 col.rgb += caustics * half3(0.85, 1.0, 0.95);
 
                 float p1 = SAMPLE_TEXTURE2D_LOD(_FoamTex, sampler_FoamTex, i.uv * _PatchScale + float2(t * 0.003, t * 0.002), 5).r;
@@ -193,7 +223,8 @@ Shader "StellarDriveMods/StylizedWater"
                 float spec = pow(saturate(dot(normal, h)), lerp(16, 512, _Smoothness));
                 col.rgb += sun.color * Band(spec, 0.5) * 0.45;
 
-                float foamTex = SAMPLE_TEXTURE2D(_FoamTex, sampler_FoamTex, i.uv * _FoamScale + float2(t * 0.01, -t * 0.008)).r;
+                float foamTex = lerp(SAMPLE_TEXTURE2D(_FoamTex, sampler_FoamTex, i.uv * _FoamScale + float2(t * 0.01, -t * 0.008)).r,
+                    SAMPLE_TEXTURE2D(_FoamTex, sampler_FoamTex, Rotate(i.uv, 1.41) * _FoamScale * 0.83 + float2(-t * 0.007, t * 0.009)).r, m2);
                 float shore = 1 - saturate(edgeDepth / _FoamDistance);
                 float wavesBand = Band(frac(edgeDepth / (_FoamDistance * 0.9) + t * 0.18) * shore, 0.55);
                 float foam = max(Band(shore * (0.55 + foamTex * 0.9), 0.7), wavesBand * Band(foamTex, 0.35));

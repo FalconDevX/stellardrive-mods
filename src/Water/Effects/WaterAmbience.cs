@@ -21,16 +21,21 @@ namespace Water.Effects
         private static readonly float[] Radii = { 3f, 7f, 13f, 21f, 30f, 40f };
         private const int Directions = 12;
 
-        private static FMOD.Sound[] _strokes, _laps;
+        private static FMOD.Sound[] _strokes;
+        private static FMOD.Sound _shoreLoop;
+        private static FMOD.Channel _shoreChannel;
+        private static bool _hasShoreChannel;
         private static bool _created, _failed;
-        private static float _nextStroke, _nextLap, _nextScan;
-        private static float _shoreLevel;
+        private static float _nextStroke, _nextScan;
+        private static float _shoreLevel, _shoreVolume, _shorePan;
         private static Vector3 _shoreVisual;
 
         internal static void Clear()
         {
             _shoreLevel = 0f;
+            _shoreVolume = 0f;
             _nextScan = 0f;
+            StopShore();
         }
 
         internal static void Update()
@@ -38,6 +43,7 @@ namespace Water.Effects
             float volume = Mathf.Clamp01(WaterMod.SplashVolume.Value);
             if (volume <= 0f || !Ensure())
             {
+                StopShore();
                 return;
             }
             Strokes(volume);
@@ -67,16 +73,38 @@ namespace Water.Effects
         {
             if (Time.time >= _nextScan)
             {
-                _nextScan = Time.time + 0.5f;
+                _nextScan = Time.time + 0.4f;
                 _shoreLevel = Scan(out _shoreVisual);
             }
-            if (_shoreLevel <= 0.02f || Time.time < _nextLap)
+            float target = volume * 0.55f * _shoreLevel * (SwimmingPatch.LocalSwimming && SwimmingPatch.LocalDepth > 1.7f ? 0.35f : 1f);
+            _shoreVolume = Mathf.MoveTowards(_shoreVolume, target, Time.deltaTime * 0.35f);
+            if (_shoreVolume <= 0.002f)
             {
+                StopShore();
                 return;
             }
-            _nextLap = Time.time + Random.Range(1.1f, 3.2f);
-            float v = volume * 0.3f * _shoreLevel * Random.Range(0.7f, 1f);
-            SplashSound.Play(_laps[Random.Range(0, _laps.Length)], v, Random.Range(0.85f, 1.1f), SplashSound.Pan(_shoreVisual));
+            if (!_hasShoreChannel || !(_shoreChannel.isPlaying(out bool playing) == FMOD.RESULT.OK && playing))
+            {
+                _shoreChannel = SplashSound.Play(_shoreLoop, 0f, 1f, 0f);
+                _shoreLoop.getLength(out uint length, FMOD.TIMEUNIT.MS);
+                _shoreChannel.setPosition((uint)Random.Range(0, (int)length), FMOD.TIMEUNIT.MS);
+                _hasShoreChannel = true;
+            }
+            if (_shoreLevel > 0.02f)
+            {
+                _shorePan = Mathf.MoveTowards(_shorePan, SplashSound.Pan(_shoreVisual) * 0.7f, Time.deltaTime * 0.6f);
+            }
+            _shoreChannel.setVolume(_shoreVolume);
+            _shoreChannel.setPan(_shorePan);
+        }
+
+        private static void StopShore()
+        {
+            if (_hasShoreChannel)
+            {
+                _shoreChannel.stop();
+                _hasShoreChannel = false;
+            }
         }
 
         private static float Scan(out Vector3 shoreVisual)
@@ -135,8 +163,8 @@ namespace Water.Effects
                 {
                     return false;
                 }
-                _strokes = new[] { Load("swim1"), Load("swim2"), Load("swim3") };
-                _laps = new[] { Load("shore1"), Load("shore2") };
+                _strokes = new[] { Load("swim1", "mp3", FMOD.MODE.LOOP_OFF), Load("swim2", "mp3", FMOD.MODE.LOOP_OFF), Load("swim3", "mp3", FMOD.MODE.LOOP_OFF) };
+                _shoreLoop = Load("shore_loop", "ogg", FMOD.MODE.LOOP_NORMAL);
                 _created = true;
                 Melon<WaterMod>.Logger.Msg("Water: swimming and shore sounds ready");
             }
@@ -148,9 +176,9 @@ namespace Water.Effects
             return _created;
         }
 
-        private static FMOD.Sound Load(string name)
+        private static FMOD.Sound Load(string name, string extension, FMOD.MODE loop)
         {
-            using (Stream s = Assembly.GetExecutingAssembly().GetManifestResourceStream($"Water.Sounds.{name}.mp3"))
+            using (Stream s = Assembly.GetExecutingAssembly().GetManifestResourceStream($"Water.Sounds.{name}.{extension}"))
             {
                 if (s == null)
                 {
@@ -158,7 +186,7 @@ namespace Water.Effects
                 }
                 var data = new byte[s.Length];
                 s.Read(data, 0, data.Length);
-                return SplashSound.Create(data, FMOD.MODE.LOOP_OFF);
+                return SplashSound.Create(data, loop);
             }
         }
     }
