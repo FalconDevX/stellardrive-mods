@@ -38,7 +38,7 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Odyssey Core](#odyssey)** | 1.0.0 | Shared base of the Odyssey modules: part and research registration, build menu tabs, research tree layout, title screen | All players (required by every Odyssey module) |
+| **[Odyssey Core](#odyssey)** | 1.0.1 | Shared base of the Odyssey modules: part and research registration, build menu tabs, research tree layout, title screen | All players (required by every Odyssey module) |
 | **[Odyssey Mining](#odyssey)** | 1.0.0 | Ore, glass and uranium deposits and the excavator | All players |
 | **[Odyssey Power](#odyssey)** | 1.0.0 | Nuclear reactors, hydrogen thruster and heavy engines, electrolyzer, water pump, large tanks, bigger vents | All players |
 | **[Odyssey Building](#odyssey)** | 1.0.0 | Large doors, gates and floor hatches, barriers, stairs, large chests, pontoons, rotors, heavy gyroscope | All players |
@@ -163,7 +163,7 @@ A few commonly tweaked options:
 
 ### Odyssey
 
-The heart of the pack, split into modules: **Odyssey Core** (required by all others), **Mining**, **Power**, **Building**, **Logic**, **Gear** and **Tweaks**. Together they add resource extraction, new power sources, propulsion and a set of new parts. Part ids are unchanged, so worlds built with the old single Mining mod load as before. Settings moved from the `[Mining]` section to `[OdysseyCore]`, `[OdysseyMining]`, `[OdysseyPower]`, `[OdysseyBuilding]`, `[OdysseyGear]` and `[OdysseyTweaks]`; values you changed are carried over on the first start. The main menu shows **ODYSSEY** instead of DEMO. **All players need it.**
+The heart of the pack, split into modules: **Odyssey Core** (required by all others), **Mining**, **Power**, **Building**, **Logic**, **Gear** and **Tweaks**. Together they add resource extraction, new power sources, propulsion and a set of new parts. Part ids are unchanged, so worlds built with the old single Mining mod load as before. Settings moved from the `[Mining]` section to `[OdysseyCore]`, `[OdysseyMining]`, `[OdysseyPower]`, `[OdysseyBuilding]`, `[OdysseyGear]` and `[OdysseyTweaks]`; values you changed are carried over on the first start. The main menu shows **ODYSSEY** instead of DEMO, with orbit arcs and a star around the logo. **All players need it.**
 
 <details>
 <summary><b>Deposits and excavator</b></summary>
