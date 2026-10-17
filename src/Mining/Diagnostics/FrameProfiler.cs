@@ -49,6 +49,10 @@ namespace Mining.Diagnostics
             var timings = new FrameTiming[1];
             string[] counters = { "Batches Count", "SetPass Calls Count", "Draw Calls Count", "Triangles Count", "Vertices Count", "Shadow Casters Count" };
             var recorders = counters.Select(c => ProfilerRecorder.StartNew(ProfilerCategory.Render, c)).ToArray();
+            string[] physicsCounters = { "Active Dynamic Bodies", "Active Kinematic Bodies", "Static Colliders", "Dynamic Bodies Count", "Active Dynamic Bodies Count", "Active Kinematic Bodies Count",
+                "Static Colliders Count", "Total Contacts Count", "Contacts", "Trigger Overlaps", "Broadphase Adds/Removes", "Narrowphase Touches", "Physics Queries Count" };
+            var physicsRecorders = physicsCounters.Select(c => ProfilerRecorder.StartNew(ProfilerCategory.Physics, c)).ToArray();
+            var physicsSums = new long[physicsCounters.Length];
             var counterSums = new long[counters.Length];
             int gc0 = GC.CollectionCount(0);
             float end = Time.unscaledTime + Seconds;
@@ -68,6 +72,10 @@ namespace Mining.Diagnostics
                 {
                     if (recorders[i].Valid) counterSums[i] += recorders[i].LastValue;
                 }
+                for (int i = 0; i < physicsRecorders.Length; i++)
+                {
+                    if (physicsRecorders[i].Valid) physicsSums[i] += physicsRecorders[i].LastValue;
+                }
             }
             Measuring = false;
             int frameCount = frames.Count;
@@ -80,6 +88,17 @@ namespace Mining.Diagnostics
             sb.AppendLine($"Screen {Screen.width}x{Screen.height}, vSync {QualitySettings.vSyncCount}, FPS limit {Application.targetFrameRate}, quality '{QualitySettings.names[QualitySettings.GetQualityLevel()]}', GC gen0: {GC.CollectionCount(0) - gc0} in {Seconds:0} s");
             sb.AppendLine("Rendering (average per frame): " + string.Join(", ", counters.Select((c, i) => recorders[i].Valid ? $"{c} {counterSums[i] / Math.Max(1, frameCount)}" : $"{c} -")));
             foreach (var r in recorders) r.Dispose();
+            var physicsValid = physicsCounters.Select((c, i) => physicsRecorders[i].Valid ? $"{c} {physicsSums[i] / Math.Max(1, frameCount)}" : null).Where(t => t != null).ToList();
+            foreach (var r in physicsRecorders) r.Dispose();
+            sb.AppendLine("Physics counters (average per frame): " + (physicsValid.Count > 0 ? string.Join(", ", physicsValid) : "no data"));
+            var bodies = UnityEngine.Object.FindObjectsByType<Rigidbody>(FindObjectsSortMode.None);
+            int awake = bodies.Count(b => !b.isKinematic && !b.IsSleeping());
+            int colliders = UnityEngine.Object.FindObjectsByType<Collider>(FindObjectsSortMode.None).Count(c => c.enabled && c.gameObject.activeInHierarchy);
+            sb.AppendLine($"Physics: rigidbodies {bodies.Length} (awake dynamic {awake}, kinematic {bodies.Count(b => b.isKinematic)}), enabled colliders {colliders}, scenes {UnityEngine.SceneManagement.SceneManager.sceneCount}");
+            foreach (var b in bodies.Where(b => !b.isKinematic && !b.IsSleeping()).Select(b => (body: b, count: b.GetComponentsInChildren<Collider>(false).Length)).OrderByDescending(t => t.count).Take(8))
+            {
+                sb.AppendLine($"  awake body {b.body.name}: {b.count} colliders, mass {b.body.mass:0}, speed {b.body.linearVelocity.magnitude:0.00} m/s");
+            }
 
             sb.AppendLine();
             sb.AppendLine("Updates of mods and the game (ms per frame, most expensive first):");

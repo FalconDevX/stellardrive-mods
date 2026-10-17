@@ -38,7 +38,7 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Mining](#mining)** | 0.17.3 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
+| **[Mining](#mining)** | 0.17.4 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
 | **[Water](#water)** | 0.4.5 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.4 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.5.12 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
@@ -136,6 +136,7 @@ A few commonly tweaked options:
 | Ship Safety | `MaxSpeed` | `5000` | Ship speed limit (m/s) |
 | Ship Safety | `GuestShipCollision` | `true` | Collision between parked ships |
 | Mining | `PartSyncPerSecond` | `10` | Host: how often a constantly changing part (tank, reactor, pump) is sent to players; less = more FPS on big bases, 0 = every physics step like the game |
+| Mining | `FastSignals` | `true` | Remember which parts feed each signal cable until cables or parts change instead of searching every connection every physics step (big bases with many signal cables) |
 | Ship Safety | `KeepJumpingPlayersInShip` | `true` | Jumping inside a flying ship's open hangar or deck keeps you moving with the ship |
 | Ship Safety | `CarryShipsInHangars` | `true` | A smaller ship inside a bigger ship moves and turns with it |
 | Ship Safety | `WeldParkedShipsInHangars` | `true` | A parked ship with an empty pilot seat is welded in the hangar |

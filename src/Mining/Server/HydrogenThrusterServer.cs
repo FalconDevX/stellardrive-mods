@@ -28,11 +28,14 @@ namespace Mining.Server
 
         private static readonly Dictionary<(uint ship, ushort part), string> Status = new Dictionary<(uint, ushort), string>();
         private static readonly Dictionary<(uint ship, ushort part), float> Demand = new Dictionary<(uint, ushort), float>();
+        private static readonly Dictionary<(uint ship, ushort part), float> Logged = new Dictionary<(uint, ushort), float>();
+        private const float LogEverySeconds = 30f;
 
         internal static void Reset()
         {
             Status.Clear();
             Demand.Clear();
+            Logged.Clear();
         }
 
         [HarmonyPostfix]
@@ -130,7 +133,12 @@ namespace Mining.Server
                     if (!Status.TryGetValue(key, out string previous) || previous != status)
                     {
                         Status[key] = status;
-                        Melon<MiningMod>.Logger.Msg($"Hydrogen Thruster (ship {____ship.Id}, part {part.Id}): {status}");
+                        float now = Time.unscaledTime;
+                        if (!Logged.TryGetValue(key, out float last) || now - last >= LogEverySeconds)
+                        {
+                            Logged[key] = now;
+                            Melon<MiningMod>.Logger.Msg($"Hydrogen Thruster (ship {____ship.Id}, part {part.Id}): {status}");
+                        }
                     }
                     ____ship.UpdatePartState(part.Id, (ThrusterState)part.State with { ThrusterStrength = rate });
                 }

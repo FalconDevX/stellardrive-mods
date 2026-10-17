@@ -10,6 +10,7 @@ using Ships.Cables.VisualObjects;
 using Ships.Grid;
 using Ships.Grid.Model;
 using Ships.Interface.Model;
+using Ships.Interface.Model.Parts.Common;
 using UnityEngine;
 
 namespace Mining.Patches
@@ -131,5 +132,82 @@ namespace Mining.Patches
             _frame++;
             return _frame % Every == 0;
         }
+    }
+
+    [HarmonyPatch(typeof(FluidCableVisual), nameof(FluidCableVisual.UpdateFlow))]
+    internal static class HiddenFluidCableFlowPatch
+    {
+        private static readonly AccessTools.FieldRef<FluidCableVisual, MeshRenderer> Cord = AccessTools.FieldRefAccess<FluidCableVisual, MeshRenderer>("scrollingCord");
+
+        private static bool Prefix(FluidCableVisual __instance)
+        {
+            if (!MiningMod.FastCableVisuals.Value) return true;
+            MeshRenderer cord = Cord(__instance);
+            return cord == null || cord.isVisible;
+        }
+    }
+
+    internal static class SignalInputsCache
+    {
+        internal sealed class Entry
+        {
+            public int Version;
+            public float Time;
+            public List<EntityPartSocket> Inputs;
+        }
+
+        private const float MaxAge = 1f;
+        private static readonly ConditionalWeakTable<SignalConnectionGroupValues, Dictionary<uint, Entry>> Cache = new ConditionalWeakTable<SignalConnectionGroupValues, Dictionary<uint, Entry>>();
+        internal static int Version;
+
+        internal static List<EntityPartSocket> Get(SignalConnectionGroupValues values, uint groupId)
+        {
+            Dictionary<uint, Entry> groups = Cache.GetOrCreateValue(values);
+            float now = Time.unscaledTime;
+            if (groups.TryGetValue(groupId, out Entry entry) && entry.Version == Version && now - entry.Time < MaxAge) return entry.Inputs;
+            values.GetGroupInputsAndOutputs(groupId, out List<EntityPartSocket> inputs, out _);
+            if (entry == null) groups[groupId] = entry = new Entry();
+            entry.Version = Version;
+            entry.Time = now;
+            entry.Inputs = inputs;
+            return inputs;
+        }
+    }
+
+    [HarmonyPatch(typeof(SignalConnectionGroupValues), nameof(SignalConnectionGroupValues.UpdateGroupSignalValue))]
+    internal static class SignalGroupValuePatch
+    {
+        private static readonly AccessTools.FieldRef<SignalConnectionGroupValues, Dictionary<uint, double>> Values = AccessTools.FieldRefAccess<SignalConnectionGroupValues, Dictionary<uint, double>>("_groupSignalValues");
+        private static readonly Func<SignalConnectionGroupValues, EntityPartSocket, double> Signal =
+            AccessTools.MethodDelegate<Func<SignalConnectionGroupValues, EntityPartSocket, double>>(AccessTools.Method(typeof(SignalConnectionGroupValues), "GetSocketSignal"));
+
+        private static bool Prefix(SignalConnectionGroupValues __instance, uint groupId)
+        {
+            if (!MiningMod.FastSignals.Value) return true;
+            List<EntityPartSocket> inputs = SignalInputsCache.Get(__instance, groupId);
+            double value = 0.0;
+            for (int i = 0; i < inputs.Count; i++)
+            {
+                value = SignalCablesUtils.ResolveConflictingSignal(value, Signal(__instance, inputs[i]));
+            }
+            Values(__instance)[groupId] = value;
+            return false;
+        }
+    }
+
+    [HarmonyPatch]
+    internal static class SignalInputsInvalidatePatch
+    {
+        private static IEnumerable<MethodBase> TargetMethods()
+        {
+            yield return AccessTools.Method(typeof(ConnectionGroupMap), nameof(ConnectionGroupMap.OnConnectionCreate));
+            yield return AccessTools.Method(typeof(ConnectionGroupMap), nameof(ConnectionGroupMap.OnConnectionUpdate));
+            yield return AccessTools.Method(typeof(ConnectionGroupMap), nameof(ConnectionGroupMap.OnConnectionDelete));
+            yield return AccessTools.Method(typeof(ShipState), nameof(ShipState.AddStatefulPart));
+            yield return AccessTools.Method(typeof(ShipState), nameof(ShipState.AddStatefulPartWithoutInit));
+            yield return AccessTools.Method(typeof(ShipState), nameof(ShipState.RemoveStatefulPart));
+        }
+
+        private static void Postfix() => SignalInputsCache.Version++;
     }
 }
