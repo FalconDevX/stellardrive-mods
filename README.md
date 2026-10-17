@@ -38,7 +38,7 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Odyssey Core](#odyssey)** | 1.0.2 | Shared base of the Odyssey modules: part and research registration, build menu tabs, research tree layout, title screen | All players (required by every Odyssey module) |
+| **[Odyssey Core](#odyssey)** | 1.0.3 | Shared base of the Odyssey modules: part and research registration, build menu tabs, research tree layout, title screen | All players (required by every Odyssey module) |
 | **[Odyssey Mining](#odyssey)** | 1.0.0 | Ore, glass and uranium deposits and the excavator | All players |
 | **[Odyssey Power](#odyssey)** | 1.0.0 | Nuclear reactors, hydrogen thruster and heavy engines, electrolyzer, water pump, large tanks, bigger vents | All players |
 | **[Odyssey Building](#odyssey)** | 1.0.0 | Large doors, gates and floor hatches, barriers, stairs, large chests, pontoons, rotors, heavy gyroscope | All players |

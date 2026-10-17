@@ -15,6 +15,7 @@ namespace Odyssey.Patches
         private const string Title = "ODYSSEY";
         private const float LineLength = 62f, LineGap = 26f, LineThickness = 3f;
         private const int ArcTextureWidth = 1024;
+        private const float LogoScale = 0.82f;
 
         private static void Postfix(MainMenuTitle __instance, GameObject ___demoText)
         {
@@ -98,6 +99,12 @@ namespace Odyssey.Patches
             var parent = (RectTransform)(logoGraphic != null ? logoGraphic.rectTransform.parent : demo.parent);
             Rect logo = logoGraphic != null ? RectIn(parent, logoGraphic.rectTransform) : FallbackLogo(parent, demo);
             var area = new Rect(logo.center.x - logo.width * 0.72f, logo.yMin - logo.height * 0.42f, logo.width * 1.44f, logo.height * 1.72f);
+            if (logoGraphic != null)
+            {
+                RectTransform logoRect = logoGraphic.rectTransform;
+                logoRect.localScale *= LogoScale;
+                logoRect.anchoredPosition += logo.center - RectIn(parent, logoRect).center;
+            }
             var orbits = new GameObject("OdysseyOrbits", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
             RectTransform rect = orbits.rectTransform;
             rect.SetParent(parent, false);
