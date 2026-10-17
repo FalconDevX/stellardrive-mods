@@ -38,7 +38,7 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Mining](#mining)** | 0.18.13 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, floor hatches, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
+| **[Mining](#mining)** | 0.18.14 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, floor hatches, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
 | **[Water](#water)** | 0.4.5 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.4 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.6.1 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
@@ -227,7 +227,7 @@ The largest mod in the collection. It adds resource extraction, new power source
 - **Laser cannon** (research *Laser Weapons*): fires while its signal is above 0, has recoil and overheats after about 6 s of continuous fire, with status lights and venting steam.
 - The advanced pilot seat gets extra **L** and **R** signal outputs for the mouse buttons.
 - **Jetpack** (research *Jetpack*): the last backpack slot holds wood as fuel; hold Jump in mid-air to fly. Shift-click wood to load it. Press **L** in flight for altitude hold: you hover at the current height and steer freely with WASD, Jump climbs and Crouch descends; it turns off on landing. Each player has their own hold.
-- **V** in a pilot seat toggles a chase camera behind the ship (also while flying). Hold the right mouse button to turn it around the ship; it stays where you leave it until you press V again.
+- **V** in a pilot seat toggles a chase camera behind the ship (also while flying). Hold the right mouse button to turn the camera around the ship instead of steering - the ship keeps its course while you look; it stays where you leave it until you press V again.
 
 </details>
 

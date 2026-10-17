@@ -22,17 +22,25 @@ namespace Mining.Patches
         private static float _yaw, _pitch;
         private static bool _failed;
 
-        private static PlayerPilotControlsCapture _controls;
+
+        internal static bool IsOrbiting(PlayerPilotControlsCapture controls)
+        {
+            if (!Enabled || Time.frameCount - _lastPilotFrame > 30)
+            {
+                return false;
+            }
+            Mouse mouse = Mouse.current;
+            return (mouse != null && mouse.rightButton.isPressed) || controls.IsUsingFreeLook;
+        }
+
+        internal static void Orbit(Vector2 delta)
+        {
+            _yaw = Mathf.Repeat(_yaw + delta.x * OrbitSpeed, 360f);
+            _pitch = Mathf.Clamp(_pitch - delta.y * OrbitSpeed, -MaxPitch, MaxPitch);
+        }
 
         internal static void Update()
         {
-            Mouse mouse = Mouse.current;
-            if (Enabled && mouse != null && _controls != null && _controls.IsUsingFreeLook && Time.frameCount - _lastPilotFrame <= 30)
-            {
-                Vector2 delta = mouse.delta.ReadValue();
-                _yaw = Mathf.Repeat(_yaw + delta.x * OrbitSpeed, 360f);
-                _pitch = Mathf.Clamp(_pitch - delta.y * OrbitSpeed, -MaxPitch, MaxPitch);
-            }
             Keyboard kb = Keyboard.current;
             if (kb == null || !kb.vKey.wasPressedThisFrame || Diagnostics.DevTools.IsTyping() || Time.frameCount - _lastPilotFrame > 30)
             {
@@ -44,7 +52,7 @@ namespace Mining.Patches
             MiningMod.ShowMessage(Enabled ? "Camera: behind the ship (V) - hold the right mouse button to turn it" : "Camera: cockpit (V)", 2f);
         }
 
-        private static bool Prefix(PlayerState localState, PlayerPilotControlsCapture ____pilotControls, PlayerCamera ____camera, PlayerDistantCamera ____distantCamera,
+        private static bool Prefix(PlayerState localState, PlayerCamera ____camera, PlayerDistantCamera ____distantCamera,
             IShipsClientProvider ____shipsProvider)
         {
             if (_failed)
@@ -70,7 +78,6 @@ namespace Mining.Patches
                     distance = Mathf.Clamp(extents.magnitude * 2.4f + 4f, 8f, 400f);
                     height = extents.y * 0.6f + 2f;
                 }
-                _controls = ____pilotControls;
                 Quaternion look = seat.rotation * Quaternion.Euler(_pitch, _yaw, 0f);
                 Vector3 up = seat.up;
                 Vector3 position = center - look * Vector3.forward * distance + up * height;
@@ -85,6 +92,24 @@ namespace Mining.Patches
                 Melon<MiningMod>.Logger.Error($"Chase camera disabled: {e}");
                 return true;
             }
+        }
+    }
+
+    [HarmonyPatch(typeof(PlayerPilotControlsCapture), "UpdateDirectionInput")]
+    internal static class ChaseCameraOrbitPatch
+    {
+        private static readonly System.Reflection.MethodInfo SetRawDirection = AccessTools.PropertySetter(typeof(PlayerPilotControlsCapture), nameof(PlayerPilotControlsCapture.RawDirectionInput));
+
+        private static bool Prefix(PlayerPilotControlsCapture __instance, Vector2 direction, ref Vector2 ____linearDirectionInput)
+        {
+            if (!ChaseCameraPatch.IsOrbiting(__instance))
+            {
+                return true;
+            }
+            ChaseCameraPatch.Orbit(direction);
+            SetRawDirection.Invoke(__instance, new object[] { Vector2.zero });
+            ____linearDirectionInput = Vector2.zero;
+            return false;
         }
     }
 }
