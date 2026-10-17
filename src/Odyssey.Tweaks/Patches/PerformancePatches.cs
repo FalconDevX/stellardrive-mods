@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using HarmonyLib;
 using Ships.Cables;
 using Ships.Cables.Fluids;
+using Ships.Cables.Power;
 using Ships.Cables.VisualObjects;
 using Ships.Grid;
 using Ships.Grid.Model;
@@ -211,5 +212,23 @@ namespace Odyssey.Patches
         }
 
         private static void Postfix() => SignalInputsCache.Version++;
+    }
+
+    [HarmonyPatch(typeof(PowerServerTracker), "EnsureStateStructureIsUpToDate")]
+    internal static class PowerCableIdsResetPatch
+    {
+        private static readonly AccessTools.FieldRef<PowerServerTracker, HashSet<uint>> Reload = AccessTools.FieldRefAccess<PowerServerTracker, HashSet<uint>>("_groupsToReloadCache");
+        private static readonly AccessTools.FieldRef<PowerServerTracker, Dictionary<uint, PowerGroupServerState>> State = AccessTools.FieldRefAccess<PowerServerTracker, Dictionary<uint, PowerGroupServerState>>("_powerState");
+
+        private static void Prefix(PowerServerTracker __instance)
+        {
+            HashSet<uint> reload = Reload(__instance);
+            if (reload.Count == 0) return;
+            Dictionary<uint, PowerGroupServerState> state = State(__instance);
+            foreach (uint id in reload)
+            {
+                if (state.TryGetValue(id, out PowerGroupServerState group)) group.CableIds.Clear();
+            }
+        }
     }
 }

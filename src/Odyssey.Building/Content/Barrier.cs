@@ -145,34 +145,99 @@ namespace Odyssey.Content
     internal sealed class BarrierVisuals : MonoBehaviour
     {
         internal const string LeftPost = "PostLeft", RightPost = "PostRight";
+        private const float Snap = 0.08f, RefreshInterval = 5f;
         private static readonly HashSet<BarrierVisuals> Active = new HashSet<BarrierVisuals>();
+        private static readonly Dictionary<Vector3Int, List<(Vector3 pos, int rank)>> Ends = new Dictionary<Vector3Int, List<(Vector3, int)>>();
+        private static readonly Stack<List<(Vector3, int)>> Pool = new Stack<List<(Vector3, int)>>();
+        private static int _version, _gridVersion = -1, _gridFrame = -1;
+        private static float _nextRefresh;
         private Transform _left, _right;
-        private float _next;
+        private int _evaluated = -1;
+
+        internal static void Invalidate() => _version++;
 
         private void OnEnable()
         {
             Active.Add(this);
             _left = transform.Find(LeftPost);
             _right = transform.Find(RightPost);
-            _next = 0f;
+            _evaluated = -1;
+            Invalidate();
         }
 
-        private void OnDisable() => Active.Remove(this);
+        private void OnDisable()
+        {
+            Active.Remove(this);
+            Invalidate();
+        }
 
         private Vector3 End(float side) => transform.TransformPoint(new Vector3(side * Barrier.HalfLength, 0f, 0f));
 
         private void LateUpdate()
         {
-            if (Time.time < _next || _left == null)
+            if (_left == null)
             {
                 return;
             }
-            _next = Time.time + 0.25f;
+            if (Time.time >= _nextRefresh)
+            {
+                _nextRefresh = Time.time + RefreshInterval;
+                Invalidate();
+            }
+            if (_evaluated == _version)
+            {
+                return;
+            }
+            _evaluated = _version;
+            EnsureGrid();
             UpdatePost(_left, -1f);
             UpdatePost(_right, 1f);
         }
 
         private int Rank(float side) => GetInstanceID() * 2 + (side < 0f ? 0 : 1);
+
+        private static Vector3Int Cell(Vector3 p) => new Vector3Int(Mathf.FloorToInt(p.x / Snap), Mathf.FloorToInt(p.y / Snap), Mathf.FloorToInt(p.z / Snap));
+
+        private static void Add(Vector3 pos, int rank)
+        {
+            Vector3Int cell = Cell(pos);
+            if (!Ends.TryGetValue(cell, out List<(Vector3, int)> list))
+            {
+                list = Pool.Count > 0 ? Pool.Pop() : new List<(Vector3, int)>();
+                Ends[cell] = list;
+            }
+            list.Add((pos, rank));
+        }
+
+        private static void EnsureGrid()
+        {
+            if (_gridVersion == _version && _gridFrame == Time.frameCount)
+            {
+                return;
+            }
+            _gridVersion = _version;
+            _gridFrame = Time.frameCount;
+            foreach (List<(Vector3, int)> list in Ends.Values)
+            {
+                list.Clear();
+                Pool.Push(list);
+            }
+            Ends.Clear();
+            foreach (BarrierVisuals barrier in Active)
+            {
+                if (barrier == null) continue;
+                Add(barrier.End(-1f), barrier.Rank(-1f));
+                Add(barrier.End(1f), barrier.Rank(1f));
+            }
+            foreach (StairsVisuals stairs in StairsVisuals.Active)
+            {
+                if (stairs == null) continue;
+                foreach (Vector3 anchor in Stairs.Anchors)
+                {
+                    Add(stairs.transform.TransformPoint(anchor), int.MinValue);
+                }
+            }
+        }
 
         private void UpdatePost(Transform post, float side)
         {
@@ -181,15 +246,17 @@ namespace Odyssey.Content
                 return;
             }
             Vector3 mine = End(side);
-            bool hidden = AtStairs(mine);
             int rank = Rank(side);
-            foreach (BarrierVisuals other in Active)
+            bool hidden = false;
+            Vector3Int cell = Cell(mine);
+            for (int x = -1; x <= 1 && !hidden; x++)
+            for (int y = -1; y <= 1 && !hidden; y++)
+            for (int z = -1; z <= 1 && !hidden; z++)
             {
-                if (hidden) break;
-                if (other == this || other == null) continue;
-                foreach (float s in new[] { -1f, 1f })
+                if (!Ends.TryGetValue(new Vector3Int(cell.x + x, cell.y + y, cell.z + z), out List<(Vector3 pos, int rank)> list)) continue;
+                foreach ((Vector3 pos, int other) in list)
                 {
-                    if ((other.End(s) - mine).sqrMagnitude < 0.0064f && other.Rank(s) < rank)
+                    if (other < rank && (pos - mine).sqrMagnitude < Snap * Snap)
                     {
                         hidden = true;
                         break;
@@ -197,15 +264,6 @@ namespace Odyssey.Content
                 }
             }
             if (post.gameObject.activeSelf == hidden) post.gameObject.SetActive(!hidden);
-        }
-
-        private static bool AtStairs(Vector3 end)
-        {
-            foreach (StairsVisuals stairs in StairsVisuals.Active)
-            {
-                if (stairs != null && stairs.Touches(end)) return true;
-            }
-            return false;
         }
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using Ships;
@@ -33,7 +34,20 @@ namespace Odyssey.Diagnostics
             public int Seen;
         }
 
+        private static readonly HashSet<Type> VisualOnly = new HashSet<Type>
+        {
+            typeof(global::Ships.Parts.Electrolyzer.ElectrolyzerVisuals),
+            typeof(global::Ships.Parts.EthanolDistiller.EthanolDistillerVisuals),
+            typeof(global::Ships.Parts.FluidPump.FluidPumpVisuals),
+            typeof(global::Ships.Parts.FuelTank.FluidTankVisuals),
+            typeof(global::Ships.Parts.Gyroscope.GyroscopeVisuals),
+            typeof(global::Ships.Parts.WoodPowerGenerator.PowerGeneratorVisuals),
+            typeof(global::Ships.Parts.WarpExhaust.WarpExhaustVisuals),
+        };
+
         internal static readonly HashSet<Renderer> HiddenRenderers = new HashSet<Renderer>();
+        private static readonly HashSet<Behaviour> Paused = new HashSet<Behaviour>();
+        private static readonly List<Behaviour> Behaviours = new List<Behaviour>();
         private static readonly Dictionary<uint, ShipEntry> Ships = new Dictionary<uint, ShipEntry>();
         private static readonly List<Renderer> Buffer = new List<Renderer>();
         private static readonly List<ushort> Shown = new List<ushort>();
@@ -186,6 +200,21 @@ namespace Odyssey.Diagnostics
                 r.forceRenderingOff = hidden;
             }
             Buffer.Clear();
+            go.GetComponentsInChildren(true, Behaviours);
+            foreach (Behaviour b in Behaviours)
+            {
+                if (b == null || !VisualOnly.Contains(b.GetType())) continue;
+                if (hidden && b.enabled)
+                {
+                    b.enabled = false;
+                    Paused.Add(b);
+                }
+                else if (!hidden && Paused.Remove(b))
+                {
+                    b.enabled = true;
+                }
+            }
+            Behaviours.Clear();
         }
 
         private static void ShowAll(ShipEntry entry)
@@ -203,6 +232,7 @@ namespace Odyssey.Diagnostics
             foreach (ShipEntry entry in Ships.Values) ShowAll(entry);
             Ships.Clear();
             HiddenRenderers.Clear();
+            Paused.Clear();
         }
     }
 }

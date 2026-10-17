@@ -32,6 +32,7 @@ namespace Odyssey.Content
         private bool _steamTried;
         private const float Glow = 4f;
         private Material _body;
+        private Renderer _glow;
         private Transform _rotor;
         private Light _light;
         private float _scale = 1f;
@@ -58,6 +59,7 @@ namespace Odyssey.Content
             var glow = transform.Find("Glow")?.GetComponent<MeshRenderer>();
             if (glow != null)
             {
+                _glow = glow;
                 _body = glow.material;
             }
             _phase = Random.value * 10f;
@@ -153,6 +155,12 @@ namespace Odyssey.Content
             float dt = Time.deltaTime;
             bool rising = _target > _level + 0.02f;
             _level = Mathf.MoveTowards(_level, _target, dt / (rising ? 3f : 2f));
+            _spin = Mathf.MoveTowards(_spin, MaxSpin * _level, SpinAccel * dt);
+            _sound.Update(transform.position + transform.up * 0.8f * _scale, Mathf.SmoothStep(0f, 1f, _level), 0.75f + 0.3f * _level);
+            if (_glow != null && _glow.forceRenderingOff)
+            {
+                return;
+            }
             float t = Time.time + _phase;
             float pulse = 1f + 0.25f * Mathf.Sin(t * 2.2f) + 0.08f * Mathf.Sin(t * 13f);
             if (rising && _level < 0.6f)
@@ -177,14 +185,12 @@ namespace Odyssey.Content
                 _light.color = tint;
                 _light.intensity = _level * 1.6f * _scale * pulse * _flicker;
             }
-            _spin = Mathf.MoveTowards(_spin, MaxSpin * _level, SpinAccel * dt);
             if (_spin > 0.01f && _rotor != null)
             {
                 _rotor.Rotate(Vector3.up, -_spin * dt, Space.Self);
             }
             UpdateSteam();
             UpdateBeacons(dt);
-            _sound.Update(transform.position + transform.up * 0.8f * _scale, Mathf.SmoothStep(0f, 1f, _level), 0.75f + 0.3f * _level);
         }
 
         private void UpdateSteam()

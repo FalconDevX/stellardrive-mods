@@ -15,8 +15,9 @@ namespace Odyssey.Diagnostics
 {
     internal static class FrameProfiler
     {
-        private const float Seconds = 5f;
+        private const float Seconds = 5f, Settle = 1.5f;
         private static bool _running, _patched;
+        private static HarmonyLib.Harmony _harmony;
         private static readonly Dictionary<string, long> Ticks = new Dictionary<string, long>();
         private static readonly Dictionary<string, int> Calls = new Dictionary<string, int>();
         private static readonly Dictionary<MethodBase, string> Names = new Dictionary<MethodBase, string>();
@@ -31,7 +32,22 @@ namespace Odyssey.Diagnostics
         private static IEnumerator Run()
         {
             var log = Melon<TweaksMod>.Logger;
-            CoreMod.ShowMessage($"FPS report: measuring about {Seconds + 14:0} s (the picture changes for a moment)...", Seconds + 14);
+            CoreMod.ShowMessage($"FPS report: measuring about {Seconds * 2 + Settle + 14:0} s (the picture changes for a moment)...", Seconds * 2 + Settle + 14);
+            var cleanFrames = new List<float>();
+            var cleanCpu = new List<double>();
+            var cleanRender = new List<double>();
+            var cleanGpu = new List<double>();
+            var timings = new FrameTiming[1];
+            if (!_patched)
+            {
+                yield return null;
+                float cleanEnd = Time.unscaledTime + Seconds;
+                while (Time.unscaledTime < cleanEnd)
+                {
+                    yield return null;
+                    Sample(timings, cleanFrames, cleanCpu, cleanRender, cleanGpu);
+                }
+            }
             try
             {
                 PatchMods();
@@ -40,13 +56,14 @@ namespace Odyssey.Diagnostics
             {
                 log.Warning($"[fps] could not hook mod measurement: {e.Message}");
             }
+            float settle = Time.unscaledTime + Settle;
+            while (Time.unscaledTime < settle) yield return null;
             Ticks.Clear();
             Calls.Clear();
             var frames = new List<float>();
             var cpuMain = new List<double>();
             var cpuRender = new List<double>();
             var gpu = new List<double>();
-            var timings = new FrameTiming[1];
             string[] counters = { "Batches Count", "SetPass Calls Count", "Draw Calls Count", "Triangles Count", "Vertices Count", "Shadow Casters Count" };
             var recorders = counters.Select(c => ProfilerRecorder.StartNew(ProfilerCategory.Render, c)).ToArray();
             string[] physicsCounters = { "Active Dynamic Bodies", "Active Kinematic Bodies", "Static Colliders", "Dynamic Bodies Count", "Active Dynamic Bodies Count", "Active Kinematic Bodies Count",
@@ -60,14 +77,7 @@ namespace Odyssey.Diagnostics
             while (Time.unscaledTime < end)
             {
                 yield return null;
-                frames.Add(Time.unscaledDeltaTime * 1000f);
-                FrameTimingManager.CaptureFrameTimings();
-                if (FrameTimingManager.GetLatestTimings(1, timings) > 0)
-                {
-                    if (timings[0].cpuMainThreadFrameTime > 0) cpuMain.Add(timings[0].cpuMainThreadFrameTime);
-                    if (timings[0].cpuRenderThreadFrameTime > 0) cpuRender.Add(timings[0].cpuRenderThreadFrameTime);
-                    if (timings[0].gpuFrameTime > 0) gpu.Add(timings[0].gpuFrameTime);
-                }
+                Sample(timings, frames, cpuMain, cpuRender, gpu);
                 for (int i = 0; i < recorders.Length; i++)
                 {
                     if (recorders[i].Valid) counterSums[i] += recorders[i].LastValue;
@@ -78,13 +88,25 @@ namespace Odyssey.Diagnostics
                 }
             }
             Measuring = false;
+            if (!_watching) Unpatch();
             int frameCount = frames.Count;
             var sb = new StringBuilder();
             float avg = frames.Average();
-            var sorted = frames.OrderBy(f => f).ToList();
-            sb.AppendLine($"FPS report {DateTime.Now:yyyy-MM-dd HH:mm:ss}, {frameCount} frames in {Seconds:0} s");
-            sb.AppendLine($"Frame: average {avg:0.0} ms ({1000f / avg:0} FPS), median {sorted[sorted.Count / 2]:0.0} ms, worst 1% {sorted[(int)(sorted.Count * 0.99f)]:0.0} ms, max {sorted.Last():0.0} ms");
-            sb.AppendLine($"CPU main thread: {Avg(cpuMain)}, CPU render thread: {Avg(cpuRender)}, GPU: {Avg(gpu)}");
+            float cleanAvg = cleanFrames.Count > 0 ? cleanFrames.Average() : avg;
+            sb.AppendLine($"FPS report {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            if (cleanFrames.Count > 0)
+            {
+                sb.AppendLine($"Clean (no measurement hooks), {cleanFrames.Count} frames in {Seconds:0} s:");
+                sb.AppendLine("  " + FrameStats(cleanFrames));
+                sb.AppendLine($"  CPU main thread: {Avg(cleanCpu)}, CPU render thread: {Avg(cleanRender)}, GPU: {Avg(cleanGpu)}");
+            }
+            else
+            {
+                sb.AppendLine("Clean measurement skipped: the hitch watcher keeps the hooks installed");
+            }
+            sb.AppendLine($"With measurement hooks (slower than clean, used only for the method list below), {frameCount} frames in {Seconds:0} s after {Settle:0.0} s settling:");
+            sb.AppendLine("  " + FrameStats(frames));
+            sb.AppendLine($"  CPU main thread: {Avg(cpuMain)}, CPU render thread: {Avg(cpuRender)}, GPU: {Avg(gpu)}");
             sb.AppendLine($"Screen {Screen.width}x{Screen.height}, vSync {QualitySettings.vSyncCount}, FPS limit {Application.targetFrameRate}, quality '{QualitySettings.names[QualitySettings.GetQualityLevel()]}', GC gen0: {GC.CollectionCount(0) - gc0} in {Seconds:0} s");
             sb.AppendLine("Rendering (average per frame): " + string.Join(", ", counters.Select((c, i) => recorders[i].Valid ? $"{c} {counterSums[i] / Math.Max(1, frameCount)}" : $"{c} -")));
             foreach (var r in recorders) r.Dispose();
@@ -101,7 +123,7 @@ namespace Odyssey.Diagnostics
             }
 
             sb.AppendLine();
-            sb.AppendLine("Updates of mods and the game (ms per frame, most expensive first):");
+            sb.AppendLine("Updates of mods and the game (ms per frame, most expensive first, measured with hooks; a method's time includes the methods it calls, so nested entries must not be added up):");
             foreach (var kv in Ticks.OrderByDescending(kv => kv.Value).Take(40))
             {
                 double ms = kv.Value * 1000.0 / System.Diagnostics.Stopwatch.Frequency / Math.Max(1, frameCount);
@@ -186,7 +208,7 @@ namespace Odyssey.Diagnostics
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             File.WriteAllText(path, report);
             foreach (string line in report.Split('\n')) log.Msg("[fps] " + line.TrimEnd());
-            CoreMod.ShowMessage($"FPS report saved: {1000f / avg:0} FPS avg - UserData/Mining/fps_report.txt", 8f);
+            CoreMod.ShowMessage($"FPS report saved: {1000f / cleanAvg:0} FPS avg - UserData/Mining/fps_report.txt", 8f);
             _running = false;
         }
 
@@ -202,6 +224,34 @@ namespace Odyssey.Diagnostics
                 frames++;
             }
             result[0] = frames / Mathf.Max(0.001f, Time.unscaledTime - start);
+        }
+
+        private static void Sample(FrameTiming[] timings, List<float> frames, List<double> cpuMain, List<double> cpuRender, List<double> gpu)
+        {
+            frames.Add(Time.unscaledDeltaTime * 1000f);
+            FrameTimingManager.CaptureFrameTimings();
+            if (FrameTimingManager.GetLatestTimings(1, timings) > 0)
+            {
+                if (timings[0].cpuMainThreadFrameTime > 0) cpuMain.Add(timings[0].cpuMainThreadFrameTime);
+                if (timings[0].cpuRenderThreadFrameTime > 0) cpuRender.Add(timings[0].cpuRenderThreadFrameTime);
+                if (timings[0].gpuFrameTime > 0) gpu.Add(timings[0].gpuFrameTime);
+            }
+        }
+
+        private static string FrameStats(List<float> frames)
+        {
+            float avg = frames.Average();
+            var sorted = frames.OrderBy(f => f).ToList();
+            float median = sorted[sorted.Count / 2];
+            return $"average {avg:0.0} ms ({1000f / avg:0} FPS), median {median:0.0} ms ({1000f / median:0} FPS), worst 1% {sorted[(int)(sorted.Count * 0.99f)]:0.0} ms, max {sorted.Last():0.0} ms";
+        }
+
+        private static void Unpatch()
+        {
+            if (!_patched || _harmony == null) return;
+            _harmony.UnpatchSelf();
+            _patched = false;
+            Names.Clear();
         }
 
         private static string Avg(List<double> v) => v.Count == 0 ? "no data" : $"{v.Average():0.0} ms";
@@ -241,6 +291,7 @@ namespace Odyssey.Diagnostics
         internal static void StopWatch()
         {
             _watching = false;
+            if (!_running) Unpatch();
         }
 
         internal static IEnumerable<string> Totals(int frames)
@@ -284,7 +335,7 @@ namespace Odyssey.Diagnostics
         {
             if (_patched) return;
             _patched = true;
-            var harmony = new HarmonyLib.Harmony("mining.fpsprofiler");
+            var harmony = _harmony = new HarmonyLib.Harmony("mining.fpsprofiler");
             var prefix = new HarmonyMethod(typeof(FrameProfiler), nameof(Prefix));
             var postfix = new HarmonyMethod(typeof(FrameProfiler), nameof(Postfix));
             string[] methods = { "Update", "LateUpdate", "FixedUpdate", "OnUpdate", "OnLateUpdate", "OnFixedUpdate", "OnGUI" };

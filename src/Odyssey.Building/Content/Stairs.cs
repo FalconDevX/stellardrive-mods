@@ -222,17 +222,16 @@ namespace Odyssey.Content
     {
         internal static readonly HashSet<StairsVisuals> Active = new HashSet<StairsVisuals>();
 
-        private void OnEnable() => Active.Add(this);
-
-        private void OnDisable() => Active.Remove(this);
-
-        internal bool Touches(Vector3 world)
+        private void OnEnable()
         {
-            foreach (Vector3 anchor in Stairs.Anchors)
-            {
-                if ((transform.TransformPoint(anchor) - world).sqrMagnitude < 0.0064f) return true;
-            }
-            return false;
+            Active.Add(this);
+            BarrierVisuals.Invalidate();
+        }
+
+        private void OnDisable()
+        {
+            Active.Remove(this);
+            BarrierVisuals.Invalidate();
         }
     }
 }
