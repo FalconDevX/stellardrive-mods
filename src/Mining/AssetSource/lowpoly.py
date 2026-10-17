@@ -121,6 +121,8 @@ class Mesh:
                 f.write(struct.pack('<8f', *v))
             f.write(struct.pack('<%di' % len(index), *index))
         print(os.path.basename(path), len(verts), 'vertices', len(index) // 3, 'triangles')
+        import fix_zfight
+        fix_zfight.process(path, True)
 
 def sub(a, b): return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
 def cross(a, b): return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])

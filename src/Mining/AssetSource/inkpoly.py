@@ -146,6 +146,8 @@ class Mesh:
                 f.write(struct.pack('<8f', *v))
             f.write(struct.pack('<%di' % len(index), *index))
         print(os.path.basename(path), len(verts), 'vertices', len(index) // 3, 'triangles')
+        import fix_zfight
+        fix_zfight.process(path, True)
 
     def write_obj(self, path, mtl_texture, offset=(0, 0, 0), name='m', start=1):
         lines = ['o ' + name]

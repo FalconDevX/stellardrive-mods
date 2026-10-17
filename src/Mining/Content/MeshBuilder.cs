@@ -239,6 +239,7 @@ namespace Mining.Content
 
         internal Mesh Build(string name)
         {
+            ZFight.Separate(_vertices, _normals, _uvs, _triangles);
             var mesh = new Mesh { name = name, indexFormat = _vertices.Count > 65000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16 };
             mesh.SetVertices(_vertices);
             mesh.SetNormals(_normals);

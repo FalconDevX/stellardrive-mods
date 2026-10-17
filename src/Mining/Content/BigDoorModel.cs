@@ -413,6 +413,7 @@ namespace Mining.Content
 
             public Mesh ToMesh(string name)
             {
+                ZFight.Separate(_v, _n, _uv, _t);
                 var mesh = new Mesh { name = name, indexFormat = _v.Count > 65000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16 };
                 mesh.SetVertices(_v);
                 mesh.SetNormals(_n);
