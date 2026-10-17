@@ -26,9 +26,51 @@ namespace Flora.Models
                 }
             }
 
+            public float ProjectScale { get; set; }
+
             public void Triangle(int submesh, Vector3 a, Vector3 b, Vector3 c)
             {
+                if (ProjectScale > 0f)
+                {
+                    Vector3 n = Vector3.Cross(b - a, c - a);
+                    Vector3 abs = new Vector3(Mathf.Abs(n.x), Mathf.Abs(n.y), Mathf.Abs(n.z));
+                    Vector2 Project(Vector3 p) =>
+                        (abs.y >= abs.x && abs.y >= abs.z ? new Vector2(p.x, p.z) : abs.x >= abs.z ? new Vector2(p.z, p.y) : new Vector2(p.x, p.y)) * ProjectScale;
+                    Triangle(submesh, a, b, c, Project(a), Project(b), Project(c));
+                    return;
+                }
                 Triangle(submesh, a, b, c, UvPlain, UvPlain, UvPlain);
+            }
+
+            public int Vertex(Vector3 position, Vector3 normal, Vector2 uv)
+            {
+                _vertices.Add(position);
+                _normals.Add(normal);
+                _uvs.Add(uv);
+                return _vertices.Count - 1;
+            }
+
+            public void OutwardIndexed(int submesh, Vector3 inside, int a, int b, int c)
+            {
+                Vector3 pa = _vertices[a], pb = _vertices[b], pc = _vertices[c];
+                Vector3 n = Vector3.Cross(pb - pa, pc - pa);
+                bool flip = Vector3.Dot(n, (pa + pb + pc) / 3f - inside) < 0f;
+                _submeshes[submesh].Add(a);
+                _submeshes[submesh].Add(flip ? c : b);
+                _submeshes[submesh].Add(flip ? b : c);
+            }
+
+            public void OutwardTriangle(int submesh, Vector3 inside, Vector3 a, Vector3 b, Vector3 c, Vector2 uvA, Vector2 uvB, Vector2 uvC)
+            {
+                Vector3 n = Vector3.Cross(b - a, c - a);
+                if (Vector3.Dot(n, (a + b + c) / 3f - inside) < 0f)
+                {
+                    Triangle(submesh, a, c, b, uvA, uvC, uvB);
+                }
+                else
+                {
+                    Triangle(submesh, a, b, c, uvA, uvB, uvC);
+                }
             }
 
             public void Triangle(int submesh, Vector3 a, Vector3 b, Vector3 c, Vector2 uvA, Vector2 uvB, Vector2 uvC)
@@ -127,25 +169,64 @@ namespace Flora.Models
             return v;
         }
 
-        internal static void Blob(Builder b, int submesh, Vector3 center, Vector3 radius, System.Random rng, float jitter)
+        private static Vector3[] _smoothVertices;
+        private static int[] _smoothTriangles;
+
+        private static void EnsureSmoothSphere()
         {
-            var verts = new Vector3[IcoVertices.Length];
-            for (int i = 0; i < verts.Length; i++)
+            if (_smoothVertices != null)
             {
-                float j = 1f + ((float)rng.NextDouble() * 2f - 1f) * jitter;
-                Vector3 v = IcoVertices[i] * j;
-                verts[i] = center + Vector3.Scale(v, radius);
+                return;
+            }
+            var verts = new List<Vector3>(IcoVertices);
+            var tris = new List<int>();
+            var midpoints = new Dictionary<long, int>();
+            int Mid(int a, int c)
+            {
+                long key = a < c ? ((long)a << 32) | (uint)c : ((long)c << 32) | (uint)a;
+                if (!midpoints.TryGetValue(key, out int index))
+                {
+                    index = verts.Count;
+                    verts.Add(((verts[a] + verts[c]) * 0.5f).normalized);
+                    midpoints[key] = index;
+                }
+                return index;
             }
             for (int i = 0; i < IcoTriangles.Length; i += 3)
             {
-                b.OutwardTriangle(submesh, center, verts[IcoTriangles[i]], verts[IcoTriangles[i + 1]], verts[IcoTriangles[i + 2]]);
+                int a = IcoTriangles[i], b = IcoTriangles[i + 1], c = IcoTriangles[i + 2];
+                int ab = Mid(a, b), bc = Mid(b, c), ca = Mid(c, a);
+                tris.AddRange(new[] { a, ab, ca, b, bc, ab, c, ca, bc, ab, bc, ca });
+            }
+            _smoothVertices = verts.ToArray();
+            _smoothTriangles = tris.ToArray();
+        }
+
+        internal static void Blob(Builder b, int submesh, Vector3 center, Vector3 radius, System.Random rng, float jitter, bool smooth = false)
+        {
+            if (smooth)
+            {
+                EnsureSmoothSphere();
+            }
+            Vector3[] source = smooth ? _smoothVertices : IcoVertices;
+            int[] triangles = smooth ? _smoothTriangles : IcoTriangles;
+            var verts = new Vector3[source.Length];
+            for (int i = 0; i < verts.Length; i++)
+            {
+                float j = 1f + ((float)rng.NextDouble() * 2f - 1f) * jitter;
+                Vector3 v = source[i] * j;
+                verts[i] = center + Vector3.Scale(v, radius);
+            }
+            for (int i = 0; i < triangles.Length; i += 3)
+            {
+                b.OutwardTriangle(submesh, center, verts[triangles[i]], verts[triangles[i + 1]], verts[triangles[i + 2]]);
             }
         }
 
         internal static Mesh FlowerClump(int seed, int flowers, float height)
         {
             var rng = new System.Random(seed);
-            var b = new Builder(3);
+            var b = new Builder(2);
             for (int f = 0; f < flowers; f++)
             {
                 float angle = (float)(rng.NextDouble() * Mathf.PI * 2f);
@@ -173,33 +254,22 @@ namespace Flora.Models
                 var leafSide = Vector3.Cross(leafDir, Vector3.up).normalized * 0.03f;
                 b.OutlinedTriangle(0, mid + leafSide * 1.5f, mid - leafSide * 1.5f, mid + leafDir * 0.1f);
 
-                int petals = 5;
-                float petalLen = 0.09f + 0.04f * (float)rng.NextDouble();
-                float rot = (float)(rng.NextDouble() * Mathf.PI * 2f);
-                for (int p = 0; p < petals; p++)
-                {
-                    float a0 = rot + p * Mathf.PI * 2f / petals;
-                    float a1 = a0 + Mathf.PI / petals * 0.8f;
-                    float a2 = a0 - Mathf.PI / petals * 0.8f;
-                    Vector3 tip = top + new Vector3(Mathf.Cos(a0), 0.25f, Mathf.Sin(a0)) * petalLen;
-                    Vector3 l = top + new Vector3(Mathf.Cos(a1), 0.05f, Mathf.Sin(a1)) * petalLen * 0.45f;
-                    Vector3 r = top + new Vector3(Mathf.Cos(a2), 0.05f, Mathf.Sin(a2)) * petalLen * 0.45f;
-                    b.OutlinedTriangle(1, l, tip, r);
-                    b.OutlinedTriangle(1, top, l, r);
-                }
-
-                float c = petalLen * 0.25f;
-                Vector3 cTop = top + Vector3.up * c * 0.8f;
-                Vector3[] ring =
-                {
-                    top + new Vector3(c, 0.01f, 0), top + new Vector3(-c * 0.5f, 0.01f, c * 0.87f), top + new Vector3(-c * 0.5f, 0.01f, -c * 0.87f),
-                };
-                for (int i = 0; i < 3; i++)
-                {
-                    b.OutlinedTriangle(2, ring[i], cTop, ring[(i + 1) % 3]);
-                }
+                float size = 0.08f + 0.04f * (float)rng.NextDouble();
+                FlowerHead(b, 1, top + Vector3.up * 0.005f, (Vector3.up + lean * 3f).normalized, size, (float)(rng.NextDouble() * Mathf.PI * 2f));
             }
             return b.Build($"FloraFlowers_{seed}", upNormals: true);
+        }
+
+        internal static void FlowerHead(Builder b, int submesh, Vector3 center, Vector3 facing, float size, float spin)
+        {
+            Vector3 reference = Mathf.Abs(facing.y) > 0.9f ? Vector3.forward : Vector3.up;
+            Vector3 u0 = Vector3.Cross(facing, reference).normalized;
+            Vector3 v0 = Vector3.Cross(facing, u0);
+            Vector3 u = (u0 * Mathf.Cos(spin) + v0 * Mathf.Sin(spin)) * size;
+            Vector3 v = Vector3.Cross(facing, u);
+            Vector3 p00 = center - u - v, p10 = center + u - v, p11 = center + u + v, p01 = center - u + v;
+            b.Triangle(submesh, p00, p10, p11, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(1f, 1f));
+            b.Triangle(submesh, p00, p11, p01, new Vector2(0f, 0f), new Vector2(1f, 1f), new Vector2(0f, 1f));
         }
     }
 }

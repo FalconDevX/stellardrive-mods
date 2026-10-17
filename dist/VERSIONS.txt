@@ -1,6 +1,6 @@
 ﻿Resource Tweaks 0.5.2
 Crouch 0.1.4
-Flora 0.5.0
+Flora 0.5.1
 Pick Block 0.3.4
 Shared Piloting 0.1.1
 Ship Safety 0.6.1
