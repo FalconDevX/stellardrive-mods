@@ -143,6 +143,16 @@ namespace Mining.Content
             bounds.Encapsulate(new Bounds(centre + (floatMesh.bounds.center + new Vector3(0f, FloatY, 0f)) * n, floatMesh.bounds.size * n));
             PartFactory.SetBounds(root, bounds);
 
+            Bounds Box(Vector3 c, Vector3 s) => new Bounds(centre + c * n, s * n);
+            ShapeColliders shape = ShapeColliders.Add(root,
+                Box(new Vector3(0f, 0.04f, 0f), new Vector3(0.5f, 0.08f, 1.7f)),
+                Box(new Vector3(0f, 0.18f, -0.6f), new Vector3(0.34f, 0.2f, 0.24f)),
+                Box(new Vector3(0f, 0.18f, 0.6f), new Vector3(0.34f, 0.2f, 0.24f)),
+                Box(new Vector3(0f, 0.38f, 0f), new Vector3(0.23f, 0.16f, 2.4f)));
+            shape.SetInflatable(3,
+                Box(new Vector3(0f, FloatY, 0f), new Vector3(FloatRadius * 2f, FloatRadius * 2f, (FloatHalfLength + 0.18f) * 2f)),
+                Box(new Vector3(0f, 0.38f, 0f), new Vector3(0.23f, 0.16f, 2.4f)));
+
             Transform interactions = PartFactory.RemoveInteract(root);
             var box = interactions.GetComponentInChildren<BoxCollider>(true);
             if (box != null)

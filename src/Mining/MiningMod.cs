@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.17.1", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.17.2", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -34,6 +34,7 @@ namespace Mining
         internal static MelonPreferences_Entry<float> PumpRate;
         internal static MelonPreferences_Entry<float> PumpHoseLength;
         internal static MelonPreferences_Entry<float> PontoonLeakPerMinute;
+        internal static MelonPreferences_Entry<float> PartSyncPerSecond;
         internal static MelonPreferences_Entry<float> LaserVolume;
         internal static MelonPreferences_Entry<float> PumpVolume;
         internal static MelonPreferences_Entry<float> ReactorVolume;
@@ -85,6 +86,7 @@ namespace Mining
             FastShipBounds = category.CreateEntry("FastShipBounds", true, description: "Remember ship hull bounds until the hull changes instead of scanning every hull voxel twice per frame");
             FastCableVisuals = category.CreateEntry("FastCableVisuals", true, description: "Rebuild the pipe flow graph for cable animations every 4th frame and signal cable glow every 3rd frame");
             PontoonLeakPerMinute = category.CreateEntry("PontoonLeakPerMinute", 4f, description: "Oxygen leaking out of an inflated pontoon per minute (it holds 2); without an oxygen supply it deflates when empty");
+            PartSyncPerSecond = category.CreateEntry("PartSyncPerSecond", 10f, description: "Host only: how many times per second a part that keeps changing (tanks, reactors, pumps...) is sent to players. The first change is sent at once, faster ones are merged. Less = more FPS on big bases, 0 = like the game (every physics step)");
             PumpHoseLength = category.CreateEntry("PumpHoseLength", 30f, description: "Pump hose length (m). All players should use the same value");
             if (Mathf.Approximately(PumpHoseLength.Value, 20f)) PumpHoseLength.Value = 30f;
             LaserVolume = category.CreateEntry("LaserVolume", 0.7f, description: "Laser cannon volume (0-1)");
