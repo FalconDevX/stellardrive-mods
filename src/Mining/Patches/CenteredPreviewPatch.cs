@@ -12,7 +12,7 @@ namespace Mining.Patches
     {
         private static void Prefix(SnapDetectionState state, ref CameraPhysicsData cameraPhysics)
         {
-            if (state.partSettings == null || !BigFluidTank.TryGetCapacity(state.partSettings, out _))
+            if (state.partSettings == null || (!BigFluidTank.TryGetCapacity(state.partSettings, out _) && Pontoon.Scale(state.partSettings.id) <= 1))
             {
                 return;
             }
