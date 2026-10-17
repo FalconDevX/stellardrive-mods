@@ -17,8 +17,32 @@ namespace Mining.Patches
     internal static class ChaseCameraPatch
     {
         internal static bool Enabled;
-        private static int _lastToggleFrame = -1;
+        private const float OrbitSpeed = 0.15f, MaxPitch = 80f;
+        private static int _lastPilotFrame = -1000;
+        private static float _yaw, _pitch;
         private static bool _failed;
+
+        private static PlayerPilotControlsCapture _controls;
+
+        internal static void Update()
+        {
+            Mouse mouse = Mouse.current;
+            if (Enabled && mouse != null && _controls != null && _controls.IsUsingFreeLook && Time.frameCount - _lastPilotFrame <= 30)
+            {
+                Vector2 delta = mouse.delta.ReadValue();
+                _yaw = Mathf.Repeat(_yaw + delta.x * OrbitSpeed, 360f);
+                _pitch = Mathf.Clamp(_pitch - delta.y * OrbitSpeed, -MaxPitch, MaxPitch);
+            }
+            Keyboard kb = Keyboard.current;
+            if (kb == null || !kb.vKey.wasPressedThisFrame || Diagnostics.DevTools.IsTyping() || Time.frameCount - _lastPilotFrame > 30)
+            {
+                return;
+            }
+            Enabled = !Enabled;
+            _yaw = 0f;
+            _pitch = 0f;
+            MiningMod.ShowMessage(Enabled ? "Camera: behind the ship (V) - hold the right mouse button to turn it" : "Camera: cockpit (V)", 2f);
+        }
 
         private static bool Prefix(PlayerState localState, PlayerPilotControlsCapture ____pilotControls, PlayerCamera ____camera, PlayerDistantCamera ____distantCamera,
             IShipsClientProvider ____shipsProvider)
@@ -29,13 +53,7 @@ namespace Mining.Patches
             }
             try
             {
-                Keyboard kb = Keyboard.current;
-                if (kb != null && kb.vKey.wasPressedThisFrame && Time.frameCount != _lastToggleFrame && !Diagnostics.DevTools.IsTyping())
-                {
-                    _lastToggleFrame = Time.frameCount;
-                    Enabled = !Enabled;
-                    MiningMod.ShowMessage(Enabled ? "Camera: behind the ship (V)" : "Camera: cockpit (V)", 1.5f);
-                }
+                _lastPilotFrame = Time.frameCount;
                 if (!Enabled || !____shipsProvider.TryGetPilotSeatCameraTransform(localState.EntityId, localState.PartId, out Transform seat) ||
                     !____shipsProvider.TryGetShipVisualTransform(localState.EntityId, out Transform ship))
                 {
@@ -52,7 +70,8 @@ namespace Mining.Patches
                     distance = Mathf.Clamp(extents.magnitude * 2.4f + 4f, 8f, 400f);
                     height = extents.y * 0.6f + 2f;
                 }
-                Quaternion look = seat.rotation * ____pilotControls.CameraRotation;
+                _controls = ____pilotControls;
+                Quaternion look = seat.rotation * Quaternion.Euler(_pitch, _yaw, 0f);
                 Vector3 up = seat.up;
                 Vector3 position = center - look * Vector3.forward * distance + up * height;
                 Quaternion rotation = Quaternion.LookRotation(center + up * (height * 0.35f) - position, up);

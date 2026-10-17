@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.18.11", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.18.12", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -171,6 +171,7 @@ namespace Mining
         private static readonly System.Action CullerUpdate = Diagnostics.DetailCuller.Update;
         private static readonly System.Action GpuCullingUpdate = Diagnostics.GpuCulling.Update;
         private static readonly System.Action RoomCullerUpdate = Diagnostics.RoomCuller.Update;
+        private static readonly System.Action ChaseCameraUpdate = Patches.ChaseCameraPatch.Update;
 
         public override void OnUpdate()
         {
@@ -180,6 +181,7 @@ namespace Mining
             Run("Detail culler", CullerUpdate);
             Run("GPU culling", GpuCullingUpdate);
             Run("Room culler", RoomCullerUpdate);
+            Run("Chase camera", ChaseCameraUpdate);
             try
             {
                 Keyboard kb = Keyboard.current;
