@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using HarmonyLib;
-using Ships.Interface.Model.Parts;
 using Ships.Parts.Door;
 using UnityEngine;
 
@@ -35,8 +34,7 @@ namespace Mining.Content
             _ready = true;
             var dynamic = GetComponent<DoorDynamicColliders>();
             _door = dynamic != null ? Traverse.Create(dynamic).Field<GameObject>("doorCollider").Value : null;
-            ShipPartBounds bounds = GetComponentInParent<ShipPartBounds>();
-            _root = bounds != null ? bounds.transform : transform.root;
+            _root = transform;
             if (_door == null)
             {
                 return;

@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.17.5", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.17.6", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
