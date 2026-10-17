@@ -132,7 +132,7 @@ namespace Mining.Content
             }
         }
 
-        private static GameObject BuildGasModel(PartSettings source, Variant v)
+        private static GameObject BuildGasModel(PartSettings source, Variant v, PartSettings chest)
         {
             bool vent = v.Kind == Kind.Vent;
             int n = v.Scale;
@@ -142,10 +142,10 @@ namespace Mining.Content
             root.name = v.Label.Replace(" ", "");
             Mesh body = ModAssets.LoadMesh(vent ? "vent_big.bin" : "intake_big.bin");
             Transform visual = root.transform.Find("Visual") ?? root.transform;
-            MeshRenderer look = root.GetComponentsInChildren<MeshRenderer>(true).FirstOrDefault(r => r.GetComponentInParent<SocketObject>() == null);
+            MeshRenderer look = chest?.part != null ? chest.part.transform.Find("Visual")?.GetComponentInChildren<MeshRenderer>(true) : null;
             if (look == null)
             {
-                throw new Exception("base part has no renderer to copy");
+                throw new Exception("chest has no renderer to copy");
             }
             Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("door_albedo.png"), root.name);
             var lookCopy = new GameObject("look").AddComponent<MeshRenderer>();
@@ -220,7 +220,7 @@ namespace Mining.Content
             }
             else if (v.Kind == Kind.Vent || v.Kind == Kind.Intake)
             {
-                root = BuildGasModel(source, v);
+                root = BuildGasModel(source, v, PartFactory.Find(parts, 30));
                 settings = Object.Instantiate(source);
             }
             else
