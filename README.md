@@ -38,7 +38,7 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Mining](#mining)** | 0.17.2 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
+| **[Mining](#mining)** | 0.17.3 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
 | **[Water](#water)** | 0.4.5 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.4 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.5.11 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
@@ -212,7 +212,7 @@ The largest mod in the collection. It adds resource extraction, new power source
 <details>
 <summary><b>Pontoons, weapons, jetpack and camera</b></summary>
 
-- **Inflatable pontoons:** feed oxygen into the inlet to inflate them. They slowly leak while air is supplied and deflate about 30 s after the supply is cut. With the Water mod each pontoon supports about 2000 kg; on land they act as skids. Pontoon M (2x size, 2 x 2 x 6) holds about 16000 kg and Pontoon L (3x size, 3 x 3 x 9) about 54000 kg for big ships; they take 8x / 27x the oxygen but inflate just as fast, and their build preview is centered on the crosshair. Pontoons collide with their real shape (mount plate, struts and the float, smaller when deflated) instead of one big box.
+- **Inflatable pontoons:** feed oxygen into the inlet to inflate them. They slowly leak while air is supplied and deflate about 30 s after the supply is cut. With the Water mod each pontoon supports about 2000 kg; on land they act as skids. Pontoon M (2x size, 2 x 2 x 6) holds about 16000 kg and Pontoon L (3x size, 3 x 3 x 9) about 54000 kg for big ships; they take 8x / 27x the oxygen but inflate just as fast, and their build preview is centered on the crosshair. Pontoons collide with their real shape (mount plate, struts and the float, smaller when deflated) instead of one big box, and the oxygen flowing to them shows in the pipes.
 - **Laser cannon** (research *Laser Weapons*): fires while its signal is above 0, has recoil and overheats after about 6 s of continuous fire, with status lights and venting steam.
 - The advanced pilot seat gets extra **L** and **R** signal outputs for the mouse buttons.
 - **Jetpack** (research *Jetpack*): the last backpack slot holds wood as fuel; hold Jump in mid-air to fly. Shift-click wood to load it. Press **L** in flight for altitude hold: you hover at the current height and steer freely with WASD, Jump climbs and Crouch descends; it turns off on landing. Each player has their own hold.

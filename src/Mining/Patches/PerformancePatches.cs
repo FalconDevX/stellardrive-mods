@@ -99,6 +99,7 @@ namespace Mining.Patches
 
         private static void Postfix(FluidCablesVisualUpdater __instance, IReadOnlyDictionary<uint, CableVisual> loadedCables)
         {
+            if (!MiningMod.FastCableVisuals.Value || _ranOriginal) PontoonFlowVisuals.Apply(__instance);
             if (!MiningMod.FastCableVisuals.Value || !_ranOriginal) return;
             _cableCount = loadedCables.Count;
             Flows.Clear();
