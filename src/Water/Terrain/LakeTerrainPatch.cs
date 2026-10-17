@@ -17,7 +17,7 @@ namespace Water.Terrain
         internal const float SeaLevel = 64f;
         private const int BedStepId = 9001;
         private const int MaxMaterials = 4;
-        private const float ShoreBlend = 3.5f;
+        private const float ShoreBlend = 5f;
         private static readonly string[] Preferred = { "mud", "silt", "clay", "gravel", "pebble", "moss", "dirt", "soil", "wet", "swamp" };
 
         private static void Postfix(PlanetTerrain __instance)
@@ -95,7 +95,7 @@ namespace Water.Terrain
             var bed = new TerrainMaterialConfig
             {
                 albedoTexture = source.albedoTexture,
-                albedoColor = sand != null ? sand.albedoColor * new Color(1.08f, 1.04f, 0.94f, 1f) : fromOtherPlanet ? new Color(0.82f, 0.86f, 0.78f) : new Color(0.6f, 0.68f, 0.58f),
+                albedoColor = sand != null ? sand.albedoColor : fromOtherPlanet ? new Color(0.82f, 0.86f, 0.78f) : new Color(0.6f, 0.68f, 0.58f),
                 normalMap = source.normalMap,
                 roughnessTexture = source.roughnessTexture,
                 tile = source.tile,
@@ -104,7 +104,7 @@ namespace Water.Terrain
             int index = materials.Length;
             terrain.materials = materials.Concat(new[] { bed }).ToArray();
             last.outputId = BedStepId;
-            var bedStep = new ColorElevationStep { inputId = BedStepId, outputId = 100, bellowThreshold = SeaLevel + 0.8f, smoothness = 1.8f, materialIndex = index };
+            var bedStep = new ColorElevationStep { inputId = BedStepId, outputId = 100, bellowThreshold = SeaLevel + 0.8f, smoothness = 2.5f, materialIndex = index };
             config.colorElevationSteps = (config.colorElevationSteps ?? new ColorElevationStep[0]).Concat(new[] { bedStep }).ToArray();
             foreach (ColorElevationStep step in config.colorElevationSteps)
             {

@@ -220,8 +220,12 @@ Shader "StellarDriveMods/StylizedWater"
                 col.rgb = lerp(col.rgb, sky, fresnel * 0.35);
                 col.a = lerp(col.a, 1, fresnel * 0.5);
                 float3 h = normalize(sun.direction + viewDir);
-                float spec = pow(saturate(dot(normal, h)), lerp(16, 512, _Smoothness));
-                col.rgb += sun.color * Band(spec, 0.5) * 0.45;
+                float2 detail = (n1.xy + n2.xy) * _NormalStrength * 1.6 + ripple * 0.5;
+                float3 glintNormal = normalize(up + tangent * detail.x + bitangent * detail.y);
+                float sunUp = saturate(dot(sun.direction, up) * 6 + 0.1);
+                float glint = pow(saturate(dot(glintNormal, h)), lerp(900, 140, far)) * lerp(2.2, 0.5, far);
+                float sheen = pow(saturate(dot(normal, h)), 24) * 0.05;
+                col.rgb += sun.color * sunUp * (saturate(glint) * 0.8 + sheen) * _Smoothness;
 
                 float foamTex = lerp(SAMPLE_TEXTURE2D(_FoamTex, sampler_FoamTex, i.uv * _FoamScale + float2(t * 0.01, -t * 0.008)).r,
                     SAMPLE_TEXTURE2D(_FoamTex, sampler_FoamTex, Rotate(i.uv, 1.41) * _FoamScale * 0.83 + float2(-t * 0.007, t * 0.009)).r, m2);
