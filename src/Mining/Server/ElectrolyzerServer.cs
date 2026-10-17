@@ -86,6 +86,11 @@ namespace Mining.Server
         {
             var state = (ElectrolyzerState)part.State;
             fromIce = state.GetIceAvailable() > 0.001f;
+            var signal = new EntityPartSocket(ship.Id, part.Id, ElectrolyzerPart.SignalSocket);
+            if (connections.TryGetSignalConnectionGroupWithSocket(signal, out _) && connections.GetSignalValue(signal) <= 0.0)
+            {
+                return false;
+            }
             if (!TryGetOutput(ship, connections, part.Id, ElectrolyzerPart.HydrogenSocket, HydrogenThruster.HydrogenItemId, out _))
             {
                 return false;

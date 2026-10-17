@@ -16,7 +16,7 @@ namespace Mining.Content
     internal static class ElectrolyzerPart
     {
         internal const ushort PartId = 202;
-        internal const byte OxygenSocket = 0, PowerSocket = 1, HydrogenSocket = 2, WaterSocket = 3;
+        internal const byte OxygenSocket = 0, PowerSocket = 1, HydrogenSocket = 2, WaterSocket = 3, SignalSocket = 4;
 
         private const ushort ChestPartId = 30, GeneratorPartId = 60, DistillerPartId = 80;
         private static PartSettings _part;
@@ -52,10 +52,27 @@ namespace Mining.Content
         }
 
         private const float Wall = 0.4f, HousingTop = 0.42f, SocketY = 0.2f, LabelY = 0.33f;
-        private static readonly Vector3 HydrogenSocketPos = new Vector3(-0.5f, SocketY, 0.12f);
-        private static readonly Vector3 OxygenSocketPos = new Vector3(0.5f, SocketY, 0.12f);
+        private static readonly Vector3 HydrogenSocketPos = new Vector3(-0.36f, SocketY, 0.5f);
+        private static readonly Vector3 OxygenSocketPos = new Vector3(0.36f, SocketY, 0.5f);
         private static readonly Vector3 WaterSocketPos = new Vector3(0.18f, SocketY, 0.5f);
         private static readonly Vector3 PowerSocketPos = new Vector3(-0.18f, SocketY, 0.5f);
+        private static readonly Vector3 SignalSocketPos = new Vector3(0f, SocketY, 0.5f);
+
+        private static void ServicePanel(MeshBuilder b, Vector3 offset, float face, (float x, string color)[] sockets)
+        {
+            float x0 = sockets.Min(k => k.x) - 0.12f, x1 = sockets.Max(k => k.x) + 0.12f, cx = (x0 + x1) * 0.5f, w = x1 - x0;
+            b.Box(offset + new Vector3(cx, SocketY, face - 0.03f), new Vector3(w, 0.22f, 0.03f), "dark");
+            b.Box(offset + new Vector3(cx, SocketY + 0.115f, face - 0.025f), new Vector3(w + 0.02f, 0.02f, 0.04f), "steel");
+            b.Box(offset + new Vector3(cx, SocketY - 0.115f, face - 0.025f), new Vector3(w + 0.02f, 0.02f, 0.04f), "steel");
+            foreach (var (x, color) in sockets)
+            {
+                Vector3 c = offset + new Vector3(x, SocketY, 0f);
+                b.Cylinder(c + new Vector3(0f, 0f, face - 0.015f), c + new Vector3(0f, 0f, face - 0.005f), 0.07f, "grey", 20);
+                b.Cylinder(c + new Vector3(0f, 0f, face - 0.005f), c + new Vector3(0f, 0f, face - 0.001f), 0.055f, color, 20);
+                b.Cylinder(c + new Vector3(0f, 0f, face - 0.001f), c + new Vector3(0f, 0f, face + 0.001f), 0.035f, "black", 14);
+                b.Box(c + new Vector3(0f, 0.09f, face - 0.013f), new Vector3(0.1f, 0.016f, 0.006f), color);
+            }
+        }
 
         private static Mesh BodyMesh()
         {
@@ -74,7 +91,9 @@ namespace Mining.Content
                 float side = Mathf.Sign(x);
                 float px = side * 0.45f;
                 b.Cylinder(new Vector3(x, 0.935f, 0.12f), new Vector3(px, 0.935f, 0.12f), 0.03f, "steel", 12);
-                b.Cylinder(new Vector3(px, 0.95f, 0.12f), new Vector3(px, SocketY + 0.09f, 0.12f), 0.03f, "steel", 12);
+                b.Cylinder(new Vector3(px, 0.95f, 0.12f), new Vector3(px, SocketY, 0.12f), 0.03f, "steel", 12);
+                b.Sphere(new Vector3(px, SocketY, 0.12f), 0.032f, "steel", 10);
+                b.Cylinder(new Vector3(px, SocketY, 0.12f), new Vector3(px, SocketY, 0.44f), 0.03f, "steel", 12);
                 b.Box(new Vector3(px, 0.62f, 0.12f), new Vector3(0.05f, 0.04f, 0.08f), "dark");
             }
             b.Cylinder(new Vector3(-0.22f, 0.5f, 0.12f), new Vector3(0.22f, 0.5f, 0.12f), 0.035f, "steel", 12);
@@ -95,6 +114,11 @@ namespace Mining.Content
             b.Box(new Vector3(0f, 0.6f, -0.401f), new Vector3(0.3f, 0.06f, 0.01f), "white");
             b.Box(new Vector3(0f, 0.25f, -0.402f), new Vector3(0.6f, 0.2f, 0.01f), "dark");
 
+            b.Box(new Vector3(0f, SocketY, 0.43f), new Vector3(0.9f, 0.2f, 0.06f), "grey");
+            b.Box(new Vector3(SignalSocketPos.x, 0.36f, 0.43f), new Vector3(0.1f, 0.1f, 0.06f), "dark");
+            b.Cylinder(new Vector3(SignalSocketPos.x, 0.36f, 0.43f), new Vector3(SignalSocketPos.x, HousingTop, 0.43f), 0.015f, "white", 8);
+            ServicePanel(b, Vector3.zero, 0.5f, new[] { (HydrogenSocketPos.x, "orange"), (PowerSocketPos.x, "yellow"), (SignalSocketPos.x, "white"), (WaterSocketPos.x, "blue"), (OxygenSocketPos.x, "cyan") });
+
             return b.Build("ElectrolyzerBody");
         }
 
@@ -109,7 +133,7 @@ namespace Mining.Content
         {
             public int N;
             public float Half, TankZ, TankTop, StackZ, StackTop, HopperX;
-            public Vector3 Hydrogen, Oxygen, Water, Power, Label;
+            public Vector3 Hydrogen, Oxygen, Water, Power, Signal, Label;
             public Vector3 Offset => new Vector3((N - 1) * 0.5f, 0f, (N - 1) * 0.5f);
         }
 
@@ -126,10 +150,12 @@ namespace Mining.Content
                 StackTop = 0.18f + 0.26f * n,
                 HopperX = -half + 0.42f,
             };
-            l.Hydrogen = new Vector3(-half, SocketY, l.TankZ);
-            l.Oxygen = new Vector3(half, SocketY, l.TankZ);
-            l.Power = new Vector3(-half + 0.5f, SocketY, half);
-            l.Water = new Vector3(half - 0.5f, SocketY, half);
+            float spacing = Mathf.Min(0.45f, 0.15f * n);
+            l.Hydrogen = new Vector3(-2f * spacing, SocketY, half);
+            l.Power = new Vector3(-spacing, SocketY, half);
+            l.Signal = new Vector3(0f, SocketY, half);
+            l.Water = new Vector3(spacing, SocketY, half);
+            l.Oxygen = new Vector3(2f * spacing, SocketY, half);
             l.Label = new Vector3(l.HopperX, 0.6f, -half + 0.062f);
             return l;
         }
@@ -190,7 +216,9 @@ namespace Mining.Content
                     new Vector3(inner, headerY, l.TankZ),
                     new Vector3(edge, headerY, l.TankZ),
                     new Vector3(edge, socket.y, l.TankZ),
-                    new Vector3(socket.x - sign * 0.02f, socket.y, socket.z));
+                    new Vector3(edge, socket.y, h - 0.12f),
+                    new Vector3(socket.x, socket.y, h - 0.12f),
+                    new Vector3(socket.x, socket.y, h - 0.04f));
                 b.Box(P(edge, l.TankTop * 0.5f, l.TankZ), new Vector3(0.1f, 0.12f, 0.1f), "dark");
                 b.Cylinder(P(edge, l.TankTop * 0.5f, l.TankZ - 0.05f), P(edge, l.TankTop * 0.5f, l.TankZ - 0.09f), 0.035f, color, 12);
             }
@@ -273,6 +301,9 @@ namespace Mining.Content
             {
                 b.Box(P(hx + dx, 0.46f, -h + 0.075f), new Vector3(0.035f, 0.035f, 0.012f), c);
             }
+            b.Box(P(l.Signal.x, 0.42f, backZ - 0.02f), new Vector3(0.12f, 0.12f, 0.1f), "dark");
+            Pipe(0.016f, "white", new Vector3(l.Signal.x, l.Signal.y, h - 0.04f), new Vector3(l.Signal.x, l.Signal.y, backZ), new Vector3(l.Signal.x, 0.36f, backZ));
+            ServicePanel(b, o, h, new[] { (l.Hydrogen.x, "orange"), (l.Power.x, "yellow"), (l.Signal.x, "white"), (l.Water.x, "blue"), (l.Oxygen.x, "cyan") });
             return b.Build("ElectrolyzerLargeBody");
         }
 
@@ -380,10 +411,19 @@ namespace Mining.Content
 
             SocketObject fluid = PartFactory.FindSocket(distiller, CableType.Fluid);
             SocketObject power = PartFactory.FindSocket(generator, CableType.Power);
-            PartFactory.CloneSocket(fluid, root.transform, OxygenSocket, n > 1 ? l.Oxygen + l.Offset : OxygenSocketPos, 270f);
+            PartFactory.CloneSocket(fluid, root.transform, OxygenSocket, n > 1 ? l.Oxygen + l.Offset : OxygenSocketPos, 180f);
             PartFactory.CloneSocket(power, root.transform, PowerSocket, n > 1 ? l.Power + l.Offset : PowerSocketPos, 180f);
-            PartFactory.CloneSocket(fluid, root.transform, HydrogenSocket, n > 1 ? l.Hydrogen + l.Offset : HydrogenSocketPos, 90f);
+            PartFactory.CloneSocket(fluid, root.transform, HydrogenSocket, n > 1 ? l.Hydrogen + l.Offset : HydrogenSocketPos, 180f);
             PartFactory.CloneSocket(fluid, root.transform, WaterSocket, n > 1 ? l.Water + l.Offset : WaterSocketPos, 180f);
+            SocketObject signalSource = Resources.FindObjectsOfTypeAll<SocketObject>().FirstOrDefault(k => k.Type == CableType.Signal && k.visualObject != null && k.interactive != null);
+            if (signalSource != null)
+            {
+                PartFactory.CloneSocket(signalSource, root.transform, SignalSocket, n > 1 ? l.Signal + l.Offset : SignalSocketPos, 180f);
+            }
+            else
+            {
+                Melon<MiningMod>.Logger.Warning("No signal socket found to copy - electrolyzer without a signal input (runs without it)");
+            }
 
             var settings = ScriptableObject.CreateInstance<PartSettings>();
             settings.name = "MiningElectrolyzer";
@@ -393,8 +433,8 @@ namespace Mining.Content
             settings.internalStateClass = "ElectrolyzerState";
             settings.snappingStyle = SnappingStyle.PreciseOnFloor;
             settings.description = "Splits ice (put it in the hopper on the front) into oxygen, hydrogen and water, or - without ice - water from a pipe into hydrogen and oxygen. " +
-                                   "Needs power. Outputs on the sides: hydrogen next to the orange tank (left), oxygen next to the light blue tank (right). Inputs on the back: power " +
-                                   "and water next to the navy tank (water in, or water out while splitting ice).";
+                                   "Needs power. All sockets are on the service panel at the back: hydrogen out (orange), power (yellow), signal (white), water (blue: in, or out while splitting ice) and oxygen out (light blue). " +
+                                   "Without a signal cable it always runs, with one it runs only while the signal is above 0.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.part = root;
             settings.thumbnailRotation = Quaternion.Euler(0f, 150f, 0f);

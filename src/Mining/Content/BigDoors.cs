@@ -211,6 +211,10 @@ namespace Mining.Content
                 Melon<MiningMod>.Logger.Warning($"Door {root.name}: no separate dynamic colliders - collision unchanged");
                 return;
             }
+            Transform dt = dynamic.transform;
+            Melon<MiningMod>.Logger.Msg($"Door {root.name}: dynamic colliders at {root.transform.InverseTransformPoint(dt.position)} rot={(Quaternion.Inverse(root.transform.rotation) * dt.rotation).eulerAngles} scale={dt.lossyScale}");
+            dt.SetPositionAndRotation(root.transform.position, root.transform.rotation);
+            dt.localScale = Vector3.Scale(dt.localScale, new Vector3(root.transform.lossyScale.x / dt.lossyScale.x, root.transform.lossyScale.y / dt.lossyScale.y, root.transform.lossyScale.z / dt.lossyScale.z));
             var fields = Traverse.Create(dynamic);
             GameObject oldDoor = fields.Field<GameObject>("doorCollider").Value;
             Collider sample = dynamic.GetComponentsInChildren<Collider>(true).FirstOrDefault();
