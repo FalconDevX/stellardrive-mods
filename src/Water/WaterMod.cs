@@ -3,7 +3,7 @@ using MelonLoader;
 using UnityEngine;
 using Water;
 
-[assembly: MelonInfo(typeof(WaterMod), "Water", "0.5.5", "mateu")]
+[assembly: MelonInfo(typeof(WaterMod), "Water", "0.5.6", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Water

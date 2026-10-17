@@ -222,7 +222,7 @@ Shader "StellarDriveMods/StylizedWater"
                 float3 h = normalize(sun.direction + viewDir);
                 float2 detail = (n1.xy + n2.xy) * _NormalStrength * 1.6 + ripple * 0.5;
                 float3 glintNormal = normalize(up + tangent * detail.x + bitangent * detail.y);
-                float sunUp = saturate(dot(sun.direction, up) * 6 + 0.1);
+                float sunUp = saturate(dot(sun.direction, up) * 6 + 0.1) * smoothstep(0.35, 0.85, _Exposure);
                 float glint = pow(saturate(dot(glintNormal, h)), lerp(900, 140, far)) * lerp(2.2, 0.5, far);
                 float sheen = pow(saturate(dot(normal, h)), 24) * 0.05;
                 col.rgb += sun.color * sunUp * (saturate(glint) * 0.8 + sheen) * _Smoothness;
