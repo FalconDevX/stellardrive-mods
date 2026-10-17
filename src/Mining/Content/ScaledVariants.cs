@@ -163,9 +163,11 @@ namespace Mining.Content
                 if (mf != null) Object.DestroyImmediate(mf);
             }
             GameObject model = PartFactory.CreateRenderer("Body", visual, body, material, lookCopy);
-            model.transform.position = root.transform.TransformPoint(centre);
-            model.transform.rotation = root.transform.rotation;
-            model.transform.localScale = Vector3.one * n;
+            Matrix4x4 place = (root.transform.worldToLocalMatrix * visual.localToWorldMatrix).inverse * Matrix4x4.TRS(centre, Quaternion.identity, Vector3.one * n);
+            model.transform.localPosition = place.GetColumn(3);
+            model.transform.localRotation = place.rotation;
+            model.transform.localScale = place.lossyScale;
+            Melon<MiningMod>.Logger.Msg($"{v.Label}: visual scale {visual.lossyScale}, model scale {model.transform.lossyScale}");
             Object.DestroyImmediate(lookCopy.gameObject);
 
             var bounds = new Bounds(centre + body.bounds.center * n, body.bounds.size * n);
