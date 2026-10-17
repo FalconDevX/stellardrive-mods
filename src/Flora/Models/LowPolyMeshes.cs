@@ -127,7 +127,7 @@ namespace Flora.Models
             return v;
         }
 
-        private static void Blob(Builder b, int submesh, Vector3 center, Vector3 radius, System.Random rng, float jitter)
+        internal static void Blob(Builder b, int submesh, Vector3 center, Vector3 radius, System.Random rng, float jitter)
         {
             var verts = new Vector3[IcoVertices.Length];
             for (int i = 0; i < verts.Length; i++)

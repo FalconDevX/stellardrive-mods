@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Flora.Models;
 using HarmonyLib;
@@ -29,7 +30,7 @@ namespace Flora.Patches
 
         private static void AddLayers(PlanetDenseEnvironment env)
         {
-            if (!FloraMod.FlowersEnabled.Value || env.configs == null || env.configs.Length < 2 ||
+            if (env.configs == null || env.configs.Length < 2 ||
                 env.configs.Any(c => c?.objectsSpawn?.Any(s => s.prefab != null && s.prefab.name.StartsWith("Flora")) == true))
             {
                 return;
@@ -48,6 +49,7 @@ namespace Flora.Patches
                 Material bark = FindMaterial(trees, "Bark") ?? FindMaterial(trees, null);
                 FloraPrefabs.SetTemplate(bark);
                 FloraPrefabs.SetGrassTemplate(FindMaterial(grass, null));
+                FloraPrefabs.SetLeavesTemplate(FindMaterial(trees, "Leaves"));
                 if (!FloraPrefabs.IsReady)
                 {
                     Melon<FloraMod>.Logger.Warning("No plant material to copy - skipping");
@@ -56,16 +58,39 @@ namespace Flora.Patches
             }
 
             var layers = env.configs.ToList();
-            layers.Add(CreateLayer(grass, FloraPrefabs.CreateFlowers(), FloraMod.FlowerNoiseOffset.Value, FloraMod.FlowerViewRange.Value,
-                alignWithTerrain: true, noiseShift: new Vector3(-21.3f, 7.9f, 3.1f), noiseFrequency: FloraMod.FlowerNoiseFrequency.Value));
+            var added = new List<string>();
+            if (FloraMod.FlowersEnabled.Value)
+            {
+                layers.Add(CreateLayer(grass, FloraPrefabs.CreateFlowers(), null, FloraMod.FlowerNoiseOffset.Value, FloraMod.FlowerViewRange.Value,
+                    alignWithTerrain: true, noiseShift: new Vector3(-21.3f, 7.9f, 3.1f), noiseFrequency: FloraMod.FlowerNoiseFrequency.Value));
+                added.Add("flowers");
+            }
+            if (FloraMod.ForestPropsEnabled.Value)
+            {
+                var props = CreateLayer(trees, FloraPrefabs.CreateForestProps(), FloraPrefabs.ForestPropWeights,
+                    trees.noiseOffset + FloraMod.ForestPropsDensity.Value, FloraMod.ForestPropsViewRange.Value,
+                    alignWithTerrain: false, noiseShift: Vector3.zero, noiseFrequency: 0f);
+                props.level = trees.level + 1;
+                layers.Add(props);
+                added.Add($"forest props (level {props.level})");
+            }
+            if (FloraMod.UndergrowthEnabled.Value)
+            {
+                var undergrowth = CreateLayer(trees, FloraPrefabs.CreateUndergrowth(), FloraPrefabs.UndergrowthWeights,
+                    trees.noiseOffset + FloraMod.UndergrowthDensity.Value, FloraMod.UndergrowthViewRange.Value,
+                    alignWithTerrain: true, noiseShift: Vector3.zero, noiseFrequency: 0f);
+                undergrowth.level = Math.Max(trees.level - 1, 0);
+                layers.Add(undergrowth);
+                added.Add($"undergrowth (level {undergrowth.level})");
+            }
             env.configs = layers.ToArray();
 
-            Melon<FloraMod>.Logger.Msg($"{env.gameObject.name}: added flower fields " +
+            Melon<FloraMod>.Logger.Msg($"{env.gameObject.name}: added {string.Join(", ", added)} " +
                                        $"(tree noise: {Describe(trees)}, grass: {Describe(grass)})");
         }
 
-        private static PlanetDensePlacementConfig CreateLayer(PlanetDensePlacementConfig source, GameObject[] prefabs, float noiseOffset, float viewRange,
-            bool alignWithTerrain, Vector3 noiseShift, float noiseFrequency)
+        private static PlanetDensePlacementConfig CreateLayer(PlanetDensePlacementConfig source, GameObject[] prefabs, int[] weights, float noiseOffset,
+            float viewRange, bool alignWithTerrain, Vector3 noiseShift, float noiseFrequency)
         {
             var layer = (PlanetDensePlacementConfig)CloneObject(source);
 
@@ -76,10 +101,10 @@ namespace Flora.Patches
             layer.OnConfigUpdated = null;
             t.Field("viewRange").SetValue(viewRange);
 
-            layer.objectsSpawn = prefabs.Select(p => new PlanetDensePlacementConfig.DenseObjectPlacementType
+            layer.objectsSpawn = prefabs.Select((p, i) => new PlanetDensePlacementConfig.DenseObjectPlacementType
             {
                 prefab = p,
-                probability = 10,
+                probability = weights?[i] ?? 10,
                 densityBiasValue = 0.5f,
                 densityBiasPower = 0f,
             }).ToArray();

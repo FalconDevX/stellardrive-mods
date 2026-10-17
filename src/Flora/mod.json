@@ -2,6 +2,6 @@
   "id": "stellardrive-flora",
   "name": "Flora",
   "author": "mateu",
-  "version": "0.4.1",
-  "description": "Flower fields in the game's style. Decoration only, does not change saves."
+  "version": "0.5.0",
+  "description": "Flower fields, bushes, fallen logs, stumps, rocks and forest undergrowth in the game's low-poly style. Decoration only, does not change saves."
 }

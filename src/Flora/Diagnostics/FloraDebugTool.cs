@@ -49,17 +49,18 @@ namespace Flora.Diagnostics
             }
             Transform t = cam.transform;
             Vector3 forward = Vector3.ProjectOnPlane(t.forward, t.up).normalized;
-            Vector3 basePos = t.position + forward * 3f - t.up * 1.6f;
-            GameObject[] all = FloraPrefabs.CreateFlowers().Take(3).ToArray();
+            Vector3 basePos = t.position + forward * 4f - t.up * 1.6f;
+            GameObject[] all = FloraPrefabs.CreateFlowers().Take(3).Concat(FloraPrefabs.CreateForestProps()).Concat(FloraPrefabs.CreateUndergrowth()).ToArray();
+            const int perRow = 8;
             for (int i = 0; i < all.Length; i++)
             {
-                Vector3 pos = basePos + Vector3.Cross(t.up, forward) * ((i - all.Length / 2) * 1.5f);
+                Vector3 pos = basePos + Vector3.Cross(t.up, forward) * ((i % perRow - perRow / 2) * 3f) + forward * (i / perRow * 4f);
                 GameObject go = UnityEngine.Object.Instantiate(all[i], pos, Quaternion.LookRotation(forward, t.up));
                 go.name = "FloraTest_" + all[i].name;
                 go.SetActive(true);
                 MelonCoroutines.Start(DestroyLater(go, 60f));
             }
-            Melon<FloraMod>.Logger.Msg($"F9: placed {all.Length} test plants 3 m in front of the camera (they disappear after 60 s)");
+            Melon<FloraMod>.Logger.Msg($"F9: placed {all.Length} test plants in front of the camera (they disappear after 60 s)");
         }
 
         private static IEnumerator DestroyLater(GameObject go, float seconds)
