@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.18.2", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.18.3", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -48,6 +48,7 @@ namespace Mining
         internal static MelonPreferences_Entry<float> PartCullScreenSize;
         internal static MelonPreferences_Entry<bool> GpuOcclusionCulling;
         internal static MelonPreferences_Entry<bool> HideSealedRooms;
+        internal static MelonPreferences_Entry<float> RoomUpdateDelay;
         internal static MelonPreferences_Entry<bool> FastCableVisuals;
         internal static MelonPreferences_Entry<bool> FastSignals;
         internal static MelonPreferences_Entry<string> DevAutoLoadWorld;
@@ -89,6 +90,7 @@ namespace Mining
             HydrogenEngineVolume = category.CreateEntry("HydrogenEngineVolume", 0.8f, description: "Hydrogen engine volume (0-1)");
             DetailDistance = category.CreateEntry("DetailDistance", 30f, description: "Small ship details (cable plugs and cords, socket covers, small bits) are not drawn beyond this distance (m). 0 = always drawn");
             DetailShadows = category.CreateEntry("DetailShadows", false, description: "Small ship details cast shadows (false = faster)");
+            RoomUpdateDelay = category.CreateEntry("RoomUpdateDelay", 1.5f, description: "While you keep building, rooms and oxygen are recalculated only after this many seconds without a hull change (at most 8x this long; the visual copy on each player waits 2.5x longer), instead of after every part. Big bases otherwise freeze for a moment on every placed part. 0 = after every part like the game");
             HideSealedRooms = category.CreateEntry("HideSealedRooms", true, description: "Parts inside a closed room without windows are not drawn while the camera is outside that room. Opening a door or adding a window shows them again");
             GpuOcclusionCulling = category.CreateEntry("GpuOcclusionCulling", false, description: "Experimental: let the graphics card draw parts and skip what walls hide (Unity GPU resident drawer with occlusion culling). Moves work from the CPU to the GPU. If objects vanish or flicker, set it back to false");
             PartCullScreenSize = category.CreateEntry("PartCullScreenSize", 0.01f, description: "Ship parts (and their shadows) are not drawn when they are smaller than this part of the screen height, e.g. 0.01 = 1%. 0 = always draw like the game");

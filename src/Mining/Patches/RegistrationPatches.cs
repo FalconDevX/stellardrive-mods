@@ -70,7 +70,7 @@ namespace Mining.Patches
             (BigDoors.Variants[14].id, p => BigDoors.GetOrCreate(BigDoors.Variants[14].id, p), () => BigDoors.Get(BigDoors.Variants[14].id), BigDoors.DoorPartId),
             (BigDoors.Variants[15].id, p => BigDoors.GetOrCreate(BigDoors.Variants[15].id, p), () => BigDoors.Get(BigDoors.Variants[15].id), BigDoors.DoorPartId),
             (PowerMeter.PartId, PowerMeter.GetOrCreatePart, () => PowerMeter.Part, 0),
-            (GasMeterSignal.PartId, GasMeterSignal.GetOrCreatePart, () => GasMeterSignal.Part, GasMeterSignal.GasMeterPartId),
+            (GasMeterSignal.PartId, GasMeterSignal.GetOrCreatePart, () => GasMeterSignal.Part, 68),
             (HeavyGyroscope.PartId, HeavyGyroscope.GetOrCreatePart, () => HeavyGyroscope.Part, HeavyGyroscope.GyroscopePartId),
         };
 
@@ -215,10 +215,10 @@ namespace Mining.Patches
 
         private static readonly (string name, ushort[] ids)[] Tabs =
         {
-            ("Control", new ushort[] { 3, 29, 17, 46, 18, 50, 54, 45, 48, 82, 56, 49, 68, 39, 247, 225, 226, 227, PowerMeter.PartId }),
+            ("Control", new ushort[] { 3, 29, 17, 46, 18, 50, 54, 45, 48, 82, 56, 49, 68, GasMeterSignal.PartId, 39, 247, 225, 226, 227, PowerMeter.PartId }),
             ("Propulsion", new ushort[] { 69, 19, 201, 228, 229, 230, 53, 248, 16, 58, 222, Pontoon.MediumPartId, Pontoon.LargePartId }),
             ("Power", new ushort[] { 61, 65, 60, 203, Reactor.LargePartId }),
-            ("Fluids", new ushort[] { 24, 81, 57, 23, 218, 215, 79, 66, 67, GasMeterSignal.PartId, 202, 214, 80 }),
+            ("Fluids", new ushort[] { 24, 81, 57, 23, 218, 215, 79, 66, 67, 202, 214, 80 }),
             ("Doors", new ushort[] { DoorPartId, 42, Barrier.PartId, Stairs.PartId, RetractableStairs.PartId, 244, 217, 210, 211, 212, 213, 216, 223, 224, 253, 254, 255, 256, 257, 258, 259 }),
             ("Utility", new ushort[] { 22, Blueprints.Workbench.PartId, 15, 38, 30, 219, 220, 232, 43, 41, 200, 221, 55 }),
         };
@@ -304,6 +304,17 @@ namespace Mining.Patches
                 if (part != null && !all.Contains(part)) all.Add(part);
             }
             Dictionary<ushort, PartSettings> byId = all.GroupBy(p => p.id).ToDictionary(g => g.Key, g => g.First());
+            var provider = new PartSettingsProvider();
+            foreach (ushort id in Tabs.SelectMany(t => t.ids))
+            {
+                if (byId.ContainsKey(id)) continue;
+                PartSettings missing = provider.GetPartSettingById(id);
+                if (missing != null)
+                {
+                    byId[id] = missing;
+                    Melon<MiningMod>.Logger.Msg($"Build menu: added '{missing.fullLabel}' (id {id}) that no game tab listed");
+                }
+            }
             var sorted = new HashSet<ushort>(Tabs.SelectMany(t => t.ids).Concat(ScaledVariants.Ids));
             BuildMenuTabConfig parts = tabs.FirstOrDefault(t => t?.name == "Parts") ?? tabs.Last(t => t != null);
             Texture doorIcon = tabs.FirstOrDefault(t => t?.rows != null && t.rows.Any(r => r?.parts != null && r.parts.Any(p => p != null && p.id == DoorPartId)))?.icon ?? parts.icon;
@@ -330,6 +341,10 @@ namespace Mining.Patches
                     list.InsertRange(i + 1, bigger);
                 }
                 if (list.Count == 0) continue;
+                if (list.Count > MaxPerRow * 2)
+                {
+                    Melon<MiningMod>.Logger.Warning($"Build menu tab {name} has {list.Count} parts - more than two rows, the last ones may not show");
+                }
                 var rows = new List<BuildMenuTabConfig.BuildMenuRow>();
                 for (int i = 0; i < list.Count; i += MaxPerRow)
                 {
@@ -338,6 +353,11 @@ namespace Mining.Patches
                 result.Add(new BuildMenuTabConfig { name = name, icon = name == "Doors" ? doorIcon : parts.icon, rows = rows.ToArray() });
             }
             Melon<MiningMod>.Logger.Msg($"Build menu: {result.Count} tabs ({string.Join(", ", result.Select(t => $"{t.name} {t.rows.Sum(r => r.parts.Length)}"))})");
+            BuildMenuTabConfig fluids = result.FirstOrDefault(t => t.name == "Fluids");
+            if (fluids != null)
+            {
+                Melon<MiningMod>.Logger.Msg("Build menu Fluids: " + string.Join(", ", fluids.rows.SelectMany(r => r.parts).Select(p => $"{p.fullLabel} ({p.id})")));
+            }
             return result.ToArray();
         }
     }

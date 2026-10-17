@@ -8,13 +8,17 @@ namespace Mining.Patches
     [HarmonyPatch(typeof(ShipRoomsVoxelUpdater))]
     internal static class RoomsDebouncePatch
     {
-        private const float QuietSeconds = 0.4f;
-        private const float MaxDelaySeconds = 3f;
+        private const float ClientFactor = 2.5f;
+        private const float MaxFactor = 8f;
+
+        private static readonly AccessTools.FieldRef<ShipRoomsVoxelUpdater, Ships.Interface.Model.State.IShipStateRead> ShipRef =
+            AccessTools.FieldRefAccess<ShipRoomsVoxelUpdater, Ships.Interface.Model.State.IShipStateRead>("_ship");
 
         private sealed class Pending
         {
             public float First = -1f;
             public float Last;
+            public int Client = -1;
         }
 
         private static readonly ConditionalWeakTable<ShipRoomsVoxelUpdater, Pending> State = new ConditionalWeakTable<ShipRoomsVoxelUpdater, Pending>();
@@ -52,8 +56,11 @@ namespace Mining.Patches
                 p.First = -1f;
                 return true;
             }
+            float quiet = Mining.MiningMod.RoomUpdateDelay.Value;
+            if (p.Client < 0) p.Client = ShipRef(__instance) is Ships.TrackedShipClient ? 1 : 0;
+            if (p.Client == 1) quiet *= ClientFactor;
             float now = Time.unscaledTime;
-            if (now - p.Last < QuietSeconds && now - p.First < MaxDelaySeconds)
+            if (now - p.Last < quiet && now - p.First < quiet * MaxFactor)
             {
                 return false;
             }

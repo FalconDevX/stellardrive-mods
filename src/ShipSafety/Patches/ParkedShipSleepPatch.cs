@@ -26,6 +26,7 @@ namespace ShipSafety.Patches
 
         private static readonly Dictionary<ShipRigidbody, Rest> States = new Dictionary<ShipRigidbody, Rest>();
         private static readonly List<ShipRigidbody> Gone = new List<ShipRigidbody>();
+        private static readonly HashSet<string> Logged = new HashSet<string>();
         private static int _cleanup;
 
         internal static bool Active => ShipSafetyMod.Enabled.Value && ShipSafetyMod.SleepParkedShips.Value;
@@ -37,8 +38,9 @@ namespace ShipSafety.Patches
                 return false;
             }
             Rigidbody body = ShipPhysicsAccess.Rigidbody(ship);
-            if (body == null || body.isKinematic || !body.IsSleeping() || Mathf.Abs(body.mass - props.MassIncludingConnectedShips) > 0.001f
-                || (body.position - props.PhysicsState.Position).sqrMagnitude > MoveTolerance * MoveTolerance || body.centerOfMass != props.CenterOfMassIncludingConnectedShips)
+            if (body == null || body.isKinematic || Mathf.Abs(body.mass - props.MassIncludingConnectedShips) > 0.001f
+                || (body.position - props.PhysicsState.Position).sqrMagnitude > MoveTolerance * MoveTolerance || body.centerOfMass != props.CenterOfMassIncludingConnectedShips
+                || !StillAsleep(body))
             {
                 Wake(rest);
                 return false;
@@ -70,7 +72,7 @@ namespace ShipSafety.Patches
             float mass = Mathf.Max(1f, body.mass);
             if (rest.Asleep)
             {
-                if (body.IsSleeping() && Same(forces, rest.Forces, mass))
+                if (Same(forces, rest.Forces, mass) && StillAsleep(body))
                 {
                     return true;
                 }
@@ -89,7 +91,26 @@ namespace ShipSafety.Patches
             body.linearVelocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;
             body.Sleep();
-            Melon<ShipSafetyMod>.Logger.Msg($"Ship '{ship.name}' is parked - physics asleep until something moves it");
+            if (Logged.Add(ship.name))
+            {
+                Melon<ShipSafetyMod>.Logger.Msg($"Ship '{ship.name}' is parked - physics asleep until something moves it");
+            }
+            return true;
+        }
+
+        private static bool StillAsleep(Rigidbody body)
+        {
+            if (body.IsSleeping())
+            {
+                return true;
+            }
+            if (body.linearVelocity.sqrMagnitude >= RestSpeed * RestSpeed || body.angularVelocity.sqrMagnitude >= RestSpin * RestSpin)
+            {
+                return false;
+            }
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+            body.Sleep();
             return true;
         }
 

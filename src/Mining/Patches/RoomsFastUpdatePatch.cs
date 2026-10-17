@@ -57,6 +57,9 @@ namespace Mining.Patches
             {
                 return false;
             }
+            RoomsPairs.CancelPairs(removeWalls, addWalls);
+            long started = System.Diagnostics.Stopwatch.GetTimestamp();
+            int clearSeeds = clear.Count, createSeeds = create.Count, wallsAdded = addWalls.Count, wallsRemoved = removeWalls.Count;
             ShipRoomsVoxelsTree tree = TreeRef(__instance);
             ShipRoomsGases gases = GasesRef(__instance);
             try
@@ -81,6 +84,11 @@ namespace Mining.Patches
                 foreach (ShipRoomsVoxelsTreeNode node in Cleared) node.TmpGasContent = empty;
                 foreach (ShipRoomsVoxelsTreeNode node in OutsideTouched) node.TmpGasContent = empty;
                 foreach (ShipRoomsVoxelsTreeNode node in AllVisited) node.Visited = false;
+                double ms = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                if (ms > 50.0)
+                {
+                    Melon<MiningMod>.Logger.Msg($"[rooms] {ms:0} ms: walls +{wallsAdded} -{wallsRemoved}, cleared {Cleared.Count} cells from {clearSeeds} seeds, filled {AllVisited.Count} cells from {createSeeds} seeds");
+                }
             }
             catch (Exception e)
             {
@@ -275,6 +283,57 @@ namespace Mining.Patches
 
 namespace Mining.Patches
 {
+    internal static class RoomsPairs
+    {
+        private static readonly System.Collections.Generic.Dictionary<UnityEngine.Vector3Int, int> Counts = new System.Collections.Generic.Dictionary<UnityEngine.Vector3Int, int>();
+
+        internal static void CancelPairs(System.Collections.Generic.List<UnityEngine.Vector3Int> removed, System.Collections.Generic.List<UnityEngine.Vector3Int> added)
+        {
+            if (removed.Count == 0 || added.Count == 0) return;
+            Counts.Clear();
+            foreach (UnityEngine.Vector3Int v in added)
+            {
+                Counts.TryGetValue(v, out int c);
+                Counts[v] = c + 1;
+            }
+            Cancel.Clear();
+            foreach (UnityEngine.Vector3Int v in removed)
+            {
+                if (Counts.TryGetValue(v, out int c) && c > 0)
+                {
+                    Counts[v] = c - 1;
+                    Cancel.TryGetValue(v, out int k);
+                    Cancel[v] = k + 1;
+                }
+            }
+            if (Cancel.Count > 0)
+            {
+                Drop(removed, new System.Collections.Generic.Dictionary<UnityEngine.Vector3Int, int>(Cancel));
+                Drop(added, Cancel);
+            }
+            Counts.Clear();
+            Cancel.Clear();
+        }
+
+        private static readonly System.Collections.Generic.Dictionary<UnityEngine.Vector3Int, int> Cancel = new System.Collections.Generic.Dictionary<UnityEngine.Vector3Int, int>();
+
+        private static void Drop(System.Collections.Generic.List<UnityEngine.Vector3Int> list, System.Collections.Generic.Dictionary<UnityEngine.Vector3Int, int> cancel)
+        {
+            int write = 0;
+            for (int i = 0; i < list.Count; i++)
+            {
+                UnityEngine.Vector3Int v = list[i];
+                if (cancel.TryGetValue(v, out int k) && k > 0)
+                {
+                    cancel[v] = k - 1;
+                    continue;
+                }
+                list[write++] = v;
+            }
+            list.RemoveRange(write, list.Count - write);
+        }
+    }
+
     [HarmonyLib.HarmonyPatch(typeof(Ships.Rooms.ShipRoomsGases), nameof(Ships.Rooms.ShipRoomsGases.LoadRoom))]
     internal static class RoomsLoadMissingPatch
     {
