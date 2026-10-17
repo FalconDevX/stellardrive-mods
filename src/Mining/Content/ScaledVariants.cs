@@ -141,7 +141,7 @@ namespace Mining.Content
             GameObject root = Object.Instantiate(source.part, PartFactory.Holder);
             root.name = v.Label.Replace(" ", "");
             Mesh body = ModAssets.LoadMesh(vent ? "vent_big.bin" : "intake_big.bin");
-            Transform visual = root.transform.Find("Visual") ?? root.transform;
+            Transform visual = (root.GetComponentInChildren<Ships.Parts.Common.Model.Reactions.IShipPartVisual>(true) as Component)?.transform ?? root.transform;
             MeshRenderer look = chest?.part != null ? chest.part.transform.Find("Visual")?.GetComponentInChildren<MeshRenderer>(true) : null;
             if (look == null)
             {
@@ -167,7 +167,7 @@ namespace Mining.Content
             model.transform.localPosition = place.GetColumn(3);
             model.transform.localRotation = place.rotation;
             model.transform.localScale = place.lossyScale;
-            Melon<MiningMod>.Logger.Msg($"{v.Label}: visual scale {visual.lossyScale}, model scale {model.transform.lossyScale}");
+            Melon<MiningMod>.Logger.Msg($"{v.Label}: model under {visual.name}, scale {model.transform.lossyScale}");
             Object.DestroyImmediate(lookCopy.gameObject);
 
             var bounds = new Bounds(centre + body.bounds.center * n, body.bounds.size * n);
