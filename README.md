@@ -41,7 +41,7 @@
 | **[Mining](#mining)** | 0.17.3 | Ore deposits, excavators, hydrogen engines, nuclear reactors, rotors, large doors, tanks, chests, pontoons, laser cannon, jetpack, info panels, tool crafting, blueprints and more | All players |
 | **[Water](#water)** | 0.4.5 | Real, swimmable water in the lakes of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.4 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
-| **[Ship Safety](#ship-safety)** | 0.5.11 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
+| **[Ship Safety](#ship-safety)** | 0.5.12 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
 | **[Resource Tweaks](#resource-tweaks)** | 0.5.2 | 3x resource yield, stacks of 100, faster mining | Host |
 | **[Warp Unlock](#warp-unlock)** | 0.1.2 | Reveals the hidden Warp Drive research in the demo | All players |
 | **[Planet Unlock](#planet-unlock)** | 0.1.2 | *Experimental:* loads every planet of the 442 Otrera system | All players |
@@ -136,6 +136,7 @@ A few commonly tweaked options:
 | Ship Safety | `MaxSpeed` | `5000` | Ship speed limit (m/s) |
 | Ship Safety | `GuestShipCollision` | `true` | Collision between parked ships |
 | Mining | `PartSyncPerSecond` | `10` | Host: how often a constantly changing part (tank, reactor, pump) is sent to players; less = more FPS on big bases, 0 = every physics step like the game |
+| Ship Safety | `KeepJumpingPlayersInShip` | `true` | Jumping inside a flying ship's open hangar or deck keeps you moving with the ship |
 | Ship Safety | `CarryShipsInHangars` | `true` | A smaller ship inside a bigger ship moves and turns with it |
 | Ship Safety | `WeldParkedShipsInHangars` | `true` | A parked ship with an empty pilot seat is welded in the hangar |
 | Water | `LakeDepth` | `10` | How far lake beds are lowered (m) |
@@ -254,6 +255,7 @@ Turns the blue terrain of Otrera b's lakes into real water. **All players need i
 - Guards against mass errors, sudden speed jumps and enforces a 5000 m/s limit.
 - Ships parked on or next to each other collide properly and can be moved with the tool afterwards (`GuestShipCollision`, needs the mod on both sides; everything else works host-only).
 - A smaller ship inside a bigger ship's hull, e.g. parked or hovering in a hangar, moves and turns together with the bigger ship instead of sliding around when it flies or maneuvers, and it gets no air drag there; its gyroscopes hold it still relative to the bigger ship instead of fighting its turns. It can still fly, take off and land inside the hangar under its own power (`CarryShipsInHangars`).
+- A player who jumps or falls inside a flying ship's hull (open hangar, deck without a sealed room) keeps moving with the ship instead of being left behind and slammed into a wall (`KeepJumpingPlayersInShip`, all players need it).
 - A ship parked in a hangar with nobody in its pilot seat is welded in place, as if it were part of the bigger ship's grid, so it does not drift or slide during flight. Sitting in its pilot seat releases it (`WeldParkedShipsInHangars`).
 
 ### Resource Tweaks

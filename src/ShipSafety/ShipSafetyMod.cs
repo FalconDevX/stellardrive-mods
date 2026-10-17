@@ -1,7 +1,7 @@
 using MelonLoader;
 using ShipSafety;
 
-[assembly: MelonInfo(typeof(ShipSafetyMod), "Ship Safety", "0.5.11", "mateu")]
+[assembly: MelonInfo(typeof(ShipSafetyMod), "Ship Safety", "0.5.12", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace ShipSafety
@@ -18,6 +18,7 @@ namespace ShipSafety
         internal static MelonPreferences_Entry<bool> GuestShipCollision;
         internal static MelonPreferences_Entry<bool> CarryShipsInHangars;
         internal static MelonPreferences_Entry<bool> WeldParkedShipsInHangars;
+        internal static MelonPreferences_Entry<bool> KeepJumpingPlayersInShip;
 
         public override void OnInitializeMelon()
         {
@@ -42,6 +43,8 @@ namespace ShipSafety
                 description: "A smaller ship inside a bigger ship's hull (e.g. in a hangar) moves and turns with it, but can still fly and land on its own. Host only");
             WeldParkedShipsInHangars = category.CreateEntry("WeldParkedShipsInHangars", true,
                 description: "A ship inside a hangar with nobody in its pilot seat is held rigidly in place in the bigger ship, like part of its grid. Taking the pilot seat releases it. Host only");
+            KeepJumpingPlayersInShip = category.CreateEntry("KeepJumpingPlayersInShip", true,
+                description: "A player who jumps or falls inside a flying ship's hull (open hangar, deck without a sealed room) keeps moving with the ship instead of being left behind and hit by it");
             category.SaveToFile(false);
 
             LoggerInstance.Msg($"Ship speed limit {MaxSpeed.Value} m/s, acceleration {MaxAcceleration.Value} m/s^2" +
