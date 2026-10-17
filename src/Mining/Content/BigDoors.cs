@@ -4,7 +4,9 @@ using System.Globalization;
 using System.Linq;
 using HarmonyLib;
 using MelonLoader;
+using Ships.Interface.Model;
 using Ships.Interface.Model.Parts;
+using Ships.Interface.Model.Placement;
 using Ships.Interface.Model.Parts.Common;
 using Ships.Interface.Settings;
 using Ships.Parts.Common;
@@ -31,7 +33,18 @@ namespace Mining.Content
             (223, "Hangar Door 24x8", 24, 8, 330),
             (224, "Hangar Door 32x8", 32, 8, 440),
             (244, "Narrow Door 1x2", 1, 2, 6),
+            (253, "Floor Hatch 2x2", 2, 2, 10),
+            (254, "Floor Hatch 3x3", 3, 3, 20),
+            (255, "Floor Hatch 4x4", 4, 4, 34),
+            (256, "Floor Hatch 6x6", 6, 6, 72),
+            (257, "Floor Hatch 8x8", 8, 8, 128),
+            (258, "Floor Hatch 12x12", 12, 12, 290),
+            (259, "Floor Hatch 16x16", 16, 16, 512),
         };
+
+        private const string HatchPrefix = "Floor Hatch";
+
+        internal static bool IsHatch(PartSettings part) => part != null && Variants.Any(v => v.id == part.id && v.name.StartsWith(HatchPrefix));
 
         private static readonly Dictionary<ushort, PartSettings> Parts = new Dictionary<ushort, PartSettings>();
         private static readonly HashSet<ushort> Failed = new HashSet<ushort>();
@@ -88,6 +101,14 @@ namespace Mining.Content
             settings.description = $"A {v.width} x {v.height} door. Opens and closes like the normal door and seals the room when closed. Signal 1 on the socket on the left post opens it, 0 closes it.";
             settings.localizedDescription = new UnityEngine.Localization.LocalizedString();
             settings.size = new Vector3(v.width, v.height, door.size.z);
+            if (v.name.StartsWith(HatchPrefix))
+            {
+                settings.snappingStyle = SnappingStyle.Floor;
+                settings.defaultForward = PartOrientation.Up;
+                settings.defaultUp = PartOrientation.Right;
+                settings.size = new Vector3(v.height, 1f, v.width);
+                settings.description = $"A {v.width} x {v.height} hatch built into the floor. Opens and closes like a door and seals the room below or above when closed. Signal 1 on its socket opens it, 0 closes it.";
+            }
             settings.part = root;
             settings.pivotedSettings = null;
             PartFactory.SetCost(settings, (Items.Model.ItemsConstants.IronItemId, v.iron), (112, Mathf.Max(2, v.iron / 8)));

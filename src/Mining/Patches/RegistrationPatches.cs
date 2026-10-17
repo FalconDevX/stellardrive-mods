@@ -62,6 +62,13 @@ namespace Mining.Patches
             (BigDoors.Variants[6].id, p => BigDoors.GetOrCreate(BigDoors.Variants[6].id, p), () => BigDoors.Get(BigDoors.Variants[6].id), BigDoors.DoorPartId),
             (BigDoors.Variants[7].id, p => BigDoors.GetOrCreate(BigDoors.Variants[7].id, p), () => BigDoors.Get(BigDoors.Variants[7].id), BigDoors.DoorPartId),
             (BigDoors.Variants[8].id, p => BigDoors.GetOrCreate(BigDoors.Variants[8].id, p), () => BigDoors.Get(BigDoors.Variants[8].id), BigDoors.DoorPartId),
+            (BigDoors.Variants[9].id, p => BigDoors.GetOrCreate(BigDoors.Variants[9].id, p), () => BigDoors.Get(BigDoors.Variants[9].id), BigDoors.DoorPartId),
+            (BigDoors.Variants[10].id, p => BigDoors.GetOrCreate(BigDoors.Variants[10].id, p), () => BigDoors.Get(BigDoors.Variants[10].id), BigDoors.DoorPartId),
+            (BigDoors.Variants[11].id, p => BigDoors.GetOrCreate(BigDoors.Variants[11].id, p), () => BigDoors.Get(BigDoors.Variants[11].id), BigDoors.DoorPartId),
+            (BigDoors.Variants[12].id, p => BigDoors.GetOrCreate(BigDoors.Variants[12].id, p), () => BigDoors.Get(BigDoors.Variants[12].id), BigDoors.DoorPartId),
+            (BigDoors.Variants[13].id, p => BigDoors.GetOrCreate(BigDoors.Variants[13].id, p), () => BigDoors.Get(BigDoors.Variants[13].id), BigDoors.DoorPartId),
+            (BigDoors.Variants[14].id, p => BigDoors.GetOrCreate(BigDoors.Variants[14].id, p), () => BigDoors.Get(BigDoors.Variants[14].id), BigDoors.DoorPartId),
+            (BigDoors.Variants[15].id, p => BigDoors.GetOrCreate(BigDoors.Variants[15].id, p), () => BigDoors.Get(BigDoors.Variants[15].id), BigDoors.DoorPartId),
             (PowerMeter.PartId, PowerMeter.GetOrCreatePart, () => PowerMeter.Part, 0),
             (HeavyGyroscope.PartId, HeavyGyroscope.GetOrCreatePart, () => HeavyGyroscope.Part, HeavyGyroscope.GyroscopePartId),
         };
@@ -211,7 +218,7 @@ namespace Mining.Patches
             ("Propulsion", new ushort[] { 69, 19, 201, 228, 229, 230, 53, 248, 16, 58, 222, Pontoon.MediumPartId, Pontoon.LargePartId }),
             ("Power", new ushort[] { 61, 65, 60, 203, Reactor.LargePartId }),
             ("Fluids", new ushort[] { 24, 81, 57, 23, 218, 215, 79, 66, 67, 202, 214, 80 }),
-            ("Doors", new ushort[] { DoorPartId, 42, Barrier.PartId, Stairs.PartId, RetractableStairs.PartId, 244, 217, 210, 211, 212, 213, 216, 223, 224 }),
+            ("Doors", new ushort[] { DoorPartId, 42, Barrier.PartId, Stairs.PartId, RetractableStairs.PartId, 244, 217, 210, 211, 212, 213, 216, 223, 224, 253, 254, 255, 256, 257, 258, 259 }),
             ("Utility", new ushort[] { 22, Blueprints.Workbench.PartId, 15, 38, 30, 219, 220, 232, 43, 41, 200, 221, 55 }),
         };
 

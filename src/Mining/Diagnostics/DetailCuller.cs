@@ -59,7 +59,7 @@ namespace Mining.Diagnostics
                     Tracked.RemoveAt(Tracked.Count - 1);
                     continue;
                 }
-                bool far = r.bounds.SqrDistance(eye) > limit;
+                bool far = r.bounds.SqrDistance(eye) > limit || RoomCuller.HiddenRenderers.Contains(r);
                 if (r.forceRenderingOff != far) r.forceRenderingOff = far;
                 _cursor++;
             }

@@ -179,6 +179,7 @@ namespace Mining.Diagnostics
                 sb.AppendLine($"  view distance 300 m (was {far:0} m): {result[0]:0} FPS");
             }
             sb.AppendLine($"  physics step {Time.fixedDeltaTime * 1000f:0.0} ms");
+            sb.AppendLine("  " + GpuCulling.Status());
 
             string report = sb.ToString();
             string path = Path.Combine(MelonEnvironment.UserDataDirectory, "Mining", "fps_report.txt");

@@ -3,7 +3,7 @@ using Mining;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.17.6", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Mining", "0.18.0", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Mining
@@ -45,6 +45,8 @@ namespace Mining
         internal static MelonPreferences_Entry<bool> DetailShadows;
         internal static MelonPreferences_Entry<bool> FastShipBounds;
         internal static MelonPreferences_Entry<float> PartCullScreenSize;
+        internal static MelonPreferences_Entry<bool> GpuOcclusionCulling;
+        internal static MelonPreferences_Entry<bool> HideSealedRooms;
         internal static MelonPreferences_Entry<bool> FastCableVisuals;
         internal static MelonPreferences_Entry<bool> FastSignals;
         internal static MelonPreferences_Entry<string> DevAutoLoadWorld;
@@ -85,6 +87,8 @@ namespace Mining
             HydrogenEngineVolume = category.CreateEntry("HydrogenEngineVolume", 0.8f, description: "Hydrogen engine volume (0-1)");
             DetailDistance = category.CreateEntry("DetailDistance", 30f, description: "Small ship details (cable plugs and cords, socket covers, small bits) are not drawn beyond this distance (m). 0 = always drawn");
             DetailShadows = category.CreateEntry("DetailShadows", false, description: "Small ship details cast shadows (false = faster)");
+            HideSealedRooms = category.CreateEntry("HideSealedRooms", true, description: "Parts inside a closed room without windows are not drawn while the camera is outside that room. Opening a door or adding a window shows them again");
+            GpuOcclusionCulling = category.CreateEntry("GpuOcclusionCulling", false, description: "Experimental: let the graphics card draw parts and skip what walls hide (Unity GPU resident drawer with occlusion culling). Moves work from the CPU to the GPU. If objects vanish or flicker, set it back to false");
             PartCullScreenSize = category.CreateEntry("PartCullScreenSize", 0.01f, description: "Ship parts (and their shadows) are not drawn when they are smaller than this part of the screen height, e.g. 0.01 = 1%. 0 = always draw like the game");
             FastShipBounds = category.CreateEntry("FastShipBounds", true, description: "Remember ship hull bounds until the hull changes instead of scanning every hull voxel twice per frame");
             FastCableVisuals = category.CreateEntry("FastCableVisuals", true, description: "Rebuild the pipe flow graph for cable animations every 4th frame, signal cable glow every 3rd frame, pipes off screen are not animated");
@@ -153,12 +157,16 @@ namespace Mining
         private static readonly System.Action SitesUpdate = Sites.MiningSiteVisuals.Update;
         private static readonly System.Action GhostsUpdate = Blueprints.BlueprintGhosts.Update;
         private static readonly System.Action CullerUpdate = Diagnostics.DetailCuller.Update;
+        private static readonly System.Action GpuCullingUpdate = Diagnostics.GpuCulling.Update;
+        private static readonly System.Action RoomCullerUpdate = Diagnostics.RoomCuller.Update;
 
         public override void OnUpdate()
         {
             Run("Deposits", SitesUpdate);
             Run("Blueprint ghosts", GhostsUpdate);
             Run("Detail culler", CullerUpdate);
+            Run("GPU culling", GpuCullingUpdate);
+            Run("Room culler", RoomCullerUpdate);
             try
             {
                 Keyboard kb = Keyboard.current;

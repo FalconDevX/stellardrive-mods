@@ -42,7 +42,7 @@ namespace Mining.Patches
     {
         private static void Postfix(SnapDetectionState state, ref (Vector3, bool) __result)
         {
-            if (state.partSettings == null || !BigDoors.All.Contains(state.partSettings))
+            if (state.partSettings == null || !BigDoors.All.Contains(state.partSettings) || BigDoors.IsHatch(state.partSettings))
             {
                 return;
             }
