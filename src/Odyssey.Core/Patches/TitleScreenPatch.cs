@@ -15,7 +15,7 @@ namespace Odyssey.Patches
         private const string Title = "ODYSSEY";
         private const float LineLength = 62f, LineGap = 26f, LineThickness = 3f;
         private const int ArcTextureWidth = 1024;
-        private const float LogoScale = 0.82f;
+        private const float LogoScale = 0.82f, MenuGap = 40f;
 
         private static void Postfix(MainMenuTitle __instance, GameObject ___demoText)
         {
@@ -63,6 +63,10 @@ namespace Odyssey.Patches
             root.localScale = demoRect.localScale;
             root.localRotation = demoRect.localRotation;
             demo.SetActive(false);
+            var spacer = new GameObject("OdysseyMenuGap", typeof(RectTransform), typeof(LayoutElement)).GetComponent<LayoutElement>();
+            spacer.transform.SetParent(demoRect.parent, false);
+            spacer.transform.SetSiblingIndex(root.GetSiblingIndex() + 1);
+            spacer.minHeight = spacer.preferredHeight = MenuGap;
 
             var text = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
             text.rectTransform.SetParent(root, false);
