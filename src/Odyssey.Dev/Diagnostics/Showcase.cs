@@ -246,7 +246,8 @@ namespace Odyssey.Diagnostics
             if (fps != null) fps.Value = false;
             for (int shot = 0; shot < views.Length; shot++)
             {
-                for (int frame = 0; frame < (shot == 0 ? 900 : 120); frame++)
+                float settle = Time.realtimeSinceStartup + (shot == 0 ? 30f : 0f);
+                for (int frame = 0; frame < (shot == 0 ? 900 : 120) || Time.realtimeSinceStartup < settle; frame++)
                 {
                     ship.SetPhysicsState(new ShipPhysicsState(hold.SpaceId, hold.Position, hold.Rotation, Vector3.zero));
                     if (shipsClient.TryGetShipVisualTransform(shipId, out Transform visual))
