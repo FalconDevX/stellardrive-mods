@@ -112,8 +112,18 @@ namespace Odyssey.Diagnostics
             }
         }
 
+        private static readonly Dictionary<MethodBase, string> Names = new Dictionary<MethodBase, string>();
+
         [HarmonyPriority(Priority.First)]
-        private static void Prefix(MethodBase __originalMethod) => FreezeWatchdog.Enter(__originalMethod.DeclaringType?.Name + "." + __originalMethod.Name);
+        private static void Prefix(MethodBase __originalMethod)
+        {
+            if (!Names.TryGetValue(__originalMethod, out string name))
+            {
+                name = __originalMethod.DeclaringType?.Name + "." + __originalMethod.Name;
+                Names[__originalMethod] = name;
+            }
+            FreezeWatchdog.Enter(name);
+        }
 
         [HarmonyPriority(Priority.Last)]
         private static void Finalizer() => FreezeWatchdog.Exit();

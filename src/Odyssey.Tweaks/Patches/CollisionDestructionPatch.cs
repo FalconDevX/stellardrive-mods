@@ -24,6 +24,19 @@ namespace Odyssey.Patches
         private static readonly AccessTools.FieldRef<ShipCollisionDestruction, IShipsServerProvider> ShipsRef =
             AccessTools.FieldRefAccess<ShipCollisionDestruction, IShipsServerProvider>("_ships");
         private static readonly Dictionary<PartSettings, float> PartHardness = new Dictionary<PartSettings, float>();
+        private const float RescanSeconds = 2f;
+        private const int UnusedFrames = 600;
+
+        private sealed class CachedHardness
+        {
+            public int PartCount = -1;
+            public float NextScan;
+            public int Used;
+            public float Value;
+        }
+
+        private static readonly Dictionary<uint, CachedHardness> ShipHardness = new Dictionary<uint, CachedHardness>();
+        private static readonly List<uint> Stale = new List<uint>();
 
         private static void Prefix(ShipCollisionDestruction __instance)
         {
@@ -40,6 +53,44 @@ namespace Odyssey.Patches
         }
 
         private static float MinHardness(IShipsServerProvider ships, uint shipId)
+        {
+            int partCount = 0;
+            foreach (RootRelativeShipData data in ships.GetRootConnectedShips(shipId))
+            {
+                if (data.Ship != null) partCount += data.Ship.PartCount;
+            }
+            if (ShipHardness.TryGetValue(shipId, out CachedHardness cached) && cached.PartCount == partCount && Time.time < cached.NextScan)
+            {
+                cached.Used = Time.frameCount;
+                return cached.Value;
+            }
+            if (cached == null)
+            {
+                Prune();
+                ShipHardness[shipId] = cached = new CachedHardness();
+            }
+            cached.PartCount = partCount;
+            cached.NextScan = Time.time + RescanSeconds;
+            cached.Used = Time.frameCount;
+            cached.Value = ScanMinHardness(ships, shipId);
+            return cached.Value;
+        }
+
+        private static void Prune()
+        {
+            int frame = Time.frameCount;
+            foreach (KeyValuePair<uint, CachedHardness> pair in ShipHardness)
+            {
+                if (frame - pair.Value.Used > UnusedFrames) Stale.Add(pair.Key);
+            }
+            foreach (uint id in Stale)
+            {
+                ShipHardness.Remove(id);
+            }
+            Stale.Clear();
+        }
+
+        private static float ScanMinHardness(IShipsServerProvider ships, uint shipId)
         {
             float min = Mathf.Min(HullConstants.MetalHardness, Mathf.Min(HullConstants.GlassHardness, HullConstants.WoodHardness));
             foreach (RootRelativeShipData data in ships.GetRootConnectedShips(shipId))
