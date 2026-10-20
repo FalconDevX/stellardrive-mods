@@ -2,7 +2,7 @@ using MelonLoader;
 using Odyssey;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(PowerMod), "Odyssey Power", "1.0.1", "mateu")]
+[assembly: MelonInfo(typeof(PowerMod), "Odyssey Power", "1.1.0", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 [assembly: MelonAdditionalDependencies("Odyssey.Core")]
 

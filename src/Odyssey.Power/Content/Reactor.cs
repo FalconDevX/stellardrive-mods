@@ -21,12 +21,13 @@ namespace Odyssey.Content
         internal const byte PowerSocket = 0, WaterSocket = 2, SignalSocket = 3;
         internal const float LargeModelScale = 2f;
         internal static bool HasSignalSocket;
-        internal static readonly Vector3 RotorPosition = new Vector3(0f, 1.44f, 0f);
+        internal static readonly Vector3 RotorPosition = new Vector3(0.1152f, 0.992f, 0.1792f);
         internal static readonly Vector3[] BeaconPositions =
         {
-            new Vector3(0.86f, 1.612f, 0.86f), new Vector3(-0.86f, 1.612f, 0.86f), new Vector3(-0.86f, 1.612f, -0.86f), new Vector3(0.86f, 1.612f, -0.86f),
+            new Vector3(0.832f, 0.5376f, 0.832f), new Vector3(-0.832f, 0.5376f, 0.832f), new Vector3(-0.832f, 0.5376f, -0.832f), new Vector3(0.832f, 0.5376f, -0.832f),
         };
-        private static readonly Vector2[] SocketLayout = { new Vector2(-0.70f, 0.45f), new Vector2(-0.25f, 0.45f), new Vector2(0.25f, 0.45f), new Vector2(0.70f, 0.45f) };
+        private static readonly Vector2[] SocketLayout = { new Vector2(-0.538f, 0.486f), new Vector2(-0.179f, 0.486f), new Vector2(0.179f, 0.486f), new Vector2(0.538f, 0.486f) };
+        private static readonly string[] BodyParts = { "armor_dark", "armor_light", "hazard", "pipes", "copper" };
         private const ushort ChestPartId = 30, GeneratorPartId = 60, DistillerPartId = 80;
         private static PartSettings _part, _large;
         private static bool _failed, _largeFailed;
@@ -150,15 +151,10 @@ namespace Odyssey.Content
         {
             GameObject root = Object.Instantiate(chest.part, PartFactory.Holder);
             root.name = name;
-            Mesh body = ModAssets.LoadMesh("reactor_body.bin");
-            Mesh rotor = ModAssets.LoadMesh("reactor_rotor.bin");
 
             Transform visual = root.transform.Find("Visual");
             MeshRenderer look = visual.GetComponentInChildren<MeshRenderer>(true);
             Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("reactor_palette.png"), name);
-            Material glowMaterial = new Material(material) { name = name + "Glow" };
-            glowMaterial.SetColor("_EmissionColor", Color.black);
-            glowMaterial.EnableKeyword("_EMISSION");
             var lookCopy = new GameObject("look").AddComponent<MeshRenderer>();
             lookCopy.gameObject.layer = look.gameObject.layer;
             lookCopy.shadowCastingMode = look.shadowCastingMode;
@@ -169,9 +165,28 @@ namespace Odyssey.Content
             }
             Object.DestroyImmediate(visual.GetComponent<DefaultShipPartVisuals>());
             visual.gameObject.AddComponent<ReactorVisuals>();
-            PartFactory.CreateRenderer("Body", visual, body, material, lookCopy).transform.localScale = Vector3.one * size;
-            PartFactory.CreateRenderer("Glow", visual, ModAssets.LoadMesh("reactor_glow.bin"), glowMaterial, lookCopy).transform.localScale = Vector3.one * size;
-            Transform spinner = PartFactory.CreateRenderer("Rotor", visual, rotor, material, lookCopy).transform;
+            Bounds? meshBounds = null;
+            foreach (string part in BodyParts)
+            {
+                Mesh mesh = ModAssets.LoadMesh($"reactor_{part}.bin");
+                Material partMaterial = PartFactory.CreateMaterial(look.sharedMaterial, Tiled($"reactor_{part}.png"), $"{name}_{part}");
+                PartFactory.CreateRenderer(part == "armor_dark" ? "Body" : part, visual, mesh, partMaterial, lookCopy).transform.localScale = Vector3.one * size;
+                Bounds b = mesh.bounds;
+                if (meshBounds.HasValue) b.Encapsulate(meshBounds.Value);
+                meshBounds = b;
+            }
+            Texture2D screenTexture = Tiled("reactor_screens.png");
+            Material screens = PartFactory.CreateMaterial(look.sharedMaterial, screenTexture, name + "Screens");
+            screens.SetTexture("_EmissionMap", screenTexture);
+            screens.SetColor("_EmissionColor", Color.white * 1.4f);
+            screens.EnableKeyword("_EMISSION");
+            PartFactory.CreateRenderer("Screens", visual, ModAssets.LoadMesh("reactor_screens.bin"), screens, lookCopy).transform.localScale = Vector3.one * size;
+            Texture2D coreTexture = Tiled("reactor_core.png");
+            Material core = PartFactory.CreateMaterial(look.sharedMaterial, coreTexture, name + "Core");
+            core.SetTexture("_EmissionMap", coreTexture);
+            core.SetColor("_EmissionColor", Color.black);
+            core.EnableKeyword("_EMISSION");
+            Transform spinner = PartFactory.CreateRenderer("Rotor", visual, ModAssets.LoadMesh("reactor_core.bin"), core, lookCopy).transform;
             spinner.localPosition = RotorPosition * size;
             spinner.localScale = Vector3.one * size;
             Material beaconMaterial = new Material(material) { name = name + "Beacon" };
@@ -188,7 +203,7 @@ namespace Odyssey.Content
             }
             Object.DestroyImmediate(lookCopy.gameObject);
 
-            var bounds = new Bounds(body.bounds.center * size, body.bounds.size * size);
+            var bounds = new Bounds(meshBounds.Value.center * size, meshBounds.Value.size * size);
             PartFactory.SetBounds(root, bounds);
 
             var box = root.transform.Find("Interactions").GetComponentInChildren<BoxCollider>(true);
@@ -219,6 +234,13 @@ namespace Odyssey.Content
                 Melon<PowerMod>.Logger.Warning("No signal socket found to copy - reactor without a signal input (runs without it)");
             }
             return root;
+        }
+
+        private static Texture2D Tiled(string name)
+        {
+            Texture2D texture = ModAssets.LoadTexture(name);
+            texture.wrapMode = TextureWrapMode.Repeat;
+            return texture;
         }
 
         private static PartSettings Build(PartSettings chest, PartSettings generator, PartSettings distiller)

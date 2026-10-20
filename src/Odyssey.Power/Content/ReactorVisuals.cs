@@ -25,11 +25,9 @@ namespace Odyssey.Content
         }
 
         private static readonly Color Cyan = new Color(0.3f, 0.9f, 1f);
-        private static readonly Color Amber = new Color(1f, 0.55f, 0.12f);
+        private static readonly Color DeepBlue = new Color(0.08f, 0.25f, 1f);
         private const float MaxSpin = 260f, SpinAccel = 45f;
         private float _spin, _flicker, _nextFlicker;
-        private ParticleSystem _steam;
-        private bool _steamTried;
         private const float Glow = 4f;
         private Material _body;
         private Renderer _glow;
@@ -56,7 +54,7 @@ namespace Odyssey.Content
                 _scale = bodyTransform.localScale.x;
             }
             _rotor = transform.Find("Rotor");
-            var glow = transform.Find("Glow")?.GetComponent<MeshRenderer>();
+            var glow = (transform.Find("Glow") ?? _rotor)?.GetComponent<MeshRenderer>();
             if (glow != null)
             {
                 _glow = glow;
@@ -66,7 +64,7 @@ namespace Odyssey.Content
             Transform existing = transform.Find("ReactorLight");
             _light = existing != null && existing.GetComponent<Light>() != null ? existing.GetComponent<Light>() : new GameObject("ReactorLight").AddComponent<Light>();
             _light.transform.SetParent(transform, false);
-            _light.transform.localPosition = new Vector3(0f, 0.75f * _scale, 0f);
+            _light.transform.localPosition = Reactor.RotorPosition * _scale;
             _light.type = LightType.Point;
             _light.color = Cyan;
             _light.range = 4.5f * _scale;
@@ -176,7 +174,7 @@ namespace Odyssey.Content
                 _flicker = 1f;
             }
             float warm = Mathf.Clamp01((_level - 0.15f) / 0.5f);
-            Color tint = Color.Lerp(Amber, Cyan, warm);
+            Color tint = Color.Lerp(DeepBlue, Cyan, warm);
             float glow = (0.15f + _level * Glow * pulse) * _flicker;
             SetEmission(_body, ref _bodyColor, tint * glow);
             if (_light != null)
@@ -189,71 +187,7 @@ namespace Odyssey.Content
             {
                 _rotor.Rotate(Vector3.up, -_spin * dt, Space.Self);
             }
-            UpdateSteam();
             UpdateBeacons(dt);
-        }
-
-        private void UpdateSteam()
-        {
-            if (_level > 0.2f && !_steamTried)
-            {
-                _steamTried = true;
-                _steam = CreateSteam();
-            }
-            if (_steam == null)
-            {
-                return;
-            }
-            var emission = _steam.emission;
-            emission.rateOverTime = _level > 0.2f ? 2f + 7f * _level : 0f;
-            if (_level > 0.2f && !_steam.isPlaying)
-            {
-                _steam.Play();
-            }
-        }
-
-        private ParticleSystem CreateSteam()
-        {
-            ParticleSystem template = ParticleTemplates.Get();
-            if (template == null)
-            {
-                return null;
-            }
-            ParticleSystem steam = Instantiate(template.gameObject, transform).GetComponent<ParticleSystem>();
-            steam.name = "Steam";
-            steam.transform.localPosition = new Vector3(0f, 1.72f * _scale, 0f);
-            steam.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
-            steam.transform.localScale = Vector3.one;
-            steam.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            var main = steam.main;
-            main.loop = true;
-            main.duration = 1f;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(1.6f, 2.6f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.18f * _scale, 0.32f * _scale);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(0.5f, 0.9f);
-            main.maxParticles = 40;
-            main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.startColor = Color.white;
-            var emission = steam.emission;
-            emission.enabled = true;
-            emission.rateOverTime = 0f;
-            emission.SetBursts(new ParticleSystem.Burst[0]);
-            var shape = steam.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 12f;
-            shape.radius = 0.12f * _scale;
-            var sizeOverLifetime = steam.sizeOverLifetime;
-            sizeOverLifetime.enabled = true;
-            sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 3.2f));
-            var color = steam.colorOverLifetime;
-            color.enabled = true;
-            color.color = new ParticleSystem.MinMaxGradient(new Gradient
-            {
-                colorKeys = new[] { new GradientColorKey(new Color(0.9f, 0.93f, 0.95f), 0f), new GradientColorKey(new Color(0.8f, 0.82f, 0.85f), 1f) },
-                alphaKeys = new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.35f, 0.15f), new GradientAlphaKey(0f, 1f) },
-            });
-            return steam;
         }
 
         private void OnDisable() => _sound.Stop();
