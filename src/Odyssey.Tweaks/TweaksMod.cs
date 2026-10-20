@@ -3,7 +3,7 @@ using MelonLoader;
 using Odyssey;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(TweaksMod), "Odyssey Tweaks", "1.2.0", "mateu")]
+[assembly: MelonInfo(typeof(TweaksMod), "Odyssey Tweaks", "1.2.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 [assembly: MelonAdditionalDependencies("Odyssey.Core")]
 
@@ -47,7 +47,7 @@ namespace Odyssey
             FastRooms = Settings.Entry(category, "FastRooms", true, "Fast room/oxygen recalculation after a ship change (less lag while building). false = like the game. Computed by the host");
             KeepNearbyShipsLoaded = Settings.Entry(category, "KeepNearbyShipsLoaded", true, "Keep the physics of ships within KeepNearbyShipsDistance loaded even when they are in another space, so walking between areas does not rebuild their colliders (removes hitches). Host only");
             KeepNearbyShipsDistance = Settings.Entry(category, "KeepNearbyShipsDistance", 3000f, "Distance (m) for KeepNearbyShipsLoaded. Every ship inside it is simulated all the time, so a smaller value means less CPU work with many ships. Host only");
-            PhysicsRate = Settings.Entry(category, "PhysicsRate", 40, "Physics and simulation steps per second. The game uses 50 (20 ms steps); 40 or 33 means fewer steps per second, so more FPS when big ships make each step slow. Must be the same for all players");
+            PhysicsRate = Settings.Entry(category, "PhysicsRate", 50, "Experimental: physics and simulation steps per second. The game uses 50 (20 ms steps); 40 or 33 means fewer steps per second, so more FPS when big ships make each step slow. Changed only before the world starts loading; 40 made world loading hang at 97%, so keep 50 unless testing. Must be the same for all players");
             MaxPhysicsStepsPerFrame = Settings.Entry(category, "MaxPhysicsStepsPerFrame", 0, "At most this many physics steps per frame when the game falls behind. 0 = like the game. 1 = smoother frames, but the whole world runs in slow motion while FPS is below PhysicsRate");
             category.SaveToFile(false);
         }

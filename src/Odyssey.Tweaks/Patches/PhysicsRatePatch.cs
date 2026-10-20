@@ -27,6 +27,10 @@ namespace Odyssey.Patches
             {
                 return;
             }
+            if (time.TickRate != rate && ((InstanceFinder.ServerManager != null && InstanceFinder.ServerManager.Started) || (InstanceFinder.ClientManager != null && InstanceFinder.ClientManager.Started)))
+            {
+                return;
+            }
             if (time != _applied && MaxFrameTicks != null)
             {
                 _gameMaxSteps = (byte)MaxFrameTicks.GetValue(time);
