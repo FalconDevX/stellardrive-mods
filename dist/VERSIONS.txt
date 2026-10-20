@@ -9,7 +9,7 @@ Warp Unlock 0.1.2
 Planet Unlock 0.1.2
 Odyssey Core 1.2.2
 Odyssey Mining 1.0.0
-Odyssey Power 1.1.0
+Odyssey Power 1.1.1
 Odyssey Building 1.0.1
 Odyssey Logic 1.0.0
 Odyssey Gear 1.0.0

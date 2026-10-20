@@ -154,7 +154,8 @@ namespace Odyssey.Content
 
             Transform visual = root.transform.Find("Visual");
             MeshRenderer look = visual.GetComponentInChildren<MeshRenderer>(true);
-            Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("reactor_palette.png"), name);
+            Material template = look.sharedMaterial;
+            Material material = PartFactory.CreateMaterial(template, ModAssets.LoadTexture("reactor_palette.png"), name);
             var lookCopy = new GameObject("look").AddComponent<MeshRenderer>();
             lookCopy.gameObject.layer = look.gameObject.layer;
             lookCopy.shadowCastingMode = look.shadowCastingMode;
@@ -169,20 +170,20 @@ namespace Odyssey.Content
             foreach (string part in BodyParts)
             {
                 Mesh mesh = ModAssets.LoadMesh($"reactor_{part}.bin");
-                Material partMaterial = PartFactory.CreateMaterial(look.sharedMaterial, Tiled($"reactor_{part}.png"), $"{name}_{part}");
+                Material partMaterial = PartFactory.CreateMaterial(template, Tiled($"reactor_{part}.png"), $"{name}_{part}");
                 PartFactory.CreateRenderer(part == "armor_dark" ? "Body" : part, visual, mesh, partMaterial, lookCopy).transform.localScale = Vector3.one * size;
                 Bounds b = mesh.bounds;
                 if (meshBounds.HasValue) b.Encapsulate(meshBounds.Value);
                 meshBounds = b;
             }
             Texture2D screenTexture = Tiled("reactor_screens.png");
-            Material screens = PartFactory.CreateMaterial(look.sharedMaterial, screenTexture, name + "Screens");
+            Material screens = PartFactory.CreateMaterial(template, screenTexture, name + "Screens");
             screens.SetTexture("_EmissionMap", screenTexture);
             screens.SetColor("_EmissionColor", Color.white * 1.4f);
             screens.EnableKeyword("_EMISSION");
             PartFactory.CreateRenderer("Screens", visual, ModAssets.LoadMesh("reactor_screens.bin"), screens, lookCopy).transform.localScale = Vector3.one * size;
             Texture2D coreTexture = Tiled("reactor_core.png");
-            Material core = PartFactory.CreateMaterial(look.sharedMaterial, coreTexture, name + "Core");
+            Material core = PartFactory.CreateMaterial(template, coreTexture, name + "Core");
             core.SetTexture("_EmissionMap", coreTexture);
             core.SetColor("_EmissionColor", Color.black);
             core.EnableKeyword("_EMISSION");
