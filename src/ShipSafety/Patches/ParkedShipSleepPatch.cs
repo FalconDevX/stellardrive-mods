@@ -27,6 +27,8 @@ namespace ShipSafety.Patches
         private static readonly Dictionary<ShipRigidbody, Rest> States = new Dictionary<ShipRigidbody, Rest>();
         private static readonly List<ShipRigidbody> Gone = new List<ShipRigidbody>();
         private static readonly HashSet<string> Logged = new HashSet<string>();
+        private static readonly Dictionary<string, float> LastWakeLog = new Dictionary<string, float>();
+        private const float WakeLogInterval = 30f;
         private static int _cleanup;
 
         internal static bool Active => ShipSafetyMod.Enabled.Value && ShipSafetyMod.SleepParkedShips.Value;
@@ -38,11 +40,15 @@ namespace ShipSafety.Patches
                 return false;
             }
             Rigidbody body = ShipPhysicsAccess.Rigidbody(ship);
-            if (body == null || body.isKinematic || Mathf.Abs(body.mass - props.MassIncludingConnectedShips) > 0.001f
-                || (body.position - props.PhysicsState.Position).sqrMagnitude > MoveTolerance * MoveTolerance || body.centerOfMass != props.CenterOfMassIncludingConnectedShips
-                || !StillAsleep(body))
+            string reason = body == null ? "no body" : body.isKinematic ? "kinematic"
+                : Mathf.Abs(body.mass - props.MassIncludingConnectedShips) > 0.001f ? $"mass {body.mass:0} -> {props.MassIncludingConnectedShips:0}"
+                : (body.position - props.PhysicsState.Position).sqrMagnitude > MoveTolerance * MoveTolerance ? $"moved {(body.position - props.PhysicsState.Position).magnitude:0.000} m by the game"
+                : body.centerOfMass != props.CenterOfMassIncludingConnectedShips ? $"center of mass {body.centerOfMass} -> {props.CenterOfMassIncludingConnectedShips}"
+                : !StillAsleep(body) ? $"speed {body.linearVelocity.magnitude:0.000} m/s, spin {body.angularVelocity.magnitude:0.000}"
+                : null;
+            if (reason != null)
             {
-                Wake(rest);
+                Wake(ship, rest, reason);
                 return false;
             }
             return true;
@@ -72,12 +78,17 @@ namespace ShipSafety.Patches
             float mass = Mathf.Max(1f, body.mass);
             if (rest.Asleep)
             {
-                if (Same(forces, rest.Forces, mass) && StillAsleep(body))
+                if (!Same(forces, rest.Forces, mass))
                 {
-                    return true;
+                    Wake(ship, rest, $"forces changed by {(forces.ForceToAdd - rest.Forces.ForceToAdd).magnitude / mass:0.000} m/s^2, torque {(forces.TorqueToAddInDegreesSecond - rest.Forces.TorqueToAddInDegreesSecond).magnitude:0.00} deg/s");
+                    return false;
                 }
-                Wake(rest);
-                return false;
+                if (!StillAsleep(body))
+                {
+                    Wake(ship, rest, $"speed {body.linearVelocity.magnitude:0.000} m/s, spin {body.angularVelocity.magnitude:0.000}");
+                    return false;
+                }
+                return true;
             }
             bool still = body.linearVelocity.sqrMagnitude < RestSpeed * RestSpeed && body.angularVelocity.sqrMagnitude < RestSpin * RestSpin;
             rest.SlowTicks = still && Same(forces, rest.LastForces, mass) ? rest.SlowTicks + 1 : 0;
@@ -114,10 +125,16 @@ namespace ShipSafety.Patches
             return true;
         }
 
-        private static void Wake(Rest rest)
+        private static void Wake(ShipRigidbody ship, Rest rest, string reason)
         {
             rest.Asleep = false;
             rest.SlowTicks = 0;
+            float now = Time.unscaledTime;
+            if (!LastWakeLog.TryGetValue(ship.name, out float last) || now - last > WakeLogInterval)
+            {
+                LastWakeLog[ship.name] = now;
+                Melon<ShipSafetyMod>.Logger.Msg($"Ship '{ship.name}' woke up: {reason}");
+            }
         }
 
         private static bool Same(ShipPhysicsForcesResult a, ShipPhysicsForcesResult b, float mass)

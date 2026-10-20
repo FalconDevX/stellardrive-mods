@@ -3,7 +3,7 @@ using MelonLoader;
 using Odyssey;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(TweaksMod), "Odyssey Tweaks", "1.1.2", "mateu")]
+[assembly: MelonInfo(typeof(TweaksMod), "Odyssey Tweaks", "1.1.3", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 [assembly: MelonAdditionalDependencies("Odyssey.Core")]
 

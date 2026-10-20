@@ -60,6 +60,7 @@ namespace Odyssey.Diagnostics
             while (Time.unscaledTime < settle) yield return null;
             Ticks.Clear();
             Calls.Clear();
+            CostBreakdown.Reset();
             var frames = new List<float>();
             var cpuMain = new List<double>();
             var cpuRender = new List<double>();
@@ -123,6 +124,7 @@ namespace Odyssey.Diagnostics
             }
 
             sb.AppendLine();
+            CostBreakdown.Write(sb, Ticks, Calls, frameCount, avg);
             sb.AppendLine("Updates of mods and the game (ms per frame, most expensive first, measured with hooks; a method's time includes the methods it calls, so nested entries must not be added up):");
             foreach (var kv in Ticks.OrderByDescending(kv => kv.Value).Take(40))
             {
@@ -360,6 +362,7 @@ namespace Odyssey.Diagnostics
                 count += PatchAssembly(harmony, asm, "game " + name, methods, prefix, postfix, false);
             }
             count += PatchDeep(harmony, prefix, postfix);
+            count += CostBreakdown.Patch(harmony);
             Melon<TweaksMod>.Logger.Msg($"[fps] measurement hooked into {count} mod and game methods");
         }
 

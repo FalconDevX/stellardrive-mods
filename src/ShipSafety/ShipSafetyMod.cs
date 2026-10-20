@@ -1,7 +1,7 @@
 using MelonLoader;
 using ShipSafety;
 
-[assembly: MelonInfo(typeof(ShipSafetyMod), "Ship Safety", "0.6.1", "mateu")]
+[assembly: MelonInfo(typeof(ShipSafetyMod), "Ship Safety", "0.6.2", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace ShipSafety
