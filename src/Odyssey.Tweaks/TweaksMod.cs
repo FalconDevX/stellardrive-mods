@@ -3,7 +3,7 @@ using MelonLoader;
 using Odyssey;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(TweaksMod), "Odyssey Tweaks", "1.1.3", "mateu")]
+[assembly: MelonInfo(typeof(TweaksMod), "Odyssey Tweaks", "1.2.0", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 [assembly: MelonAdditionalDependencies("Odyssey.Core")]
 
@@ -23,11 +23,14 @@ namespace Odyssey
         internal static MelonPreferences_Entry<bool> FastCableVisuals;
         internal static MelonPreferences_Entry<bool> FastSignals;
         internal static MelonPreferences_Entry<bool> FastCollisionDestruction;
+        internal static MelonPreferences_Entry<int> PhysicsRate;
+        internal static MelonPreferences_Entry<int> MaxPhysicsStepsPerFrame;
 
         private static readonly Action CullerUpdate = Diagnostics.DetailCuller.Update;
         private static readonly Action GpuCullingUpdate = Diagnostics.GpuCulling.Update;
         private static readonly Action RoomCullerUpdate = Diagnostics.RoomCuller.Update;
         private static readonly Action ChaseCameraUpdate = Patches.ChaseCameraPatch.Update;
+        private static readonly Action PhysicsRateUpdate = Patches.PhysicsRatePatch.Update;
 
         public override void OnInitializeMelon()
         {
@@ -44,6 +47,8 @@ namespace Odyssey
             FastRooms = Settings.Entry(category, "FastRooms", true, "Fast room/oxygen recalculation after a ship change (less lag while building). false = like the game. Computed by the host");
             KeepNearbyShipsLoaded = Settings.Entry(category, "KeepNearbyShipsLoaded", true, "Keep the physics of ships within KeepNearbyShipsDistance loaded even when they are in another space, so walking between areas does not rebuild their colliders (removes hitches). Host only");
             KeepNearbyShipsDistance = Settings.Entry(category, "KeepNearbyShipsDistance", 3000f, "Distance (m) for KeepNearbyShipsLoaded. Every ship inside it is simulated all the time, so a smaller value means less CPU work with many ships. Host only");
+            PhysicsRate = Settings.Entry(category, "PhysicsRate", 40, "Physics and simulation steps per second. The game uses 50 (20 ms steps); 40 or 33 means fewer steps per second, so more FPS when big ships make each step slow. Must be the same for all players");
+            MaxPhysicsStepsPerFrame = Settings.Entry(category, "MaxPhysicsStepsPerFrame", 0, "At most this many physics steps per frame when the game falls behind. 0 = like the game. 1 = smoother frames, but the whole world runs in slow motion while FPS is below PhysicsRate");
             category.SaveToFile(false);
         }
 
@@ -53,6 +58,7 @@ namespace Odyssey
             CoreMod.Run(LoggerInstance, "GPU culling", GpuCullingUpdate);
             CoreMod.Run(LoggerInstance, "Room culler", RoomCullerUpdate);
             CoreMod.Run(LoggerInstance, "Chase camera", ChaseCameraUpdate);
+            CoreMod.Run(LoggerInstance, "Physics rate", PhysicsRateUpdate);
             Keyboard kb = Keyboard.current;
             if (kb != null && kb.f11Key.wasPressedThisFrame)
             {
