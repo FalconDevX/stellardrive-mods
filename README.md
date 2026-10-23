@@ -4,7 +4,7 @@
 
 **An unofficial mod pack for _StellarDrive Demo_: mining, power, building, logic, gear and quality-of-life mods built on MelonLoader and Harmony.**
 
-<img src="docs/showcase.jpg" alt="Every part added by Stellar Drive: Odyssey on one floating platform: hydrogen engines, nuclear reactors, electrolyzers, pumps, tanks, chests, pontoons, laser cannon, info panels, stairs, doors and floor hatches" width="100%">
+<img src="docs/reentry_front.jpg" alt="A 15000-part ship entering the atmosphere of Otrera b nose first at 1600 m/s, wrapped in orange and violet plasma with sparks streaming back" width="100%">
 
 [![Game](https://img.shields.io/badge/game-StellarDrive%20Demo-1b2838?logo=steam&logoColor=white)](https://store.steampowered.com/search/?term=StellarDrive)
 [![MelonLoader](https://img.shields.io/badge/MelonLoader-0.7.3-6b4fbb)](https://github.com/LavaGang/MelonLoader)
@@ -64,6 +64,8 @@
 Current versions are always listed in [`dist/VERSIONS.txt`](dist/VERSIONS.txt).
 
 ## Highlights
+
+<img src="docs/showcase.jpg" alt="Every part added by Stellar Drive: Odyssey on one floating platform: hydrogen engines, nuclear reactors, electrolyzers, pumps, tanks, chests, pontoons, laser cannon, info panels, stairs, doors and floor hatches" width="100%">
 
 - **New progression:** over a dozen new research nodes (Mining, Hydrogen Propulsion, Heavy Hydrogen Engines, Nuclear Power, Large Reactor, Mechanics, Laser Weapons, Jetpack, Info Panels, Large Doors, Large Tanks, Large Storage, Tool Crafting), with the research tree grouped into colored category rows.
 - **Industrial chain:** mine ore and uranium, electrolyze ice or water into hydrogen and oxygen, and power ships with chemical, hydrogen or nuclear energy.
