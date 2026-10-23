@@ -111,7 +111,7 @@ namespace Water.Buoyancy
             float gravity = _environment != null ? _environment.GetGravityAtPosition(state.PhysicsState.SpaceId, rb.position).magnitude : 9.8f;
             Buoyancy.Pontoons.Refresh(ship, entry.Pontoons);
             Buoyancy.Pontoons.UpdateInflation(ship, entry.Pontoons, dt);
-            if (Buoyancy.Pontoons.Apply(rb, space.Center, entry.Pontoons, gravity, state.Id))
+            if (Buoyancy.Pontoons.Apply(rb, space.Center, entry.Pontoons, gravity, state.Id, dt))
             {
                 entry.WetTime = Time.time;
             }

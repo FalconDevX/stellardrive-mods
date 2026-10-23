@@ -88,7 +88,7 @@ namespace ShipSafety.Patches
             float jump = (velocity - before).magnitude;
             float max = ShipSafetyMod.MaxSpeed.Value;
             bool broken = float.IsNaN(speed) || float.IsInfinity(speed);
-            bool jumped = jump > ShipSafetyMod.MaxSpeedJump.Value;
+            bool jumped = jump > ShipSafetyMod.MaxSpeedJump.Value && speed > before.magnitude;
             if (!broken && !jumped && speed <= max)
             {
                 return;

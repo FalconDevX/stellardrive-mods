@@ -64,7 +64,7 @@ namespace Water.Buoyancy
 
         internal static float InflationOf(PontoonSet set, ushort id) => set.Inflation.TryGetValue(id, out float v) ? v : 0f;
 
-        internal static bool Apply(Rigidbody rb, Vector3Double spaceCenter, PontoonSet set, float gravity, uint shipId)
+        internal static bool Apply(Rigidbody rb, Vector3Double spaceCenter, PontoonSet set, float gravity, uint shipId, float dt)
         {
             if (set.Points.Count == 0)
             {
@@ -80,6 +80,7 @@ namespace Water.Buoyancy
             }
             float damping = 2f * Damping * Mathf.Sqrt(stiffness * mass) / set.Points.Count;
             float drag = Mathf.Max(0f, WaterMod.WaterDrag.Value) * mass / set.Points.Count;
+            float maxResistance = 0.5f * mass / (set.Points.Count * Mathf.Max(dt, 0.001f));
             float submerged = 0f, inflated = 0f;
 
             foreach (var (id, local, n) in set.Points)
@@ -102,7 +103,9 @@ namespace Water.Buoyancy
                 Vector3 vh = v - up * vUp;
                 float wet = Mathf.Min(1f, s * 3f);
                 float lift = gravity * liftPerPoint * volume * s * inflation;
-                Vector3 force = up * (lift - damping * volume * wet * inflation * vUp) - vh * (drag * n * n * wet * (0.25f + 0.03f * vh.magnitude));
+                float vertical = Mathf.Min(damping * volume * wet * inflation, maxResistance);
+                float horizontal = Mathf.Min(drag * n * n * wet * (0.25f + 0.03f * vh.magnitude), maxResistance);
+                Vector3 force = up * (lift - vertical * vUp) - vh * horizontal;
                 rb.AddForceAtPosition(force, point);
             }
 
