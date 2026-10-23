@@ -1,7 +1,8 @@
 ﻿param(
-    [ValidateSet("test", "perf", "jetpack", "pump", "tank", "doors", "fps", "seat", "blueprint", "hitch", "gyro", "showcase")] [string]$Mode = "test",
+    [ValidateSet("test", "perf", "jetpack", "pump", "tank", "doors", "fps", "seat", "blueprint", "hitch", "gyro", "showcase", "reentry")] [string]$Mode = "test",
     [string]$World = "test_wszystko",
     [int]$TimeoutSec = 300,
+    [string]$SteamId = "",
     [string]$GameDir = "C:\Program Files (x86)\Steam\steamapps\common\StellarDrive Demo"
 )
 $ErrorActionPreference = "Stop"
@@ -11,6 +12,7 @@ if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force -Confirm:$false }
 Copy-Item (Join-Path $saves $World) $tmp -Recurse
 $worldFile = (Join-Path $tmp "world.json").Replace("\", "/")
 $gameArgs = @("--mining-dev-world=$worldFile", "--mining-dev-dump", "--mining-dev-$Mode", "--mining-dev-quit")
+if ($SteamId) { $gameArgs += "--mining-dev-steamid=$SteamId" }
 $p = Start-Process (Join-Path $GameDir "StellarDrive.exe") -WorkingDirectory $GameDir -ArgumentList $gameArgs -PassThru
 if (-not $p.WaitForExit($TimeoutSec * 1000)) { Stop-Process -Id $p.Id -Force }
 Start-Sleep -Seconds 2

@@ -59,7 +59,7 @@
 | **[Drop Items](#drop-items)** | 0.1.2 | Drop items from the toolbar or inventory | Each player |
 | **[Flora](#flora)** | 0.4.1 | Decorative flower fields on the planet | Each player |
 | **[FPS Counter](#fps-counter)** | 0.1.0 | FPS counter in the top-right corner (F3) | Each player |
-| **[Reentry](#reentry)** | 0.1.0 | Plasma, sparks and a fiery trail when a ship flies fast through an atmosphere | Each player |
+| **[Reentry](#reentry)** | 0.2.0 | Plasma, sparks and a fiery trail when a ship flies fast through an atmosphere | Each player |
 
 Current versions are always listed in [`dist/VERSIONS.txt`](dist/VERSIONS.txt).
 
@@ -155,6 +155,7 @@ A few commonly tweaked options:
 | Odyssey Power | `VentVolume` | `0.5` | Quiet fan hum of air vents while they blow oxygen (0 = silent) |
 | Odyssey Tweaks | `HideSealedRooms` | `true` | Parts inside a closed room without windows are not drawn while the camera is outside that room |
 | Odyssey Tweaks | `GpuOcclusionCulling` | `false` | Experimental: the graphics card skips what walls hide (Unity GPU resident drawer); set back to false if objects vanish |
+| Odyssey Tweaks | `FastShipCollisions` | `true` | Speculative continuous collision for ships instead of the game's swept mode: a big ship at 1400 m/s went from 7 to 45 FPS |
 | Odyssey Tweaks | `PartCullScreenSize` | `0.01` | Ship parts and their shadows are not drawn when smaller than this part of the screen height; 0 = always draw like the game |
 | Water | `LakeDepth` | `10` | How far lake beds are lowered (m) |
 | Water | `OceanCoverage` | `0.15` | Share of Otrera b covered by large oceans (0 = none) |
@@ -328,7 +329,7 @@ Ships that fly fast through an atmosphere heat up and glow. The effect follows a
 - The heat flux follows the Sutton-Graves relation (square root of air density times speed cubed), so high in the thin air even orbital speed only gives a faint glow that grows as the ship goes deeper.
 - The hull heats up in about 1.5 s and cools down over about 5 s, so the glow fades after slowing down.
 
-Plasma forms only on the side facing the flight and streams around the hull. A fiery trail, sparks at peak heating, a smoke trail while cooling and a light from the shock front complete the effect. The colour goes from dark red through orange to yellow-white, with a pink glow of ionised air at the highest heating. It is purely visual and runs on each player's computer.
+The plasma is built like the Firefly mod for KSP (based on Leah Lindner's reentry VFX paper): the ship's outline seen along the flight direction is found on its voxel grid, and glowing ribbons stream back from that outline, widening and fading, in two layers - a hot yellow-orange core and a longer rose-violet outer layer. A glowing shock cushion sits in front of the surfaces facing the flight. Nothing passes through the hull, so from the cockpit only the glow ahead of the nose is seen. Sparks at peak heating, a smoke trail while cooling and a light from the shock front complete it. It is purely visual and runs on each player's computer.
 
 ---
 

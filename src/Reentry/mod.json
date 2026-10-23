@@ -2,6 +2,6 @@
   "id": "stellardrive-reentry",
   "name": "Reentry",
   "author": "mateu",
-  "version": "0.1.0",
-  "description": "Ships that fly fast through an atmosphere glow: plasma on the side facing the flight, sparks, a fiery trail, smoke and light. Driven by speed and air density with a reentry heating model scaled to the planet's orbital speed; the hull cools down slowly. Only visual"
+  "version": "0.2.0",
+  "description": "Plasma around ships that fly fast through an atmosphere, made like the Firefly mod for KSP: glowing trails stream back from the ship's outline in two layers (hot yellow-orange core, rose and violet outer layer), a glowing shock cushion in front of the nose, sparks, smoke while cooling and a light. Driven by speed and air density with a reentry heating model scaled to the planet's orbital speed. Only visual"
 }

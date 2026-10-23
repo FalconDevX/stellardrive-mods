@@ -3,7 +3,7 @@ using MelonLoader;
 using Odyssey;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(TweaksMod), "Odyssey Tweaks", "1.2.2", "mateu")]
+[assembly: MelonInfo(typeof(TweaksMod), "Odyssey Tweaks", "1.2.3", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 [assembly: MelonAdditionalDependencies("Odyssey.Core")]
 
@@ -25,6 +25,7 @@ namespace Odyssey
         internal static MelonPreferences_Entry<bool> FastCollisionDestruction;
         internal static MelonPreferences_Entry<int> PhysicsRate;
         internal static MelonPreferences_Entry<int> MaxPhysicsStepsPerFrame;
+        internal static MelonPreferences_Entry<bool> FastShipCollisions;
         internal static MelonPreferences_Entry<int> SteamSendBufferMB;
         internal static MelonPreferences_Entry<int> SteamSendRateKB;
 
@@ -51,6 +52,7 @@ namespace Odyssey
             KeepNearbyShipsDistance = Settings.Entry(category, "KeepNearbyShipsDistance", 3000f, "Distance (m) for KeepNearbyShipsLoaded. Every ship inside it is simulated all the time, so a smaller value means less CPU work with many ships. Host only");
             PhysicsRate = Settings.Entry(category, "PhysicsRate", 50, "Experimental: physics and simulation steps per second. The game uses 50 (20 ms steps); 40 or 33 means fewer steps per second, so more FPS when big ships make each step slow. Changed only before the world starts loading; 40 made world loading hang at 97%, so keep 50 unless testing. Must be the same for all players");
             MaxPhysicsStepsPerFrame = Settings.Entry(category, "MaxPhysicsStepsPerFrame", 0, "At most this many physics steps per frame when the game falls behind. 0 = like the game. 1 = smoother frames, but the whole world runs in slow motion while FPS is below PhysicsRate");
+            FastShipCollisions = Settings.Entry(category, "FastShipCollisions", true, "Ships use speculative continuous collision detection instead of the game's swept one. Both stop fast ships from passing through the ground, but the game's mode sweeps every hull collider each physics step at high speed (a big ship at 1400 m/s cost 55 ms per step, 7 FPS). Applied when a ship's physics loads. Host only");
             SteamSendBufferMB = Settings.Entry(category, "SteamSendBufferMB", 16, "Steam send buffer per player (MB). The game uses Steam's 0.5 MB; when a big world sends more than fits, Steam drops messages (k_EResultLimitExceeded) and other players lose chest, part and cable updates. Applied when hosting or joining");
             SteamSendRateKB = Settings.Entry(category, "SteamSendRateKB", 8192, "Highest Steam send rate per player (KB/s). Steam's default limit is much lower, so big ships back up the send buffer. Applied when hosting or joining");
             category.SaveToFile(false);

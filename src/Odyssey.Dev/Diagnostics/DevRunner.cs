@@ -17,6 +17,21 @@ using UnityEngine.SceneManagement;
 
 namespace Odyssey.Diagnostics
 {
+    [HarmonyPatch(typeof(Managers.Common.MainGameSceneInitializer), "Start")]
+    internal static class DevSteamIdPatch
+    {
+        private static void Prefix(Managers.Common.MainGameSceneInitializer __instance)
+        {
+            string id = DevRunner.SteamIdArg;
+            if (!string.IsNullOrEmpty(id) && ulong.TryParse(id, out _))
+            {
+                Traverse.Create(__instance).Field("useCustomLocalSteamId").SetValue(true);
+                Traverse.Create(__instance).Field("customLocalSteamId").SetValue(id);
+                Melon<DevMod>.Logger.Msg($"[dev] local player Steam id {id}");
+            }
+        }
+    }
+
     internal static class DevRunner
     {
         private static bool _autoLoaded;
@@ -28,6 +43,8 @@ namespace Odyssey.Diagnostics
             string arg = Environment.GetCommandLineArgs().FirstOrDefault(a => a.StartsWith(prefix));
             return arg?.Substring(prefix.Length).Trim('"');
         }
+
+        internal static string SteamIdArg => Arg("steamid");
 
         private static bool HasArg(string name) => Environment.GetCommandLineArgs().Contains("--mining-dev-" + name);
 
@@ -246,6 +263,10 @@ namespace Odyssey.Diagnostics
             else if (HasArg("gyro"))
             {
                 yield return RunGyroTest();
+            }
+            else if (HasArg("reentry"))
+            {
+                yield return ReentryShow.Run();
             }
             else if (HasArg("showcase"))
             {
