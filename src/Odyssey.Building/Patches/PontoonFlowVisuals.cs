@@ -48,7 +48,7 @@ namespace Odyssey.Patches
                     }
                     int n = Pontoon.Scale(part.Settings.id);
                     bool inflated = part.State is IDoorState door && door.IsOpen;
-                    float perSecond = inflated ? Math.Max(0f, BuildingMod.PontoonLeakPerMinute.Value) / 60f : IntakePerSecond;
+                    float perSecond = inflated ? Math.Max(0f, BuildingMod.PontoonLeakPerHour.Value) / 3600f : IntakePerSecond;
                     _flowRef(__result) += perSecond * n * n * n / 50f;
                 }
             }

@@ -43,7 +43,7 @@ namespace Odyssey.Server
                     float air = Air.TryGetValue(key, out float a) ? a : state.IsOpen ? full : 0f;
                     if (state.IsOpen)
                     {
-                        air -= Mathf.Max(0f, BuildingMod.PontoonLeakPerMinute.Value) / 60f * volume * deltaTime;
+                        air -= Mathf.Max(0f, BuildingMod.PontoonLeakPerHour.Value) / 3600f * volume * deltaTime;
                     }
                     connections = connections ?? ServiceCache.Get<ConnectionsServerTracker>();
                     string supply = Supply(__instance.Id, part.Id, connections, out FluidGroupServerState group);

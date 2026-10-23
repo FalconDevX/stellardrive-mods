@@ -180,7 +180,7 @@ namespace Odyssey.Content
             settings.snappingStyle = chest.snappingStyle;
             settings.description = $"Inflatable float landing gear: attach it under the ship (mount plate against the floor). It comes deflated - " +
                                    $"pipe oxygen into the inlet at the end of its mount plate and it takes {OxygenToInflate * volume:0} oxygen and inflates over {InflateSeconds:0} s. " +
-                                   $"Air keeps leaking out, so keep the oxygen flowing - it tops the pontoon up; close the valve or cut the supply and it goes flat within about half a minute. " +
+                                   $"Air slowly leaks out, so keep an oxygen pipe connected - it tops the pontoon up; without a supply it goes flat after about 40 minutes. " +
                                    $"Inflated, in a lake it holds up about {2000f * volume:0} kg (Water mod setting PontoonLift, times {volume:0} for this size), so with enough of them the ship floats " +
                                    $"on the surface and can sail. Deflated pontoons do not float. Spread them out (e.g. one at each corner) to keep the ship level. " +
                                    $"On land they work as skids. Needs the Water mod.";
