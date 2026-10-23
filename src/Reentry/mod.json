@@ -1,0 +1,7 @@
+{
+  "id": "stellardrive-reentry",
+  "name": "Reentry",
+  "author": "mateu",
+  "version": "0.1.0",
+  "description": "Ships that fly fast through an atmosphere glow: plasma on the side facing the flight, sparks, a fiery trail, smoke and light. Driven by speed and air density with a reentry heating model scaled to the planet's orbital speed; the hull cools down slowly. Only visual"
+}

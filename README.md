@@ -59,6 +59,7 @@
 | **[Drop Items](#drop-items)** | 0.1.2 | Drop items from the toolbar or inventory | Each player |
 | **[Flora](#flora)** | 0.4.1 | Decorative flower fields on the planet | Each player |
 | **[FPS Counter](#fps-counter)** | 0.1.0 | FPS counter in the top-right corner (F3) | Each player |
+| **[Reentry](#reentry)** | 0.1.0 | Plasma, sparks and a fiery trail when a ship flies fast through an atmosphere | Each player |
 
 Current versions are always listed in [`dist/VERSIONS.txt`](dist/VERSIONS.txt).
 
@@ -159,6 +160,8 @@ A few commonly tweaked options:
 | Water | `OceanCoverage` | `0.15` | Share of Otrera b covered by large oceans (0 = none) |
 | Water | `UnderwaterAirSeconds` | `30` | Breath time underwater with a full oxygen tank |
 | FPS Counter | `ToggleKey` | `F3` | Toggles the counter |
+| Reentry | `Brightness` | `1` | Brightness of the plasma, flames and glow |
+| Reentry | `TrailLength` | `1` | Length of the fiery trail (0 = none) |
 
 ---
 
@@ -316,6 +319,16 @@ Decorative flower fields on the planet surface.
 ### FPS Counter
 
 FPS counter in the top-right corner, toggled with **F3**.
+
+### Reentry
+
+Ships that fly fast through an atmosphere heat up and glow. The effect follows a reentry heating model:
+
+- The shock temperature depends on speed. Speeds are scaled by the planet's orbital speed (about 1.8 km/s on Otrera b) to their Earth equivalent, so entering from orbit looks like a capsule coming back to Earth. Glow starts around 500 m/s near the ground; normal flight never glows.
+- The heat flux follows the Sutton-Graves relation (square root of air density times speed cubed), so high in the thin air even orbital speed only gives a faint glow that grows as the ship goes deeper.
+- The hull heats up in about 1.5 s and cools down over about 5 s, so the glow fades after slowing down.
+
+Plasma forms only on the side facing the flight and streams around the hull. A fiery trail, sparks at peak heating, a smoke trail while cooling and a light from the shock front complete the effect. The colour goes from dark red through orange to yellow-white, with a pink glow of ionised air at the highest heating. It is purely visual and runs on each player's computer.
 
 ---
 
