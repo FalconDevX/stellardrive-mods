@@ -4,7 +4,7 @@
 
 **An unofficial mod pack for _StellarDrive Demo_: mining, power, building, logic, gear and quality-of-life mods built on MelonLoader and Harmony.**
 
-<img src="docs/reentry_front.jpg" alt="A 15000-part ship entering the atmosphere of Otrera b nose first at 1600 m/s, wrapped in orange and violet plasma with sparks streaming back" width="100%">
+<img src="docs/reentry_front.jpg" alt="A 15000-part ship entering the atmosphere of Otrera b nose first at 1680 m/s above the clouds, wrapped in flowing orange, rose and violet plasma with sparks streaming back" width="100%">
 
 [![Game](https://img.shields.io/badge/game-StellarDrive%20Demo-1b2838?logo=steam&logoColor=white)](https://store.steampowered.com/search/?term=StellarDrive)
 [![MelonLoader](https://img.shields.io/badge/MelonLoader-0.7.3-6b4fbb)](https://github.com/LavaGang/MelonLoader)
@@ -59,9 +59,17 @@
 | **[Drop Items](#drop-items)** | 0.1.2 | Drop items from the toolbar or inventory | Each player |
 | **[Flora](#flora)** | 0.4.1 | Decorative flower fields on the planet | Each player |
 | **[FPS Counter](#fps-counter)** | 0.1.0 | FPS counter in the top-right corner (F3) | Each player |
-| **[Reentry](#reentry)** | 0.2.0 | Plasma, sparks and a fiery trail when a ship flies fast through an atmosphere | Each player |
+| **[Reentry](#reentry)** | 0.2.1 | Plasma, sparks and a fiery trail when a ship flies fast through an atmosphere | Each player |
 
 Current versions are always listed in [`dist/VERSIONS.txt`](dist/VERSIONS.txt).
+
+## Gallery
+
+<img src="docs/space_orbit.jpg" alt="The same ship 48 km above Otrera b, every hydrogen engine at full thrust, the planet's curve and the thin blue atmosphere below" width="100%">
+
+<img src="docs/space_engines.jpg" alt="Rear view: twelve XL hydrogen engines boosting above the planet" width="49%"> <img src="docs/space_close.jpg" alt="Close-up of the XL hydrogen engine nozzles at full thrust" width="49%">
+
+<img src="docs/reentry_side.jpg" alt="Side view of the reentry: plasma ribbons stream back from the ship's outline along the whole hull" width="49%"> <img src="docs/reentry_top.jpg" alt="From above: the plasma sheath flows past the hull edges over the cloud layer" width="49%">
 
 ## Highlights
 
@@ -325,7 +333,7 @@ FPS counter in the top-right corner, toggled with **F3**.
 
 ### Reentry
 
-<img src="docs/reentry_front.jpg" alt="A 15000-part ship entering the atmosphere of Otrera b nose first at 1600 m/s, wrapped in orange and violet plasma with sparks streaming back" width="100%">
+<img src="docs/reentry_front.jpg" alt="A 15000-part ship entering the atmosphere of Otrera b nose first at 1680 m/s above the clouds, wrapped in flowing orange, rose and violet plasma with sparks streaming back" width="100%">
 
 <img src="docs/reentry_side.jpg" alt="The same ship from the side: plasma ribbons stream back from its outline along the whole hull" width="49%"> <img src="docs/reentry_top.jpg" alt="View from above and behind: the plasma sheath flows past the hull edges" width="49%">
 

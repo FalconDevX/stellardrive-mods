@@ -30,6 +30,7 @@ namespace Odyssey.Server
         private static readonly Dictionary<(uint ship, ushort part), float> Demand = new Dictionary<(uint, ushort), float>();
         private static readonly Dictionary<(uint ship, ushort part), float> Logged = new Dictionary<(uint, ushort), float>();
         private const float LogEverySeconds = 30f;
+        internal static float ForcedStrength = -1f;
 
         internal static void Reset()
         {
@@ -127,6 +128,11 @@ namespace Odyssey.Server
                         {
                             status = hydrogen.EffectiveConsumptionRate <= 0f ? "hydrogen pipe empty" : "oxygen pipe empty";
                         }
+                    }
+                    if (ForcedStrength >= 0f)
+                    {
+                        rate = ForcedStrength;
+                        status = "running";
                     }
                     Demand[key] = fuel;
                     if (status == null) status = "running";

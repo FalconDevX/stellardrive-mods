@@ -22,6 +22,7 @@ namespace Reentry
         {
             public Vector3 Start, Outward, Tangent;
             public float Width, Seed;
+            public Vector2Int Key;
         }
 
         private struct Cell
@@ -58,7 +59,8 @@ namespace Reentry
         private const float GlowStartSpeed = 1300f, PlasmaSpeed = 4500f;
         private const float FluxStart = 0.004f, FluxFull = 0.02f;
         private const float HeatUpSeconds = 1.5f, CoolDownSeconds = 5f;
-        private const int MaxCells = 900;
+        private const int MaxCells = 1600;
+        private const int Rows = 8;
 
         private static readonly Color Core = new Color(1f, 0.8f, 0.5f);
         private static readonly Color Ember = new Color(1f, 0.45f, 0.1f);
@@ -305,7 +307,32 @@ namespace Reentry
                 outward.Normalize();
                 Vector3 o = (u * outward.x + v * outward.y).normalized;
                 float seed = Mathf.Abs(Mathf.Sin(pair.Key.x * 12.9898f + pair.Key.y * 78.233f) * 43758.5453f) % 1f;
-                fx.Rims.Add(new Rim { Start = centre + o * c * 0.5f, Outward = o, Tangent = Vector3.Cross(f, o).normalized, Width = c, Seed = seed });
+                fx.Rims.Add(new Rim { Start = centre + o * c * 0.5f, Outward = o, Tangent = Vector3.Cross(f, o).normalized, Width = c, Seed = seed, Key = pair.Key });
+            }
+            var index = new Dictionary<Vector2Int, int>();
+            for (int i = 0; i < fx.Rims.Count; i++) index[fx.Rims[i].Key] = i;
+            var smoothed = new Vector3[fx.Rims.Count];
+            for (int i = 0; i < fx.Rims.Count; i++)
+            {
+                Vector3 sum = Vector3.zero;
+                for (int dx = -3; dx <= 3; dx++)
+                {
+                    for (int dy = -3; dy <= 3; dy++)
+                    {
+                        if (index.TryGetValue(fx.Rims[i].Key + new Vector2Int(dx, dy), out int j))
+                        {
+                            sum += fx.Rims[j].Outward / (1f + dx * dx + dy * dy);
+                        }
+                    }
+                }
+                smoothed[i] = sum.sqrMagnitude > 0.0001f ? sum.normalized : fx.Rims[i].Outward;
+            }
+            for (int i = 0; i < fx.Rims.Count; i++)
+            {
+                Rim r = fx.Rims[i];
+                r.Outward = smoothed[i];
+                r.Tangent = Vector3.Cross(f, smoothed[i]).normalized;
+                fx.Rims[i] = r;
             }
         }
 
@@ -322,12 +349,13 @@ namespace Reentry
             float t = Time.time;
 
             Begin();
+            float scale = 1f / Mathf.Max(1f, size * 0.12f);
             foreach (Rim r in fx.Rims)
             {
-                float wobble = 0.75f + 0.5f * Mathf.PerlinNoise(r.Seed * 31f, t * 1.3f);
+                float wobble = 0.8f + 0.4f * Mathf.PerlinNoise((r.Start.x + r.Start.z) * scale + t * 0.6f, (r.Start.y - r.Start.z) * scale - t * 0.4f);
                 float length = baseLength * wobble;
-                float w = r.Width * 0.7f;
-                Strip(r.Start, r.Tangent, r.Outward, -f, length, w, w * 2.2f, w * 4f, spread * 0.35f, spread * 1.4f,
+                float w = r.Width * 1.1f;
+                Strip(r.Start, r.Tangent, r.Outward, -f, length, w, w * 3.2f, spread * 1.4f,
                     WithAlpha(head, alpha * brightness), WithAlpha(middle, alpha * 0.8f * brightness), WithAlpha(tail, 0f), r.Seed);
             }
             End(fx.Trails);
@@ -339,13 +367,14 @@ namespace Reentry
                 Color wrapHead = Ember;
                 Color wrapMiddle = Color.Lerp(Ember, Rose, 0.55f + 0.3f * Mathf.Clamp01(level - 0.6f + over));
                 Color wrapTail = Color.Lerp(Rose, Violet, 0.45f);
+                float wrapScale = 1f / Mathf.Max(1f, size * 0.18f);
                 foreach (Rim r in fx.Rims)
                 {
-                    float wobble = 0.8f + 0.4f * Mathf.PerlinNoise(r.Seed * 17f + 5f, t * 0.9f);
+                    float wobble = 0.85f + 0.3f * Mathf.PerlinNoise((r.Start.x - r.Start.y) * wrapScale - t * 0.5f, (r.Start.z + r.Start.y) * wrapScale + t * 0.3f);
                     float length = baseLength * 1.7f * wobble;
-                    float w = r.Width * 1.1f;
+                    float w = r.Width * 1.6f;
                     Vector3 start = r.Start + r.Outward * r.Width * 0.6f - f * baseLength * 0.04f;
-                    Strip(start, r.Tangent, r.Outward, -f, length, w, w * 3f, w * 5.5f, spread * 0.8f, spread * 3f,
+                    Strip(start, r.Tangent, r.Outward, -f, length, w, w * 4f, spread * 3f,
                         WithAlpha(wrapHead, wrapAlpha * 0.6f), WithAlpha(wrapMiddle, wrapAlpha), WithAlpha(wrapTail, 0f), r.Seed);
                 }
             }
@@ -384,22 +413,40 @@ namespace Reentry
             Tris.Add(i); Tris.Add(i + 1); Tris.Add(i + 2); Tris.Add(i); Tris.Add(i + 2); Tris.Add(i + 3);
         }
 
-        private static void Strip(Vector3 start, Vector3 tangent, Vector3 outward, Vector3 back, float length, float w0, float w1, float w2, float out1, float out2,
+        private static void Strip(Vector3 start, Vector3 tangent, Vector3 outward, Vector3 back, float length, float w0, float w1, float spreadOut,
             Color c0, Color c1, Color c2, float seed)
         {
-            Vector3 m = start + back * length * 0.25f + outward * out1;
-            Vector3 e = start + back * length + outward * out2;
-            int i = Verts.Count;
-            Verts.Add(start - tangent * w0); Verts.Add(start + tangent * w0);
-            Verts.Add(m - tangent * w1); Verts.Add(m + tangent * w1);
-            Verts.Add(e - tangent * w2); Verts.Add(e + tangent * w2);
-            Colors.Add(c0); Colors.Add(c0); Colors.Add(c1); Colors.Add(c1); Colors.Add(c2); Colors.Add(c2);
-            float u0 = seed, u1 = seed + 0.35f;
-            Uvs.Add(new Vector2(u0, 0f)); Uvs.Add(new Vector2(u1, 0f));
-            Uvs.Add(new Vector2(u0, 0.35f)); Uvs.Add(new Vector2(u1, 0.35f));
-            Uvs.Add(new Vector2(u0, 1f)); Uvs.Add(new Vector2(u1, 1f));
-            Tris.Add(i); Tris.Add(i + 2); Tris.Add(i + 1); Tris.Add(i + 1); Tris.Add(i + 2); Tris.Add(i + 3);
-            Tris.Add(i + 2); Tris.Add(i + 4); Tris.Add(i + 3); Tris.Add(i + 3); Tris.Add(i + 4); Tris.Add(i + 5);
+            int first = Verts.Count;
+            for (int row = 0; row <= Rows; row++)
+            {
+                float t = row / (float)Rows;
+                float along = length * t;
+                float widen = Mathf.Lerp(w0, w1, Mathf.Sqrt(t));
+                Vector3 centre = start + back * along + outward * spreadOut * Mathf.Pow(t, 0.75f);
+                Color c = t < 0.3f ? Color.Lerp(c0, c1, Mathf.SmoothStep(0f, 1f, t / 0.3f)) : Color.Lerp(c1, c2, Mathf.SmoothStep(0f, 1f, (t - 0.3f) / 0.7f));
+                c.a = Mathf.Lerp(c0.a, c1.a, Mathf.Clamp01(t / 0.3f)) * Mathf.Pow(1f - t, 1.4f) * Mathf.SmoothStep(0f, 1f, t / 0.04f + 0.25f);
+                Color edge = c;
+                edge.a = 0f;
+                Verts.Add(centre - tangent * widen);
+                Verts.Add(centre);
+                Verts.Add(centre + tangent * widen);
+                Colors.Add(edge);
+                Colors.Add(c);
+                Colors.Add(edge);
+                Uvs.Add(new Vector2(seed, t));
+                Uvs.Add(new Vector2(seed + 0.2f, t));
+                Uvs.Add(new Vector2(seed + 0.4f, t));
+            }
+            for (int row = 0; row < Rows; row++)
+            {
+                int i = first + row * 3;
+                for (int col = 0; col < 2; col++)
+                {
+                    int a = i + col, b = a + 1, c = a + 3, d = a + 4;
+                    Tris.Add(a); Tris.Add(c); Tris.Add(b);
+                    Tris.Add(b); Tris.Add(c); Tris.Add(d);
+                }
+            }
         }
 
         private static Color WithAlpha(Color c, float a)
@@ -592,7 +639,7 @@ namespace Reentry
 
         private static Texture2D StreakTexture()
         {
-            const int w = 128, h = 256;
+            const int w = 256, h = 512;
             var tex = new Texture2D(w, h, TextureFormat.RGBA32, true) { name = "ReentryStreaks", wrapMode = TextureWrapMode.Repeat };
             var pixels = new Color32[w * h];
             for (int y = 0; y < h; y++)
@@ -605,14 +652,13 @@ namespace Reentry
                     for (int o = 0; o < 4; o++)
                     {
                         int fu = 4 << o, fv = 1 << o;
-                        n += amp * Mathf.PerlinNoise(across * fu + o * 13.1f, along * fv * 3f + o * 7.7f);
+                        n += amp * Mathf.PerlinNoise(across * fu + o * 13.1f, along * fv * 2f + o * 7.7f);
                         total += amp;
                         amp *= 0.55f;
                     }
                     n /= total;
-                    float streak = Mathf.Pow(Mathf.Clamp01((n - 0.25f) / 0.6f), 1.6f);
-                    float edge = Mathf.Sin(Mathf.PI * Mathf.Repeat(across * 2f, 1f));
-                    float a = Mathf.Clamp01(streak * (0.55f + 0.45f * edge) * 1.4f);
+                    float streak = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((n - 0.2f) / 0.65f));
+                    float a = Mathf.Clamp01(0.35f + streak * 0.75f);
                     pixels[y * w + x] = new Color32(255, 255, 255, (byte)(a * 255f));
                 }
             }

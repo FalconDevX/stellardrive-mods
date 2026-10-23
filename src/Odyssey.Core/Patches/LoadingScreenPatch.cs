@@ -13,7 +13,7 @@ namespace Odyssey.Patches
     [HarmonyPatch(typeof(LoadingScreenDisabler), "Awake")]
     internal static class LoadingScreenPatch
     {
-        private static readonly string[] Images = { "loading_0.jpg", "loading_1.jpg" };
+        private static readonly string[] Images = { "loading_0.jpg", "loading_1.jpg", "loading_2.jpg", "loading_3.jpg" };
         private static readonly Color Accent = new Color(0.93f, 0.36f, 0.32f);
         private static Texture2D[] _textures;
         private static int _picture = -1;

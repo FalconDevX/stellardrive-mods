@@ -1,133 +1,215 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Core.Values;
 using MelonLoader;
+using Odyssey.Server;
 using Planets.Interface.Services;
 using Ships;
+using Ships.Grid.Model;
 using Ships.Interface.Model.State;
 using Ships.Interface.Services;
 using Ships.Services;
 using UnityEngine;
 using WorldTracking.Interface.Model.Spaces;
 using WorldTracking.Interface.Services;
+using Object = UnityEngine.Object;
 
 namespace Odyssey.Diagnostics
 {
     internal static class ReentryShow
     {
-        private const float StartHeight = 0.85f, SpeedOfOrbit = 0.95f, DescentDegrees = 25f, Duration = 32f;
-        private static readonly float[] ShotTimes = { 1.5f, 2.5f, 3.5f, 4.5f, 5.5f, 7f, 9f };
+        private sealed class Scene
+        {
+            public ShipsServerTracker Ships;
+            public ISpacesServerProvider Spaces;
+            public IShipsClientProvider ShipsClient;
+            public TrackedShipServer Ship;
+            public Camera Main, Shot;
+            public float Radius, Height, Orbital;
+            public Type Outline;
+            public readonly List<Canvas> Hidden = new List<Canvas>();
+        }
 
         internal static IEnumerator Run()
         {
             var log = Melon<DevMod>.Logger;
-            Camera cam = Camera.main;
-            var ships = ServiceCache.Get<ShipsServerTracker>();
-            var spaces = ServiceCache.Get<ISpacesServerProvider>();
+            var scene = new Scene
+            {
+                Main = Camera.main,
+                Ships = ServiceCache.Get<ShipsServerTracker>(),
+                Spaces = ServiceCache.Get<ISpacesServerProvider>(),
+                ShipsClient = ServiceCache.Get<IShipsClientProvider>(),
+                Outline = HarmonyLib.AccessTools.TypeByName("Outline"),
+            };
             var planets = ServiceCache.Get<IPlanetsServerProvider>();
-            var shipsClient = ServiceCache.Get<IShipsClientProvider>();
-            if (cam == null || ships == null || spaces == null || planets == null || shipsClient == null)
+            if (scene.Main == null || scene.Ships == null || scene.Spaces == null || planets == null || scene.ShipsClient == null)
             {
                 log.Msg("[reentry] services missing");
                 yield break;
             }
-            TrackedShipServer ship = ships.Ships.OrderByDescending(s => s.PartCount).FirstOrDefault();
-            ShipPhysicsState state = ship != null ? ship.PhysicsState : default;
-            if (ship == null || !(spaces.GetSpace(state.SpaceId) is PlanetSurfaceSpace space))
+            scene.Ship = scene.Ships.Ships.OrderByDescending(s => s.PartCount).FirstOrDefault();
+            if (scene.Ship == null || !(scene.Spaces.GetSpace(scene.Ship.PhysicsState.SpaceId) is PlanetSurfaceSpace space))
             {
                 log.Msg("[reentry] no ship on a planet");
                 yield break;
             }
             var props = planets.GetPlanetProps(space.PlanetId);
-            float radius = (float)props.Radius;
-            float height = props.PhysicalProperties.atmosphereProperties.atmosphereHeight;
-            float gravity = props.PhysicalProperties.gravityInG * 9.81f;
-            float orbital = Mathf.Sqrt(gravity * radius);
-            Vector3Double planetPos = space.Center + (Vector3Double)state.Position;
-            Vector3 up = (Vector3)planetPos.Normalized;
-            Vector3 start = (Vector3)(planetPos.Normalized * (radius + height * StartHeight) - space.Center);
-            Vector3 forward = Vector3.ProjectOnPlane(state.Rotation * Vector3.back, up).normalized;
-            float angle = DescentDegrees * Mathf.Deg2Rad;
-            Vector3 velocity = (forward * Mathf.Cos(angle) - up * Mathf.Sin(angle)) * orbital * SpeedOfOrbit;
-            log.Msg($"[reentry] ship {ship.Id} ({ship.PartCount} parts): planet radius {radius:0} m, atmosphere {height:0} m, orbital speed {orbital:0} m/s; start {height * StartHeight:0} m up at {velocity.magnitude:0} m/s, {DescentDegrees:0} degrees down");
-            ship.SetPhysicsState(new ShipPhysicsState(state.SpaceId, start, state.Rotation, velocity));
+            scene.Radius = (float)props.Radius;
+            scene.Height = props.PhysicalProperties.atmosphereProperties.atmosphereHeight;
+            scene.Orbital = Mathf.Sqrt(props.PhysicalProperties.gravityInG * 9.81f * scene.Radius);
+            log.Msg($"[reentry] ship {scene.Ship.Id} ({scene.Ship.PartCount} parts): planet radius {scene.Radius:0} m, atmosphere {scene.Height:0} m, orbital speed {scene.Orbital:0} m/s");
 
-            MelonPreferences_Entry<bool> debug = MelonPreferences.GetEntry<bool>("Reentry", "Debug");
-            if (debug != null) debug.Value = true;
             MelonPreferences_Entry<bool> fps = MelonPreferences.GetEntry<bool>("FpsCounter", "ShowFps");
             bool fpsShown = fps != null && fps.Value;
             if (fps != null) fps.Value = false;
-
-            var shotCam = new GameObject("ReentryCam").AddComponent<Camera>();
-            shotCam.CopyFrom(cam);
-            shotCam.fieldOfView = 55f;
-            shotCam.farClipPlane = Mathf.Max(cam.farClipPlane, 60000f);
-            var data = shotCam.gameObject.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
-            var mainData = cam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            scene.Shot = new GameObject("ShowCam").AddComponent<Camera>();
+            scene.Shot.CopyFrom(scene.Main);
+            scene.Shot.fieldOfView = 50f;
+            scene.Shot.farClipPlane = Mathf.Max(scene.Main.farClipPlane, 200000f);
+            var data = scene.Shot.gameObject.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            var mainData = scene.Main.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
             if (mainData != null) data.renderPostProcessing = mainData.renderPostProcessing;
-            var hidden = Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None).Where(c => c.enabled).ToList();
-            Showcase.Observer = shotCam.transform;
+            Showcase.Observer = scene.Shot.transform;
+            Material sky = RenderSettings.skybox;
+            log.Msg($"[reentry] camera clear {scene.Main.clearFlags}, background {scene.Main.backgroundColor}, skybox {(sky != null ? sky.name + " / " + sky.shader?.name : "none")}, ambient {RenderSettings.ambientMode} {RenderSettings.ambientSkyColor}");
+            scene.Shot.clearFlags = CameraClearFlags.SolidColor;
+            scene.Shot.backgroundColor = new Color(0.01f, 0.012f, 0.02f, 1f);
 
+            yield return Reentry(scene, log);
+            yield return Space(scene, log);
+
+            HydrogenThrusterServer.ForcedStrength = -1f;
+            foreach (Canvas c in scene.Hidden) if (c != null) c.enabled = true;
+            if (fps != null) fps.Value = fpsShown;
+            Showcase.Observer = null;
+            scene.Main.enabled = true;
+            Object.Destroy(scene.Shot.gameObject);
+        }
+
+        private static IEnumerator Space(Scene scene, MelonLogger.Instance log)
+        {
+            Place(scene, scene.Height * 8f, 0f, 150f);
+            HydrogenThrusterServer.ForcedStrength = 1f;
+            log.Msg("[space] ship above the atmosphere, all hydrogen engines at full thrust");
+            float[] times = { 3f, 4.5f, 6f, 7.5f, 9f, 10.5f };
+            yield return Shoot(scene, log, "space", times, 11f, (visual, bounds, view, flow) =>
+            {
+                float s = bounds.HighestExtent;
+                Vector3 c = bounds.Center;
+                Vector3 engines = new Vector3(c.x, c.y, bounds.UpperCoord.z);
+                switch (view % 6)
+                {
+                    case 0: return (visual.TransformPoint(c + new Vector3(-1.1f * s, 0.45f * s, 1.5f * s)), visual.TransformPoint(engines - new Vector3(0f, 0f, 0.4f * s)));
+                    case 1: return (visual.TransformPoint(engines + new Vector3(-0.35f * s, 0.12f * s, 0.6f * s)), visual.TransformPoint(engines));
+                    case 2: return (visual.TransformPoint(c + new Vector3(1.9f * s, 0.15f * s, 0.3f * s)), visual.TransformPoint(c - new Vector3(0f, 0.6f * s, 0f)));
+                    case 3: return (visual.TransformPoint(c + new Vector3(0.6f * s, -0.55f * s, -1.5f * s)), visual.TransformPoint(engines));
+                    case 4: return (visual.TransformPoint(engines + new Vector3(0.9f * s, -0.3f * s, 1.1f * s)), visual.TransformPoint(c));
+                    default: return (visual.TransformPoint(c + new Vector3(-0.4f * s, 1.3f * s, 0.9f * s)), visual.TransformPoint(engines - new Vector3(0f, 0f, 0.6f * s)));
+                }
+            });
+            HydrogenThrusterServer.ForcedStrength = -1f;
+        }
+
+        private static IEnumerator Reentry(Scene scene, MelonLogger.Instance log)
+        {
+            MelonPreferences_Entry<bool> debug = MelonPreferences.GetEntry<bool>("Reentry", "Debug");
+            if (debug != null) debug.Value = true;
+            Place(scene, scene.Height * 0.95f, 12f, scene.Orbital * 0.95f);
+            log.Msg("[reentry] ship nose first into the top of the atmosphere");
+            float[] times = { 1.5f, 2.5f, 3.5f, 4.5f, 5.5f, 6.5f };
+            yield return Shoot(scene, log, "reentry", times, 7f, (visual, bounds, view, flow) =>
+            {
+                float s = bounds.HighestExtent;
+                Vector3 c = visual.TransformPoint(bounds.Center);
+                Vector3 side = Vector3.Cross(flow, visual.up).normalized;
+                Vector3 offset = (view % 3) == 0 ? -flow * 1.5f + visual.up * 0.8f + side * 0.6f
+                    : (view % 3) == 1 ? side * 1.6f + visual.up * 0.25f + flow * 0.35f
+                    : flow * 1.7f + visual.up * 0.45f - side * 0.9f;
+                Vector3 target = (view % 3) == 2 ? c : c + flow * s * 0.25f;
+                return (c + offset * s, target);
+            });
+            if (debug != null) debug.Value = false;
+        }
+
+        private static void Place(Scene scene, float altitude, float descentDegrees, float speed)
+        {
+            ShipPhysicsState state = scene.Ship.PhysicsState;
+            if (!(scene.Spaces.GetSpace(state.SpaceId) is PlanetSurfaceSpace space))
+            {
+                return;
+            }
+            Vector3Double planetPos = space.Center + (Vector3Double)state.Position;
+            Vector3 up = (Vector3)planetPos.Normalized;
+            Vector3 start = (Vector3)(planetPos.Normalized * (scene.Radius + altitude) - space.Center);
+            Vector3 nose = Vector3.ProjectOnPlane(state.Rotation * Vector3.back, up).normalized;
+            Quaternion level = Quaternion.LookRotation(-nose, up);
+            float angle = descentDegrees * Mathf.Deg2Rad;
+            Vector3 velocity = (nose * Mathf.Cos(angle) - up * Mathf.Sin(angle)) * speed;
+            scene.Ship.SetPhysicsState(new ShipPhysicsState(state.SpaceId, start, level, velocity));
+        }
+
+        private static IEnumerator Shoot(Scene scene, MelonLogger.Instance log, string name, float[] times, float duration,
+            Func<Transform, CoordBounds, int, Vector3, (Vector3 position, Vector3 target)> view)
+        {
             float begin = Time.time, nextLog = 0f;
-            bool profiled = false;
             int shot = 0;
-            Vector3 lastVisual = Vector3.zero, flow = Vector3.forward;
+            Vector3 last = Vector3.zero, flow = Vector3.forward;
             bool hasLast = false;
-            while (Time.time - begin < Duration)
+            while (Time.time - begin < duration)
             {
                 float t = Time.time - begin;
-                ShipPhysicsState now = ship.PhysicsState;
+                ShipPhysicsState now = scene.Ship.PhysicsState;
                 if (t >= nextLog)
                 {
                     nextLog = t + 1f;
-                    float altitude = spaces.GetSpace(now.SpaceId) is PlanetSurfaceSpace s ? (float)((s.Center + (Vector3Double)now.Position).Magnitude - radius) : float.NaN;
-                    log.Msg($"[reentry] t {t:0.0} s: altitude {altitude:0} m, speed {now.Velocity.magnitude:0} m/s, space {now.SpaceId}, frame {Time.unscaledDeltaTime * 1000f:0.0} ms");
+                    float altitude = scene.Spaces.GetSpace(now.SpaceId) is PlanetSurfaceSpace s ? (float)((s.Center + (Vector3Double)now.Position).Magnitude - scene.Radius) : float.NaN;
+                    log.Msg($"[{name}] t {t:0.0} s: altitude {altitude:0} m, speed {now.Velocity.magnitude:0} m/s, frame {Time.unscaledDeltaTime * 1000f:0.0} ms");
                 }
-                if (shipsClient.TryGetShipVisualTransform(ship.Id, out Transform visual))
+                HideOverlays(scene);
+                if (scene.ShipsClient.TryGetShipVisualTransform(scene.Ship.Id, out Transform visual))
                 {
-                    if (hasLast && (visual.position - lastVisual).sqrMagnitude > 0.01f && (visual.position - lastVisual).magnitude < 500f)
+                    if (hasLast && (visual.position - last).sqrMagnitude > 0.01f && (visual.position - last).magnitude < 500f)
                     {
-                        flow = Vector3.Lerp(flow, (visual.position - lastVisual).normalized, 0.2f).normalized;
+                        flow = Vector3.Lerp(flow, (visual.position - last).normalized, 0.2f).normalized;
                     }
-                    lastVisual = visual.position;
+                    last = visual.position;
                     hasLast = true;
-                    var bounds = ship.GetHullCoordBounds();
-                    Vector3 center = visual.TransformPoint(bounds.Center);
-                    float size = bounds.HighestExtent;
-                    Vector3 side = Vector3.Cross(flow, visual.up).normalized;
-                    if (side.sqrMagnitude < 0.5f) side = visual.right;
-                    int view = shot % 3;
-                    Vector3 offset = view == 0 ? -flow * 1.5f + visual.up * 0.8f + side * 0.6f
-                        : view == 1 ? side * 1.6f + visual.up * 0.25f + flow * 0.35f
-                        : flow * 1.7f + visual.up * 0.45f - side * 0.9f;
-                    Vector3 target = view == 2 ? center : center + flow * size * 0.25f;
-                    shotCam.transform.position = center + offset * size;
-                    shotCam.transform.rotation = Quaternion.LookRotation(target - shotCam.transform.position, visual.up);
-                    cam.enabled = false;
-                    foreach (Canvas c in hidden) if (c != null) c.enabled = false;
+                    var (position, target) = view(visual, scene.Ship.GetHullCoordBounds(), shot, flow);
+                    scene.Shot.transform.position = position;
+                    scene.Shot.transform.rotation = Quaternion.LookRotation(target - position, visual.up);
+                    scene.Main.enabled = false;
                 }
-                if (!profiled && t >= 10f)
+                if (shot < times.Length && t >= times[shot])
                 {
-                    profiled = true;
-                    FrameProfiler.Start();
-                    log.Msg("[reentry] FPS report started");
-                }
-                if (shot < ShotTimes.Length && t >= ShotTimes[shot])
-                {
-                    string path = Path.Combine(DevTools.OutDir, $"reentry{shot}.png");
+                    string path = Path.Combine(DevTools.OutDir, $"{name}{shot}.png");
                     ScreenCapture.CaptureScreenshot(path);
-                    log.Msg($"[reentry] shot {shot} at {t:0.0} s: {path}");
+                    log.Msg($"[{name}] shot {shot} at {t:0.0} s: {path}");
                     shot++;
                 }
                 yield return null;
             }
-            foreach (Canvas c in hidden) if (c != null) c.enabled = true;
-            if (debug != null) debug.Value = false;
-            if (fps != null) fps.Value = fpsShown;
-            Showcase.Observer = null;
-            cam.enabled = true;
-            Object.Destroy(shotCam.gameObject);
+        }
+
+        private static void HideOverlays(Scene scene)
+        {
+            foreach (Canvas c in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+            {
+                if (c.enabled)
+                {
+                    c.enabled = false;
+                    scene.Hidden.Add(c);
+                }
+            }
+            if (scene.Outline != null)
+            {
+                foreach (Object o in Object.FindObjectsByType(scene.Outline, FindObjectsSortMode.None))
+                {
+                    Object.Destroy(o);
+                }
+            }
         }
     }
 }

@@ -1,7 +1,7 @@
-﻿using MelonLoader;
+using MelonLoader;
 using Reentry;
 
-[assembly: MelonInfo(typeof(ReentryMod), "Reentry", "0.2.0", "mateu")]
+[assembly: MelonInfo(typeof(ReentryMod), "Reentry", "0.2.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 
 namespace Reentry
