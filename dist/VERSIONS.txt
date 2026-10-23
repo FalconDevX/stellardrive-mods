@@ -7,7 +7,7 @@ Ship Safety 0.6.3
 Velocity Indicator 0.1.0
 Warp Unlock 0.1.2
 Planet Unlock 0.1.2
-Odyssey Core 1.2.2
+Odyssey Core 1.2.3
 Odyssey Mining 1.0.0
 Odyssey Power 1.1.3
 Odyssey Building 1.0.3

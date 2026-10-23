@@ -4,7 +4,7 @@ using MelonLoader;
 using Odyssey;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(CoreMod), "Odyssey Core", "1.2.2", "mateu")]
+[assembly: MelonInfo(typeof(CoreMod), "Odyssey Core", "1.2.3", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 [assembly: MelonPriority(-1000)]
 

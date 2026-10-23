@@ -323,6 +323,10 @@ FPS counter in the top-right corner, toggled with **F3**.
 
 ### Reentry
 
+<img src="docs/reentry_front.jpg" alt="A 15000-part ship entering the atmosphere of Otrera b nose first at 1600 m/s, wrapped in orange and violet plasma with sparks streaming back" width="100%">
+
+<img src="docs/reentry_side.jpg" alt="The same ship from the side: plasma ribbons stream back from its outline along the whole hull" width="49%"> <img src="docs/reentry_top.jpg" alt="View from above and behind: the plasma sheath flows past the hull edges" width="49%">
+
 Ships that fly fast through an atmosphere heat up and glow. The effect follows a reentry heating model:
 
 - The shock temperature depends on speed. Speeds are scaled by the planet's orbital speed (about 1.8 km/s on Otrera b) to their Earth equivalent, so entering from orbit looks like a capsule coming back to Earth. Glow starts around 500 m/s near the ground; normal flight never glows.
