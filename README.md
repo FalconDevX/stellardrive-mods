@@ -65,11 +65,17 @@ Current versions are always listed in [`dist/VERSIONS.txt`](dist/VERSIONS.txt).
 
 ## Gallery
 
+<img src="docs/ring_belt.jpg" alt="Boosting through the asteroid belt in the ring of Otrera b, all twelve XL hydrogen engines at full thrust" width="100%">
+
+<img src="docs/launch_lake.jpg" alt="Lift-off from a lake: every hydrogen engine firing as the 15000-part ship rises over the water and the forest" width="100%">
+
 <img src="docs/space_orbit.jpg" alt="The same ship 48 km above Otrera b, every hydrogen engine at full thrust, the planet's curve and the thin blue atmosphere below" width="100%">
 
 <img src="docs/space_engines.jpg" alt="Rear view: twelve XL hydrogen engines boosting above the planet" width="49%"> <img src="docs/space_close.jpg" alt="Close-up of the XL hydrogen engine nozzles at full thrust" width="49%">
 
 <img src="docs/reentry_side.jpg" alt="Side view of the reentry: plasma ribbons stream back from the ship's outline along the whole hull" width="49%"> <img src="docs/reentry_top.jpg" alt="From above: the plasma sheath flows past the hull edges over the cloud layer" width="49%">
+
+All screenshots: [docs/gallery](docs/gallery)
 
 ## Highlights
 

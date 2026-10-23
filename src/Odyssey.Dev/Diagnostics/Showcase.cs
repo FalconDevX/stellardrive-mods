@@ -61,7 +61,7 @@ namespace Odyssey.Diagnostics
             return total / samples;
         }
 
-        private static void SetInstancerCamera(Camera camera)
+        internal static void SetInstancerCamera(Camera camera)
         {
             System.Type manager = HarmonyLib.AccessTools.TypeByName("GPUInstancer.GPUInstancerManager");
             System.Reflection.MethodInfo set = manager != null ? HarmonyLib.AccessTools.Method(manager, "SetCamera") : null;

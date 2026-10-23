@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using Core.Values;
 using MelonLoader;
+using Odyssey.Content;
 using Odyssey.Server;
 using Planets.Interface.Services;
 using Ships;
@@ -13,6 +14,7 @@ using Ships.Interface.Model.State;
 using Ships.Interface.Services;
 using Ships.Services;
 using UnityEngine;
+using WorldTracking.Interface.Model;
 using WorldTracking.Interface.Model.Spaces;
 using WorldTracking.Interface.Services;
 using Object = UnityEngine.Object;
@@ -73,20 +75,133 @@ namespace Odyssey.Diagnostics
             var mainData = scene.Main.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
             if (mainData != null) data.renderPostProcessing = mainData.renderPostProcessing;
             Showcase.Observer = scene.Shot.transform;
+            Showcase.SetInstancerCamera(scene.Shot);
             Material sky = RenderSettings.skybox;
             log.Msg($"[reentry] camera clear {scene.Main.clearFlags}, background {scene.Main.backgroundColor}, skybox {(sky != null ? sky.name + " / " + sky.shader?.name : "none")}, ambient {RenderSettings.ambientMode} {RenderSettings.ambientSkyColor}");
             scene.Shot.clearFlags = CameraClearFlags.SolidColor;
             scene.Shot.backgroundColor = new Color(0.01f, 0.012f, 0.02f, 1f);
 
+            yield return Launch(scene, log);
             yield return Reentry(scene, log);
             yield return Space(scene, log);
+            yield return Ring(scene, log);
 
             HydrogenThrusterServer.ForcedStrength = -1f;
             foreach (Canvas c in scene.Hidden) if (c != null) c.enabled = true;
             if (fps != null) fps.Value = fpsShown;
             Showcase.Observer = null;
             scene.Main.enabled = true;
+            Showcase.SetInstancerCamera(scene.Main);
             Object.Destroy(scene.Shot.gameObject);
+        }
+
+        private static IEnumerator Launch(Scene scene, MelonLogger.Instance log)
+        {
+            ShipPhysicsState state = scene.Ship.PhysicsState;
+            if (scene.Spaces.GetSpace(state.SpaceId) is PlanetSurfaceSpace space)
+            {
+                Vector3 here = (Vector3)(space.Center + (Vector3Double)state.Position);
+                Vector3 up = here.normalized;
+                Vector3 east = Vector3.Cross(up, Vector3.up).normalized;
+                if (east.sqrMagnitude < 0.5f) east = Vector3.Cross(up, Vector3.right).normalized;
+                Vector3 north = Vector3.Cross(east, up);
+                float sea = scene.Radius + Worlds.SeaLevel;
+                Vector3 lake = Vector3.zero;
+                for (float r = 0f; r <= 8000f && lake == Vector3.zero; r += 250f)
+                {
+                    for (int a = 0; a < Mathf.Max(1, (int)(r / 120f)) && lake == Vector3.zero; a++)
+                    {
+                        float angle = a * Mathf.PI * 2f / Mathf.Max(1, (int)(r / 120f));
+                        Vector3 c = (up * sea + (east * Mathf.Cos(angle) + north * Mathf.Sin(angle)) * r).normalized * sea;
+                        bool wet = true;
+                        for (int k = 0; k < 9 && wet; k++)
+                        {
+                            Vector3 probe = (c + east * 70f * (k % 3 - 1) + north * 70f * (k / 3 - 1)).normalized * sea;
+                            wet = WaterPump.TryProbe(space.PlanetId, probe, out _, out bool w) && w;
+                        }
+                        if (wet) lake = c;
+                    }
+                }
+                if (lake != Vector3.zero)
+                {
+                    Vector3 lakeUp = lake.normalized;
+                    Vector3 position = (Vector3)((Vector3Double)(lakeUp * (sea + 2.5f)) - space.Center);
+                    Vector3 nose = Vector3.ProjectOnPlane(state.Rotation * Vector3.back, lakeUp).normalized;
+                    scene.Ship.SetPhysicsState(new ShipPhysicsState(state.SpaceId, position, Quaternion.LookRotation(-nose, lakeUp), Vector3.zero));
+                    log.Msg($"[launch] ship put on a lake {Vector3.Distance(lake, here):0} m away");
+                    yield return Shoot(scene, log, "water", new[] { 3f }, 4f, (visual, bounds, view, flow) =>
+                    {
+                        float s = bounds.HighestExtent;
+                        return (visual.TransformPoint(bounds.Center + new Vector3(1.5f * s, 0.2f * s, -1.1f * s)), visual.TransformPoint(bounds.Center));
+                    });
+                }
+                else
+                {
+                    log.Msg("[launch] no lake nearby, launching from where the ship is");
+                }
+            }
+            HydrogenThrusterServer.ForcedStrength = 1f;
+            log.Msg("[launch] all hydrogen engines at full thrust on the ground");
+            float[] times = { 2f, 3.5f, 5f, 6.5f, 8f, 9.5f };
+            yield return Shoot(scene, log, "launch", times, 10f, (visual, bounds, view, flow) =>
+            {
+                float s = bounds.HighestExtent;
+                Vector3 c = bounds.Center;
+                Vector3 engines = new Vector3(c.x, c.y, bounds.UpperCoord.z);
+                switch (view % 6)
+                {
+                    case 0: return (visual.TransformPoint(c + new Vector3(1.6f * s, -0.15f * s, -0.9f * s)), visual.TransformPoint(c + new Vector3(0f, 0.1f * s, 0.2f * s)));
+                    case 1: return (visual.TransformPoint(engines + new Vector3(-0.9f * s, 0.05f * s, 1.2f * s)), visual.TransformPoint(engines - new Vector3(0f, 0f, 0.5f * s)));
+                    case 2: return (visual.TransformPoint(c + new Vector3(-1.4f * s, -0.25f * s, 0.2f * s)), visual.TransformPoint(c + new Vector3(0f, -0.1f * s, 0f)));
+                    case 3: return (visual.TransformPoint(c + new Vector3(0.7f * s, -0.3f * s, -1.6f * s)), visual.TransformPoint(engines));
+                    case 4: return (visual.TransformPoint(engines + new Vector3(1.1f * s, 0.4f * s, 1.4f * s)), visual.TransformPoint(c));
+                    default: return (visual.TransformPoint(c + new Vector3(-1.9f * s, 0.6f * s, -0.4f * s)), visual.TransformPoint(c));
+                }
+            });
+            HydrogenThrusterServer.ForcedStrength = -1f;
+        }
+
+        private static IEnumerator Ring(Scene scene, MelonLogger.Instance log)
+        {
+            var planets = ServiceCache.Get<IPlanetsServerProvider>();
+            var ringed = planets?.Planets.FirstOrDefault(p => p.RingProperties != null);
+            if (ringed == null || !(scene.Spaces is WorldTracking.Spaces.SpacesServer server))
+            {
+                log.Msg("[ring] no planet with a ring");
+                yield break;
+            }
+            var ring = ringed.RingProperties;
+            ushort segment = 0;
+            float best = -1f;
+            for (ushort i = 0; i < ring.SegmentCount; i++)
+            {
+                Vector3Double pos = ring.CalculateAngleLocalPos(i, 0.3);
+                float density = ring.GetDensityAtRadius(pos.Magnitude);
+                if (density > best) { best = density; segment = i; }
+            }
+            var state = server.CreateSpace(new PlanetRingSpace { PlanetRingId = new PlanetRingId(ringed.Id, segment), CenterAngle = 0.3 });
+            server.TransferObjectToSpace(scene.Ship, state);
+            ShipPhysicsState now = scene.Ship.PhysicsState;
+            scene.Ship.SetPhysicsState(new ShipPhysicsState(state.Id, Vector3.zero, now.Rotation, now.Rotation * Vector3.back * 60f));
+            HydrogenThrusterServer.ForcedStrength = 1f;
+            log.Msg($"[ring] ship moved into the ring of {ringed.Name} (segment {segment} of {ring.SegmentCount}, density {best:0.###}), engines at full thrust");
+            float[] times = { 4f, 5.5f, 7f, 8.5f, 10f, 11.5f };
+            yield return Shoot(scene, log, "ring", times, 12f, (visual, bounds, view, flow) =>
+            {
+                float s = bounds.HighestExtent;
+                Vector3 c = bounds.Center;
+                Vector3 engines = new Vector3(c.x, c.y, bounds.UpperCoord.z);
+                switch (view % 6)
+                {
+                    case 0: return (visual.TransformPoint(c + new Vector3(-1.3f * s, 0.5f * s, 1.6f * s)), visual.TransformPoint(c));
+                    case 1: return (visual.TransformPoint(c + new Vector3(2.2f * s, 0.3f * s, -0.6f * s)), visual.TransformPoint(c));
+                    case 2: return (visual.TransformPoint(engines + new Vector3(-0.5f * s, 0.15f * s, 0.8f * s)), visual.TransformPoint(engines));
+                    case 3: return (visual.TransformPoint(c + new Vector3(0.4f * s, 1.6f * s, -1.2f * s)), visual.TransformPoint(c));
+                    case 4: return (visual.TransformPoint(c + new Vector3(-0.8f * s, -0.6f * s, -2f * s)), visual.TransformPoint(engines));
+                    default: return (visual.TransformPoint(c + new Vector3(3f * s, 1f * s, 2f * s)), visual.TransformPoint(c));
+                }
+            });
+            HydrogenThrusterServer.ForcedStrength = -1f;
         }
 
         private static IEnumerator Space(Scene scene, MelonLogger.Instance log)
