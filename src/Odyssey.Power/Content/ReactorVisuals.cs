@@ -97,11 +97,11 @@ namespace Odyssey.Content
                     light = new GameObject("BeaconLight").AddComponent<Light>();
                     light.transform.SetParent(_beacons[i], false);
                 }
-                light.transform.localPosition = new Vector3(0f, 0.05f, 0f);
-                light.transform.localRotation = Quaternion.LookRotation(new Vector3(1f, -0.18f, 0f));
+                light.transform.localPosition = new Vector3(0f, 0.13f, 0f);
+                light.transform.localRotation = Quaternion.LookRotation(new Vector3(1f, -0.1f, 0f));
                 light.type = LightType.Spot;
-                light.spotAngle = 50f;
-                light.range = 8f * _scale;
+                light.spotAngle = 40f;
+                light.range = 14f * _scale;
                 light.color = BeaconColor;
                 light.shadows = LightShadows.None;
                 light.intensity = 0f;
@@ -118,7 +118,7 @@ namespace Odyssey.Content
                 _beaconsOn = on;
                 MelonLoader.Melon<PowerMod>.Logger.Msg($"Reactor beacons {(on ? "on" : "off")}: level {_level:0.00}, {_beacons.Length} beacons, material {_beaconMaterial?.shader?.name ?? "none"}, emission {(_beaconMaterial != null && _beaconMaterial.HasProperty(EmissionId))}, active {gameObject.activeInHierarchy}");
             }
-            SetEmission(_beaconMaterial, ref _beaconColor, on ? Color.white * 6f : Color.black);
+            SetEmission(_beaconMaterial, ref _beaconColor, on ? Color.white * 3.5f : Color.black);
             for (int i = 0; i < _beacons.Length; i++)
             {
                 if (on)
@@ -129,7 +129,7 @@ namespace Odyssey.Content
                 if (light != null)
                 {
                     light.enabled = on;
-                    light.intensity = on ? 8f * _scale : 0f;
+                    light.intensity = on ? 14f * _scale : 0f;
                 }
             }
         }

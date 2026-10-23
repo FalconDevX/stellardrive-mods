@@ -190,8 +190,9 @@ namespace Odyssey.Content
             Transform spinner = PartFactory.CreateRenderer("Rotor", visual, ModAssets.LoadMesh("reactor_core.bin"), core, lookCopy).transform;
             spinner.localPosition = RotorPosition * size;
             spinner.localScale = Vector3.one * size;
-            Material beaconMaterial = new Material(material) { name = name + "Beacon" };
-            beaconMaterial.SetTexture("_EmissionMap", ModAssets.LoadTexture("reactor_palette.png"));
+            Texture2D beaconTexture = ModAssets.LoadTexture("reactor_beacon.png");
+            Material beaconMaterial = PartFactory.CreateMaterial(template, beaconTexture, name + "Beacon");
+            beaconMaterial.SetTexture("_EmissionMap", beaconTexture);
             beaconMaterial.SetColor("_EmissionColor", Color.black);
             beaconMaterial.EnableKeyword("_EMISSION");
             Mesh beacon = ModAssets.LoadMesh("reactor_beacon.bin");
@@ -200,7 +201,7 @@ namespace Odyssey.Content
                 Transform lamp = PartFactory.CreateRenderer("Beacon" + i, visual, beacon, beaconMaterial, lookCopy).transform;
                 lamp.localPosition = BeaconPositions[i] * size;
                 lamp.localRotation = Quaternion.Euler(0f, 90f * i, 0f);
-                lamp.localScale = Vector3.one * size * 1.5f;
+                lamp.localScale = Vector3.one * size;
             }
             Object.DestroyImmediate(lookCopy.gameObject);
 

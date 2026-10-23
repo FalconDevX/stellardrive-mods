@@ -293,8 +293,17 @@ def build(out):
     pipes.add(tube([(-0.96, 1.72, -0.05), (-0.96, 2.25, -0.05), (-0.96, 2.35, -0.55), (-0.38, 2.35, -0.55)], 0.065, 14), uv_mode="explicit")
     pipes.add(tube([(-0.78, 1.72, -0.32), (-0.78, 2.08, -0.32), (-0.78, 2.15, -0.78), (-0.38, 2.15, -0.78)], 0.065, 14), uv_mode="explicit")
 
+    beacon = Mesh()
+    beacon.add(cylinder(0.15, 0.16, 0.06, 32, 0.015, uv_mode="core", v_range=(-0.03, 0.27)), (0, 0.03, 0), uv_mode="explicit")
+    dome = [(0.0, 0.06), (0.115, 0.06), (0.12, 0.08), (0.12, 0.20)]
+    for k in range(1, 9):
+        a = k / 8 * math.pi / 2
+        dome.append((0.12 * math.cos(a), 0.20 + 0.10 * math.sin(a)))
+    beacon.add(lathe(dome, 40, uv_mode="core", v_range=(-0.02, 0.30)), uv_mode="explicit")
+    beacon.add(cylinder(0.135, 0.135, 0.025, 32, 0.006, uv_mode="core", v_range=(-0.0125, 0.16)), (0, 0.075, 0), uv_mode="explicit")
+
     counts = {}
-    for name, mesh in (("reactor_armor_dark", dark), ("reactor_armor_light", light), ("reactor_hazard", hazard), ("reactor_pipes", pipes),
+    for name, mesh in (("reactor_beacon", beacon), ("reactor_armor_dark", dark), ("reactor_armor_light", light), ("reactor_hazard", hazard), ("reactor_pipes", pipes),
                        ("reactor_copper", copper), ("reactor_screens", screens), ("reactor_core", core)):
         counts[name] = mesh.write(os.path.join(out, name + ".bin"))
     allpos = np.array(dark.pos + light.pos + hazard.pos + pipes.pos + copper.pos + screens.pos)
@@ -352,13 +361,13 @@ def armor_texture(base, panel, rng):
 
 def hazard_texture(rng):
     w, h = 512, 128
-    img = Image.new("RGB", (w, h), (28, 32, 38))
+    img = Image.new("RGB", (w, h), (70, 76, 86))
     d = ImageDraw.Draw(img)
     top, bottom = 16, h - 16
     d.rectangle([0, top, w, bottom], fill=(234, 179, 8))
     for i in range(-4, w // 64 + 4):
         x = i * 64
-        d.polygon([(x, top), (x + 32, top), (x + 32 - 64, bottom), (x - 64, bottom)], fill=(20, 22, 25))
+        d.polygon([(x, top), (x + 32, top), (x + 32 - 64, bottom), (x - 64, bottom)], fill=(34, 37, 42))
     d.rectangle([0, top - 3, w, top], fill=(75, 85, 99))
     d.rectangle([0, bottom, w, bottom + 3], fill=(75, 85, 99))
     img = Image.alpha_composite(img.convert("RGBA"), noise_layer(rng, 512, 900, 4, 20).crop((0, 0, w, h)))
@@ -375,34 +384,57 @@ def metal_texture(color, rng, brushed):
     return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8))
 
 
+def wrapped_noise(rng, h, w, octaves):
+    v = np.linspace(0, 1, h, endpoint=False)[:, None]
+    u = np.linspace(0, 1, w, endpoint=False)[None, :]
+    total = np.zeros((h, w))
+    for fu, fv, amp in octaves:
+        for _ in range(4):
+            ku, kv = rng.integers(1, fu + 1), rng.uniform(0.5, fv)
+            total += amp * np.sin(2 * math.pi * (ku * u + kv * v) + rng.uniform(0, 2 * math.pi))
+    return total
+
+
 def core_texture():
-    size = 512
-    img = Image.new("RGB", (size, size))
-    d = ImageDraw.Draw(img)
-    stops = [(0, (0, 91, 127)), (0.2, (0, 229, 255)), (0.5, (184, 255, 255)), (0.8, (0, 229, 255)), (1, (0, 91, 127))]
-    for y in range(size):
-        t = y / (size - 1)
-        for (t0, c0), (t1, c1) in zip(stops, stops[1:]):
-            if t0 <= t <= t1:
-                f = (t - t0) / (t1 - t0)
-                d.line([0, y, size, y], fill=tuple(int(a + (b - a) * f) for a, b in zip(c0, c1)))
-                break
-    over = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    od = ImageDraw.Draw(over)
-    for x in range(0, size, 64):
-        od.rectangle([x, 0, x + 10, size], fill=(0, 35, 55, 150))
-    r = size / (16 * math.sqrt(3))
-    hw = r * math.sqrt(3)
-    row = -1
-    while row * r * 1.5 < size + r:
-        for col in range(-1, 18):
-            hx = col * hw + (hw / 2 if row % 2 else 0)
-            hy = row * r * 1.5
-            od.polygon([(hx + math.cos(math.pi / 6 + k * math.pi / 3) * r, hy + math.sin(math.pi / 6 + k * math.pi / 3) * r) for k in range(6)], outline=(0, 40, 60, 140), width=3)
-        row += 1
-    for y in range(16, size, 32):
-        od.line([0, y, size, y], fill=(255, 255, 255, 90), width=2)
-    return Image.alpha_composite(img.convert("RGBA"), over).convert("RGB")
+    h, w = 512, 512
+    rng = np.random.default_rng(7)
+    v = np.linspace(0, 1, h)[:, None]
+    u = np.linspace(0, 1, w, endpoint=False)[None, :]
+    wobble = wrapped_noise(rng, h, w, [(3, 4, 0.02), (6, 9, 0.008)])
+    field = np.zeros((h, w))
+    for k in range(5):
+        phase = k / 5 + rng.uniform(-0.04, 0.04)
+        twist = rng.choice([-1, 1]) * rng.uniform(0.35, 0.6)
+        center = phase + v * twist + wobble * (1 + k * 0.3)
+        d = np.abs(((u - center) + 0.5) % 1.0 - 0.5)
+        width = 0.018 + 0.008 * np.sin(2 * math.pi * (v * 3 + k * 0.37)) ** 2
+        field += np.exp(-(d / width) ** 2) * (0.75 + 0.25 * (k % 2))
+        field += 0.35 * np.exp(-(d / (width * 3.5)) ** 2)
+    turb = wrapped_noise(rng, h, w, [(8, 6, 0.5), (16, 12, 0.25), (32, 20, 0.12)])
+    field += 0.18 * (turb - turb.min()) / (turb.max() - turb.min())
+    field *= 0.55 + 0.45 * np.sin(np.pi * v) ** 0.6
+    field = np.clip(field, 0, 1.6)
+    stops = np.array([0.0, 0.25, 0.6, 1.0, 1.6])
+    colors = np.array([(4, 14, 40), (8, 60, 150), (20, 170, 255), (150, 235, 255), (255, 255, 255)], dtype=float)
+    rgb = np.stack([np.interp(field, stops, colors[:, c]) for c in range(3)], -1)
+    return Image.fromarray(np.clip(rgb, 0, 255).astype(np.uint8)[::-1])
+
+
+def beacon_texture():
+    h, w = 128, 512
+    v = 1 - (np.arange(h)[:, None] + 0.5) / h
+    u = (np.arange(w)[None, :] + 0.5) / w
+    d = np.abs(u - 0.5)
+    spot = np.exp(-(d / 0.07) ** 2) + 0.35 * np.exp(-(d / 0.18) ** 2)
+    amber = np.array([255, 120, 10], dtype=float)
+    hot = np.array([255, 235, 170], dtype=float)
+    glass = amber * (0.45 + 0.55 * np.clip(spot, 0, 1))[..., None]
+    glass = glass + (hot - amber) * np.clip(spot - 0.6, 0, 1)[..., None]
+    ribs = 0.85 + 0.15 * (np.sin(2 * math.pi * u * 24) > 0.6)
+    glass *= ribs[..., None]
+    metal = np.ones((h, w, 3)) * np.array([70, 76, 86], dtype=float)
+    rgb = np.where((v < 0.2)[..., None], metal, glass)
+    return Image.fromarray(np.clip(rgb, 0, 255).astype(np.uint8))
 
 
 def screens_texture():
@@ -446,12 +478,13 @@ def screens_texture():
 
 def textures(out):
     rng = np.random.default_rng(1337)
-    armor_texture((32, 37, 45, 255), (40, 47, 58, 255), rng).save(os.path.join(out, "reactor_armor_dark.png"))
-    armor_texture((53, 61, 73, 255), (66, 76, 92, 255), rng).save(os.path.join(out, "reactor_armor_light.png"))
+    armor_texture((74, 82, 94, 255), (88, 98, 112, 255), rng).save(os.path.join(out, "reactor_armor_dark.png"))
+    armor_texture((132, 142, 156, 255), (152, 164, 180, 255), rng).save(os.path.join(out, "reactor_armor_light.png"))
     hazard_texture(rng).save(os.path.join(out, "reactor_hazard.png"))
-    metal_texture((48, 54, 62), rng, True).save(os.path.join(out, "reactor_pipes.png"))
-    metal_texture((184, 115, 51), rng, True).save(os.path.join(out, "reactor_copper.png"))
+    metal_texture((104, 112, 122), rng, True).save(os.path.join(out, "reactor_pipes.png"))
+    metal_texture((214, 140, 70), rng, True).save(os.path.join(out, "reactor_copper.png"))
     core_texture().save(os.path.join(out, "reactor_core.png"))
+    beacon_texture().save(os.path.join(out, "reactor_beacon.png"))
     screens_texture().save(os.path.join(out, "reactor_screens.png"))
 
 
