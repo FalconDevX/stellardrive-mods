@@ -1,12 +1,10 @@
 using System;
-using System.Collections;
-using System.Reflection;
+using System.Collections.Generic;
 using Core.Services;
 using HarmonyLib;
 using MelonLoader;
 using Odyssey.Content;
 using Ships.Cables.Fluids;
-using Ships.Cables.VisualObjects;
 using Ships.Interface.Model.Parts;
 using Ships.Interface.Model.Parts.Common;
 using Ships.Interface.Model.Parts.StateTypes;
@@ -14,73 +12,44 @@ using Ships.Services;
 
 namespace Odyssey.Patches
 {
-    [HarmonyPatch(typeof(FluidCablesVisualUpdater), nameof(FluidCablesVisualUpdater.UpdateFluidCables))]
+    [HarmonyPatch(typeof(FluidCablesVisualUpdater), "RecurseBuildNode")]
     internal static class PontoonFlowVisuals
     {
-        private static void Postfix(FluidCablesVisualUpdater __instance)
-        {
-            if (!FluidFlowState.OriginalSkipped) Apply(__instance);
-        }
-
         private const float IntakePerSecond = 2f;
-        private static readonly FieldInfo NodesField = AccessTools.Field(typeof(FluidCablesVisualUpdater), "_socketsToNodeMap");
-        private static readonly FieldInfo ConnectionsField = AccessTools.Field(typeof(FluidCablesVisualUpdater), "_visibleNodeConnections");
-        private static readonly FieldInfo VisitedField = AccessTools.Field(typeof(FluidCablesVisualUpdater), "_visitedIds");
-        private static readonly MethodInfo Balance = AccessTools.Method(typeof(FluidCablesVisualUpdater), "RecurseBalanceIncomingFlow");
-        private static readonly object[] Args = new object[2];
-        private static AccessTools.FieldRef<object, FluidCableVisual> _visualRef;
         private static AccessTools.FieldRef<object, float> _flowRef;
+        private static AccessTools.FieldRef<object, Dictionary<PartContext, List<byte>>> _partsRef;
         private static bool _loggedError;
 
-        internal static void Apply(FluidCablesVisualUpdater updater)
+        private static void Postfix(object __result)
         {
-            if (Balance == null || !(NodesField?.GetValue(updater) is IDictionary nodes) || nodes.Count == 0)
+            if (__result == null)
             {
                 return;
             }
             try
             {
-                ShipsClientTracker ships = null;
-                bool changed = false;
-                foreach (DictionaryEntry entry in nodes)
+                if (_flowRef == null)
                 {
-                    var socket = (EntityPartSocket)entry.Key;
-                    if (socket.Socket.SocketId != Pontoon.OxygenSocket || entry.Value == null)
+                    Type type = __result.GetType();
+                    _flowRef = AccessTools.FieldRefAccess<float>(type, "FluidFlow");
+                    _partsRef = AccessTools.FieldRefAccess<Dictionary<PartContext, List<byte>>>(type, "ConnectedParts");
+                }
+                ShipsClientTracker ships = null;
+                foreach (KeyValuePair<PartContext, List<byte>> entry in _partsRef(__result))
+                {
+                    if (!entry.Value.Contains(Pontoon.OxygenSocket))
                     {
                         continue;
                     }
                     ships = ships ?? ServiceCache.Get<ShipsClientTracker>();
-                    if (ships == null || !ships.TryGetStatefulPart(socket.PartContext, out StatefulPart part) || part.Settings == null || !IsPontoon(part.Settings.id))
+                    if (ships == null || !ships.TryGetStatefulPart(entry.Key, out StatefulPart part) || part.Settings == null || !IsPontoon(part.Settings.id))
                     {
                         continue;
                     }
                     int n = Pontoon.Scale(part.Settings.id);
-                    float volume = n * n * n;
                     bool inflated = part.State is IDoorState door && door.IsOpen;
-                    float demand = (inflated ? BuildingMod.PontoonLeakPerMinute.Value / 60f : IntakePerSecond) * volume / 50f;
-                    if (demand <= 0f)
-                    {
-                        continue;
-                    }
-                    (VisitedField?.GetValue(updater) as System.Collections.Generic.HashSet<uint>)?.Clear();
-                    Args[0] = entry.Value;
-                    Args[1] = demand;
-                    Balance.Invoke(updater, Args);
-                    changed |= (float)Args[1] < demand;
-                }
-                if (changed && ConnectionsField?.GetValue(updater) is IDictionary connections)
-                {
-                    foreach (object connection in connections.Values)
-                    {
-                        if (connection == null) continue;
-                        if (_flowRef == null)
-                        {
-                            Type type = connection.GetType();
-                            _visualRef = AccessTools.FieldRefAccess<FluidCableVisual>(type, "CableVisual");
-                            _flowRef = AccessTools.FieldRefAccess<float>(type, "Flow");
-                        }
-                        _visualRef(connection)?.UpdateFlow(_flowRef(connection));
-                    }
+                    float perSecond = inflated ? Math.Max(0f, BuildingMod.PontoonLeakPerMinute.Value) / 60f : IntakePerSecond;
+                    _flowRef(__result) += perSecond * n * n * n / 50f;
                 }
             }
             catch (Exception e)
