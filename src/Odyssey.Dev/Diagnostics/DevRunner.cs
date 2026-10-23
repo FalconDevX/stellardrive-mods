@@ -264,6 +264,10 @@ namespace Odyssey.Diagnostics
             {
                 yield return RunGyroTest();
             }
+            else if (HasArg("photo"))
+            {
+                yield return PhotoTest.Run();
+            }
             else if (HasArg("reentry"))
             {
                 yield return ReentryShow.Run();

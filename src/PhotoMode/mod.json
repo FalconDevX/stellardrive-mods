@@ -1,0 +1,7 @@
+{
+  "id": "stellardrive-photomode",
+  "name": "Photo Mode",
+  "author": "mateu",
+  "version": "0.1.0",
+  "description": "Press P to stop time and fly a free camera around the scene: turn with the mouse, zoom with the wheel, move with WASD, Q and E, change the field of view and tilt; Enter or F12 saves a sharp, HUD-free photo at up to 4x the screen resolution to UserData/Photos"
+}

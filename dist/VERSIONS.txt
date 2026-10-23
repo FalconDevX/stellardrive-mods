@@ -18,3 +18,4 @@ Drop Items 0.1.2
 FPS Counter 0.1.0
 Water 0.6.1
 Reentry 0.2.1
+Photo Mode 0.1.0

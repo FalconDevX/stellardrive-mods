@@ -1,7 +1,7 @@
 ﻿$ErrorActionPreference = "Stop"
 
 $root = Split-Path $PSScriptRoot -Parent
-$mods = @("ResourceTweaks", "Crouch", "Flora", "PickBlock", "SharedPiloting", "ShipSafety", "VelocityIndicator", "WarpUnlock", "PlanetUnlock", "Odyssey.Core", "Odyssey.Mining", "Odyssey.Power", "Odyssey.Building", "Odyssey.Logic", "Odyssey.Gear", "Odyssey.Tweaks", "DropItems", "FpsCounter", "Water", "Reentry")
+$mods = @("ResourceTweaks", "Crouch", "Flora", "PickBlock", "SharedPiloting", "ShipSafety", "VelocityIndicator", "WarpUnlock", "PlanetUnlock", "Odyssey.Core", "Odyssey.Mining", "Odyssey.Power", "Odyssey.Building", "Odyssey.Logic", "Odyssey.Gear", "Odyssey.Tweaks", "DropItems", "FpsCounter", "Water", "Reentry", "PhotoMode")
 
 $dist = Join-Path $root "dist\Mods"
 if (Test-Path $dist) { Remove-Item $dist -Recurse -Force -Confirm:$false }

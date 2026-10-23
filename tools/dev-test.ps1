@@ -1,5 +1,5 @@
 ﻿param(
-    [ValidateSet("test", "perf", "jetpack", "pump", "tank", "doors", "fps", "seat", "blueprint", "hitch", "gyro", "showcase", "reentry")] [string]$Mode = "test",
+    [ValidateSet("test", "perf", "jetpack", "pump", "tank", "doors", "fps", "seat", "blueprint", "hitch", "gyro", "showcase", "reentry", "photo")] [string]$Mode = "test",
     [string]$World = "test_wszystko",
     [int]$TimeoutSec = 300,
     [string]$SteamId = "",

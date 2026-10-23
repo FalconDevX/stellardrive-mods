@@ -60,6 +60,7 @@
 | **[Flora](#flora)** | 0.4.1 | Decorative flower fields on the planet | Each player |
 | **[FPS Counter](#fps-counter)** | 0.1.0 | FPS counter in the top-right corner (F3) | Each player |
 | **[Reentry](#reentry)** | 0.2.1 | Plasma, sparks and a fiery trail when a ship flies fast through an atmosphere | Each player |
+| **[Photo Mode](#photo-mode)** | 0.1.0 | P stops time, free camera around the scene, Enter / F12 saves a photo | Each player |
 
 Current versions are always listed in [`dist/VERSIONS.txt`](dist/VERSIONS.txt).
 
@@ -177,6 +178,8 @@ A few commonly tweaked options:
 | Water | `OceanCoverage` | `0.15` | Share of Otrera b covered by large oceans (0 = none) |
 | Water | `UnderwaterAirSeconds` | `30` | Breath time underwater with a full oxygen tank |
 | FPS Counter | `ToggleKey` | `F3` | Toggles the counter |
+| Photo Mode | `ToggleKey` | `P` | Opens and closes the photo mode |
+| Photo Mode | `SuperSize` | `2` | Photos are saved at this many times the screen resolution (1-4) |
 | Reentry | `Brightness` | `1` | Brightness of the plasma, flames and glow |
 | Reentry | `TrailLength` | `1` | Length of the fiery trail (0 = none) |
 
@@ -336,6 +339,23 @@ Decorative flower fields on the planet surface.
 ### FPS Counter
 
 FPS counter in the top-right corner, toggled with **F3**.
+
+### Photo Mode
+
+Press **P** to stop time and look at the scene from anywhere. The game's HUD disappears and depth of field is turned off so the whole picture is sharp.
+
+| Key | What it does |
+|---|---|
+| Mouse | Turn the camera around the point you were looking at |
+| Mouse wheel | Closer / farther |
+| W A S D, Q / E | Move the point around (Shift = faster) |
+| Z / X | Zoom in / out (field of view) |
+| C / V | Tilt the camera, R resets tilt and zoom |
+| Enter / F12 | Save a photo to `UserData/Photos` (twice the screen resolution by default, without the help text or the FPS counter) |
+| H | Hide the help text |
+| P / Esc | Back to the game |
+
+Time stops completely (physics, network ticks, flames and particles) in single player or when you host alone. When other players are connected, time keeps running for everyone and only the free camera is used, so the world never stops for the others.
 
 ### Reentry
 
