@@ -80,7 +80,7 @@ All screenshots: [docs/gallery](docs/gallery)
 
 ## Highlights
 
-<img src="docs/showcase.jpg" alt="Every part added by Stellar Drive: Odyssey on one floating platform: excavator, hydrogen engines, nuclear reactors, electrolyzers, pumps, air vents, tanks, chests, heavy gyroscope, tool workbench, pontoons, laser cannon, info panels, power meter, stairs, barriers, doors and floor hatches" width="100%">
+<img src="docs/parts_platform.jpg" alt="Every part added by Stellar Drive: Odyssey on one floating platform: excavator, hydrogen engines, nuclear reactors, electrolyzers, pumps, air vents, tanks, chests, heavy gyroscope, tool workbench, pontoons, laser cannon, info panels, power meter, stairs, barriers, doors and floor hatches" width="100%">
 
 - **New progression:** over a dozen new research nodes (Mining, Hydrogen Propulsion, Heavy Hydrogen Engines, Nuclear Power, Large Reactor, Mechanics, Laser Weapons, Jetpack, Info Panels, Large Doors, Large Tanks, Large Storage, Tool Crafting), with the research tree grouped into colored category rows.
 - **Industrial chain:** mine ore and uranium, electrolyze ice or water into hydrogen and oxygen, and power ships with chemical, hydrogen or nuclear energy.

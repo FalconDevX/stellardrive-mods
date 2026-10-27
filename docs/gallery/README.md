@@ -41,3 +41,9 @@ Screenshots from the Stellar Drive: Odyssey show mode (`tools/dev-test.ps1 -Mode
 <img src="ring3.jpg" alt="Asteroid belt in the ring of Otrera b" width="49%">
 <img src="ring4.jpg" alt="Asteroid belt in the ring of Otrera b" width="49%">
 <img src="ring5.jpg" alt="Asteroid belt in the ring of Otrera b" width="49%">
+
+## Every part of the pack
+
+<img src="parts0.jpg" alt="Every Odyssey part on one platform on a lake" width="49%">
+<img src="parts1.jpg" alt="Every Odyssey part on one platform, view from the other side" width="49%">
+<img src="parts2.jpg" alt="Every Odyssey part on one platform, view from above" width="49%">
