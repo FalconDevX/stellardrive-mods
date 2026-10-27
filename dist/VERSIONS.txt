@@ -9,10 +9,10 @@ Warp Unlock 0.1.2
 Planet Unlock 0.1.2
 Odyssey Core 1.2.6
 Odyssey Mining 1.0.1
-Odyssey Power 1.1.5
-Odyssey Building 1.0.4
-Odyssey Logic 1.0.1
-Odyssey Gear 1.0.1
+Odyssey Power 1.1.6
+Odyssey Building 1.0.5
+Odyssey Logic 1.0.2
+Odyssey Gear 1.0.2
 Odyssey Tweaks 1.2.3
 Drop Items 0.1.2
 FPS Counter 0.1.0

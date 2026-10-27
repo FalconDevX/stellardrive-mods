@@ -61,14 +61,40 @@ namespace Odyssey.Content
         {
             var b = new MeshBuilder();
             float postRadius = Post / 2f;
-            b.Cylinder(new Vector3(0f, 0.03f, 0f), new Vector3(0f, Height - 0.02f, 0f), postRadius, "yellow", 20);
-            b.Sphere(new Vector3(0f, Height - 0.02f, 0f), postRadius * 1.15f, "yellow", 16);
+            b.Box(new Vector3(0f, 0.008f, 0f), new Vector3(0.14f, 0.016f, 0.14f), "steel");
+            b.Box(new Vector3(0f, 0.0235f, 0f), new Vector3(0.08f, 0.016f, 0.08f), "dark");
+            foreach (float bx in new[] { -0.055f, 0.055f })
+            foreach (float bz in new[] { -0.055f, 0.055f })
+            {
+                b.Cylinder(new Vector3(bx, 0.015f, bz), new Vector3(bx, 0.019f, bz), 0.011f, "dark", 16);
+                b.Cylinder(new Vector3(bx, 0.018f, bz), new Vector3(bx, 0.026f, bz), 0.008f, "grey", 6);
+                b.Cylinder(new Vector3(bx, 0.025f, bz), new Vector3(bx, 0.031f, bz), 0.0045f, "steel", 10);
+            }
+            b.Cylinder(new Vector3(0f, 0.03f, 0f), new Vector3(0f, Height - 0.03f, 0f), postRadius, "yellow", 20);
             b.Cylinder(new Vector3(0f, 0.03f, 0f), new Vector3(0f, 0.09f, 0f), postRadius * 1.35f, "black", 20);
-            b.Box(new Vector3(0f, 0.015f, 0f), new Vector3(0.14f, 0.03f, 0.14f), "dark");
+            b.Cylinder(new Vector3(0f, 0.088f, 0f), new Vector3(0f, 0.096f, 0f), postRadius * 1.2f, "dark", 20);
+            foreach (float y in new[] { 0.35f, 0.75f })
+            {
+                b.Cylinder(new Vector3(0f, y - 0.025f, 0f), new Vector3(0f, y + 0.025f, 0f), postRadius + 0.0015f, "white", 20);
+            }
             foreach (float y in new[] { Height - 0.05f, 0.55f, 0.15f })
             {
                 b.Cylinder(new Vector3(0f, y - 0.035f, 0f), new Vector3(0f, y + 0.035f, 0f), postRadius * 1.3f, "dark", 20);
+                b.Cylinder(new Vector3(0f, y - 0.037f, 0f), new Vector3(0f, y - 0.033f, 0f), postRadius * 1.38f, "steel", 20);
+                b.Cylinder(new Vector3(0f, y + 0.033f, 0f), new Vector3(0f, y + 0.037f, 0f), postRadius * 1.38f, "steel", 20);
+                foreach (float z in new[] { -1f, 1f })
+                {
+                    b.Box(new Vector3(0f, y, z * (postRadius * 1.3f + 0.005f)), new Vector3(0.014f, 0.05f, 0.014f), "dark");
+                    b.Cylinder(new Vector3(0.006f, y, z * (postRadius * 1.3f + 0.006f)), new Vector3(0.012f, y, z * (postRadius * 1.3f + 0.006f)), 0.0045f, "steel", 6);
+                    b.Cylinder(new Vector3(-0.006f, y, z * (postRadius * 1.3f + 0.006f)), new Vector3(-0.011f, y, z * (postRadius * 1.3f + 0.006f)), 0.003f, "grey", 10);
+                }
             }
+            float top = Height - 0.05f + 0.035f;
+            b.Lathe(Vector3.zero, Vector3.up, new[]
+            {
+                new Vector2(postRadius * 0.9f, top - 0.002f), new Vector2(postRadius * 1.15f, top), new Vector2(postRadius * 1.15f, top + 0.008f),
+                new Vector2(postRadius * 1.0f, top + 0.016f), new Vector2(postRadius * 0.7f, top + 0.024f), new Vector2(postRadius * 0.35f, top + 0.029f), new Vector2(0f, top + 0.03f),
+            }, "yellow", 20);
             return b.Build("YellowBarrierPost");
         }
 
@@ -79,6 +105,14 @@ namespace Odyssey.Content
             for (int i = 0; i < stripes; i++)
             {
                 b.Cylinder(new Vector3(start + step * i, y, 0f), new Vector3(start + step * (i + 1), y, 0f), radius, i % 2 == 0 ? "yellow" : "black", 16);
+            }
+            float collar = Post / 2f * 1.3f, sleeve = radius + 0.006f;
+            float reach = Mathf.Sqrt(collar * collar - sleeve * sleeve) - 0.001f;
+            foreach (float side in new[] { -1f, 1f })
+            {
+                float face = Width / 2f - reach;
+                b.Cylinder(new Vector3(side * face, y, 0f), new Vector3(side * (face - 0.035f), y, 0f), sleeve, "dark", 16);
+                b.Cylinder(new Vector3(side * (face - 0.035f), y, 0f), new Vector3(side * (face - 0.041f), y, 0f), radius + 0.003f, "steel", 16);
             }
         }
 

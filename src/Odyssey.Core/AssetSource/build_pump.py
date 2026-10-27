@@ -19,7 +19,12 @@ for k in range(6):
 for sx in (-1, 1):
     for sz in (-1, 1):
         body.box((sx * 0.42, 0.125, sz * 0.42), (0.09, 0.03, 0.09), 'orange')
-        body.cylinder((sx * 0.42, 0.15, sz * 0.42), 0.02, 0.03, 'steel', 8)
+        body.cylinder((sx * 0.42, 0.142, sz * 0.42), 0.032, 0.006, 'grey', 16)
+        body.cylinder((sx * 0.42, 0.153, sz * 0.42), 0.026, 0.018, 'steel', 6)
+        body.cylinder((sx * 0.42, 0.168, sz * 0.42), 0.013, 0.016, 'grey', 10)
+for t in (-0.2, 0.0, 0.2):
+    for x, z in ((-0.462, t), (0.462, t), (t, -0.462)):
+        body.cylinder((x, 0.082, z), 0.012, 0.006, 'steel', 6)
 body.cylinder((0, 0.17, 0), 0.34, 0.12, 'steel', 24, cap_color='grey')
 for k in range(12):
     a = 2 * math.pi * k / 12
@@ -33,6 +38,41 @@ for k in range(4):
     x, z = math.cos(a) * 0.265, math.sin(a) * 0.265
     yaw = -math.degrees(a) + 90
     body.box((x, 0.5, z), (0.06, 0.46, 0.04), 'orange', rot=(0, yaw, 0))
+
+
+def radial_box(deg, r, y, size, color):
+    a = math.radians(deg)
+    body.box((math.cos(a) * r, y, math.sin(a) * r), size, color, rot=(0, -deg + 90, 0))
+
+
+for deg in (-35, -25, -15, -5, 5, 15, 25, 35, 182, 192, 202):
+    radial_box(deg, 0.275, 0.5, (0.012, 0.42, 0.042), 'grey')
+    radial_box(deg, 0.292, 0.5, (0.016, 0.44, 0.01), 'dark')
+TERMINAL = 158
+radial_box(TERMINAL, 0.29, 0.56, (0.14, 0.12, 0.09), 'grey')
+radial_box(TERMINAL, 0.338, 0.56, (0.15, 0.13, 0.01), 'dark')
+radial_box(TERMINAL, 0.344, 0.585, (0.09, 0.03, 0.004), 'yellow')
+for du in (-0.06, 0.06):
+    for dy in (-0.05, 0.05):
+        a = math.radians(TERMINAL)
+        tx, tz = math.sin(a) * du, -math.cos(a) * du
+        body.box((math.cos(a) * 0.345 + tx, 0.56 + dy, math.sin(a) * 0.345 + tz), (0.014, 0.014, 0.008), 'steel', rot=(0, -TERMINAL + 90, 0))
+ta = math.radians(TERMINAL)
+tx, tz = math.cos(ta) * 0.31, math.sin(ta) * 0.31
+body.cylinder((tx, 0.49, tz), 0.026, 0.024, 'steel', 6)
+body.cylinder((tx, 0.355, tz), 0.018, 0.27, 'black', 10, caps=False)
+body.cylinder((tx, 0.235, tz), 0.026, 0.024, 'steel', 6)
+gx, gz = -0.3, -0.25
+ga = math.degrees(math.atan2(gz, gx))
+radial_box(ga, 0.31, 0.42, (0.024, 0.024, 0.11), 'steel')
+body.cylinder((gx, 0.42, -0.226), 0.03, 0.012, 'steel', 12, axis='z')
+pa = math.degrees(math.atan2(0.24, -0.2))
+for y in (0.4, 0.6):
+    body.cylinder((-0.2, y, 0.24), 0.031, 0.02, 'steel', 12, caps=False)
+    radial_box(pa, 0.276, y, (0.016, 0.016, 0.052), 'steel')
+body.cylinder((-0.2, 0.335, 0.2575), 0.025, 0.085, 'orange', 10, axis='z')
+body.cylinder((-0.2, 0.335, 0.27), 0.032, 0.012, 'steel', 12, axis='z')
+radial_box(pa, 0.283, 0.668, (0.05, 0.03, 0.068), 'orange')
 body.cylinder((0, 0.755, 0), 0.3, 0.05, 'dark', 24)
 body.cylinder((0, 0.8, 0), 0.335, 0.05, 'dark', 24, cap_color='black')
 for k in range(16):
@@ -63,8 +103,11 @@ body.box((0, SOCKET_Y, 0.483), (0.004, 0.2, 0.006), 'grey')
 for x in (0.11, 0.33):
     body.cylinder((x * 0.6, 0.53, 0.28), 0.045, 0.2, 'blue', 14)
     body.cylinder((x * 0.6, 0.64, 0.24), 0.045, 0.1, 'blue', 14, axis='z', cap_color='blue')
+    body.cylinder((x * 0.6, 0.429, 0.28), 0.06, 0.02, 'steel', 14)
+    body.cylinder((x * 0.6, 0.445, 0.28), 0.052, 0.012, 'steel', 6)
+    body.cylinder((x * 0.6, 0.54, 0.28), 0.048, 0.016, 'grey', 14, caps=False)
 body.cylinder((-0.2, 0.5, 0.24), 0.025, 0.36, 'orange', 10)
-body.cylinder((0, 0.004, 0), 0.14, 0.01, 'black', 16)
+body.cylinder((0, 0.004, 0), 0.14, 0.01, 'dark', 24, cap_color='steel')
 
 fan = Mesh()
 FAN_Y = 0.835
@@ -72,19 +115,33 @@ fan.cylinder((0, 0, 0), 0.05, 0.05, 'blue', 12, cap_color='white')
 for k in range(6):
     a = 2 * math.pi * k / 6
     fan.box((math.cos(a) * 0.15, 0, math.sin(a) * 0.15), (0.2, 0.012, 0.085), 'cyan', rot=(25, -math.degrees(a), 0))
+    fan.box((math.cos(a) * 0.062, 0, math.sin(a) * 0.062), (0.04, 0.026, 0.034), 'grey', rot=(0, -math.degrees(a), 0))
 
 hose = Mesh()
 hose.cylinder((0, -0.5, 0), 0.05, 1.0, 'rubber', 12, caps=False)
 
 nozzle = Mesh()
-nozzle.cylinder((0, -0.025, 0), 0.075, 0.05, 'orange', 14)
-nozzle.cylinder((0, -0.15, 0), 0.11, 0.2, 'rubber', 16, cap_color='black')
+nozzle.cylinder((0, 0.012, 0), 0.058, 0.044, 'steel', 14, caps=False)
+nozzle.cylinder((0, 0.018, 0), 0.062, 0.014, 'grey', 14, caps=False)
+nozzle.box((0.064, 0.018, 0), (0.016, 0.012, 0.02), 'steel')
+nozzle.cylinder((0, -0.0275, 0), 0.085, 0.035, 'orange', 6, cap_color='orange')
+nozzle.cylinder((0, -0.05, 0), 0.12, 0.01, 'dark', 20)
+for k in range(8):
+    a = 2 * math.pi * k / 8 + math.pi / 8
+    nozzle.cylinder((math.cos(a) * 0.104, -0.041, math.sin(a) * 0.104), 0.007, 0.012, 'steel', 6)
+    nozzle.cylinder((math.cos(a) * 0.115, -0.233, math.sin(a) * 0.115), 0.006, 0.012, 'steel', 6)
+nozzle.cylinder((0, -0.1465, 0), 0.11, 0.183, 'rubber', 16, cap_color='black')
 for y in (-0.09, -0.15, -0.21):
     nozzle.cylinder((0, y, 0), 0.114, 0.02, 'cyan', 16, caps=False)
 for k in range(8):
     a = 2 * math.pi * k / 8
-    nozzle.box((math.cos(a) * 0.112, -0.15, math.sin(a) * 0.112), (0.02, 0.19, 0.02), 'black', rot=(0, -math.degrees(a), 0))
-nozzle.cylinder((0, -0.255, 0), 0.08, 0.01, 'dark', 14)
+    nozzle.box((math.cos(a) * 0.112, -0.1465, math.sin(a) * 0.112), (0.02, 0.183, 0.02), 'black', rot=(0, -math.degrees(a), 0))
+nozzle.cylinder((0, -0.245, 0), 0.12, 0.014, 'dark', 20)
+nozzle.cylinder((0, -0.254, 0), 0.09, 0.008, 'grey', 16)
+nozzle.cylinder((0, -0.258, 0), 0.045, 0.004, 'black', 12)
+for k in range(4):
+    a = 2 * math.pi * k / 4 + math.pi / 4
+    nozzle.box((math.cos(a) * 0.098, -0.256, math.sin(a) * 0.098), (0.03, 0.008, 0.024), 'rubber', rot=(0, -math.degrees(a), 0))
 
 if __name__ == '__main__':
     body.write(os.path.join(OUT, 'pump_body.bin'))

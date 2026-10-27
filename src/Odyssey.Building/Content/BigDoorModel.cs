@@ -133,9 +133,9 @@ namespace Odyssey.Content
             Style style = w >= 8f ? Style.Blast : w > h && h >= 3f ? Style.Jaw : Style.Slide;
 
             float ix0 = min.x + Frame, ix1 = max.x - Frame, iy0 = min.y + Sill, iy1 = max.y - Frame;
-            BuildFrame(model, material, look, min, max, z, depth, style, ix0, ix1);
-
             float leaf = Mathf.Min(style == Style.Blast ? 0.2f : 0.14f, depth * 0.7f);
+            BuildFrame(model, material, look, min, max, z, depth, style, ix0, ix1, leaf);
+
             float mx = (ix0 + ix1) / 2, my = (iy0 + iy1) / 2;
             switch (style)
             {
@@ -156,9 +156,10 @@ namespace Odyssey.Content
         }
 
         private static void BuildFrame(Transform model, Material material, MeshRenderer look, Vector3 min, Vector3 max, float z, float depth, Style style,
-            float ix0, float ix1)
+            float ix0, float ix1, float leaf)
         {
             float w = max.x - min.x, h = max.y - min.y, cx = (min.x + max.x) / 2, cy = (min.y + max.y) / 2;
+            float iy0 = min.y + Sill, iy1 = max.y - Frame, sock = Mathf.Min(min.y + 1.2f, max.y - Frame - 0.2f);
             var m = new MeshBuilder();
             foreach (float sx in new[] { min.x + Frame / 2, max.x - Frame / 2 })
             {
@@ -170,6 +171,7 @@ namespace Odyssey.Content
                 for (float y = min.y + 0.55f; y < max.y - 0.5f; y += 0.5f)
                 {
                     m.Box(new Vector3(sx, y, z), new Vector3(Frame + 0.02f, 0.05f, depth + 0.02f), "grey");
+                    if (sx < cx && Mathf.Abs(y + 0.25f - sock) < 0.15f) continue;
                     foreach (float side in new[] { -1f, 1f })
                     {
                         m.Chamfer(new Vector3(sx, y + 0.25f, z + side * (depth / 2 + 0.008f)), new Vector3(0.04f, 0.04f, 0.02f), 0.012f, "steel");
@@ -226,7 +228,40 @@ namespace Odyssey.Content
                     }
                 }
             }
+            bool blast = style == Style.Blast;
+            float gz0 = blast ? Mathf.Min(depth / 2 - 0.004f, leaf / 2 + 0.044f) : leaf / 2 + 0.014f, gz1 = leaf / 2 + (blast ? 0.064f : 0.03f);
+            float gw = blast ? 0.044f : 0.013f, lip = blast ? 0.004f : 0.012f, gh = iy1 - 0.06f - iy0;
+            foreach (float side in new[] { -1f, 1f })
+            {
+                foreach (float gx in new[] { ix0 + lip - gw / 2, ix1 - lip + gw / 2 })
+                {
+                    m.Box(new Vector3(gx, iy0 + gh / 2, z + side * (gz0 + gz1) / 2), new Vector3(gw, gh, gz1 - gz0), "steel");
+                }
+                if (style != Style.Slide) continue;
+                m.Box(new Vector3(cx, iy0 + 0.015f, z + side * (leaf / 2 + 0.03f)), new Vector3(ix1 - ix0, 0.032f, 0.012f), "steel");
+                float gzf = z + side * (depth / 2 + 0.009f);
+                foreach (float dir in new[] { 1f, -1f })
+                {
+                    float gx0 = (dir > 0 ? ix0 : ix1) + dir * 0.03f;
+                    m.Poly(new List<Vector2> { new Vector2(gx0, iy1 + 0.06f), new Vector2(gx0 + dir * 0.26f, iy1 + 0.06f), new Vector2(gx0, iy1 - 0.2f) }, gzf, 0.02f, "grey");
+                    foreach (Vector2 p in new[] { new Vector2(0.05f, 0.03f), new Vector2(0.15f, 0.03f), new Vector2(0.04f, -0.1f) })
+                    {
+                        m.Chamfer(new Vector3(gx0 + dir * p.x, iy1 + p.y, gzf + side * 0.013f), new Vector3(0.03f, 0.03f, 0.008f), 0.009f, "steel");
+                    }
+                }
+            }
             PartFactory.CreateRenderer("Frame", model, m.ToMesh("BigDoorFrame"), material, look);
+        }
+
+        private static List<Vector2> Disc(float x, float y, float r, int n)
+        {
+            var poly = new List<Vector2>();
+            for (int i = 0; i < n; i++)
+            {
+                float a = (i + 0.5f) * Mathf.PI * 2f / n;
+                poly.Add(new Vector2(x + Mathf.Cos(a) * r, y + Mathf.Sin(a) * r));
+            }
+            return poly;
         }
 
         private static void BuildNarrow(Transform model, Material material, MeshRenderer look, Vector3 min, Vector3 max, float z, float depth)
@@ -240,9 +275,26 @@ namespace Odyssey.Content
             }
             m.Box(new Vector3(cx, max.y - NarrowTop / 2, z), new Vector3(w, NarrowTop, depth), "grey");
             m.Box(new Vector3(cx, max.y - NarrowTop / 2, z), new Vector3(w - 0.3f, NarrowTop * 0.4f, depth + 0.02f), "yellow");
+            float d = Mathf.Min(0.1f, depth * 0.6f), sock = Mathf.Min(min.y + 1.2f, max.y - NarrowTop - 0.2f);
+            foreach (float side in new[] { -1f, 1f })
+            {
+                foreach (float gx in new[] { ix0 + 0.0095f, ix1 - 0.0095f })
+                {
+                    m.Box(new Vector3(gx, (iy0 + iy1) / 2, z + side * (d / 2 + 0.022f)), new Vector3(0.021f, iy1 - iy0, 0.02f), "steel");
+                }
+                m.Box(new Vector3(cx, iy1 - 0.015f, z + side * (d / 2 + 0.008f)), new Vector3(ix1 - ix0, 0.032f, 0.012f), "rubber");
+                foreach (float sx in new[] { min.x + NarrowFrame / 2, max.x - NarrowFrame / 2 })
+                {
+                    for (float y = min.y + 0.2f; y < max.y - NarrowTop - 0.1f; y += 0.4f)
+                    {
+                        if (sx < cx && Mathf.Abs(y - sock) < 0.16f) continue;
+                        m.Chamfer(new Vector3(sx, y, z + side * (depth / 2 + 0.003f)), new Vector3(0.024f, 0.024f, 0.008f), 0.007f, "steel");
+                    }
+                }
+            }
             PartFactory.CreateRenderer("Frame", model, m.ToMesh("BigDoorFrame"), material, look);
 
-            float d = Mathf.Min(0.1f, depth * 0.6f), wl = ix1 - ix0 - 0.01f, hl = iy1 - iy0, lcx = (ix0 + ix1) / 2, lcy = (iy0 + iy1) / 2;
+            float wl = ix1 - ix0 - 0.01f, hl = iy1 - iy0, lcx = (ix0 + ix1) / 2, lcy = (iy0 + iy1) / 2;
             int slats = Mathf.Max(1, Mathf.CeilToInt(hl / Strip));
             float pitch = hl / slats;
             var leaf = new List<Box> { new Box(new Vector3(lcx, lcy, z), new Vector3(wl, hl, d * 0.6f), "dark") };
@@ -252,19 +304,67 @@ namespace Odyssey.Content
                 leaf.Add(new Box(new Vector3(lcx, sy, z), new Vector3(wl, pitch - 0.03f, d), "light"));
                 foreach (float side in new[] { -1f, 1f })
                 {
-                    float fz = z + side * (d / 2 + 0.004f);
-                    leaf.Add(new Box(new Vector3(lcx, sy + pitch * 0.18f, fz), new Vector3(wl - 0.04f, 0.022f, 0.008f), "grey"));
-                    leaf.Add(new Box(new Vector3(lcx, sy - pitch * 0.18f, fz), new Vector3(wl - 0.04f, 0.022f, 0.008f), "grey"));
+                    float face = z + side * d / 2;
+                    leaf.Add(Box.Chamfer(new Vector3(lcx, sy, face + side * 0.004f), new Vector3(wl - 0.1f, 0.04f, 0.01f), 0.012f, "grey"));
+                    foreach (float ex in new[] { lcx - wl / 2 + 0.02f, lcx + wl / 2 - 0.02f })
+                    {
+                        leaf.Add(new Box(new Vector3(ex, sy, face + side * 0.003f), new Vector3(0.03f, pitch - 0.06f, 0.008f), "steel"));
+                    }
                 }
             }
+            leaf.Add(new Box(new Vector3(lcx, iy0 + 0.04f, z), new Vector3(wl, 0.08f, d + 0.016f), "dark"));
             foreach (float side in new[] { -1f, 1f })
             {
-                float fz = z + side * (d / 2 + 0.008f);
-                leaf.Add(new Box(new Vector3(lcx, iy0 + pitch * 0.5f, fz), new Vector3(0.22f, 0.05f, 0.03f), "steel"));
+                float face = z + side * d / 2, hy = iy0 + pitch * 0.5f;
+                foreach (float sx in new[] { lcx - 0.09f, lcx + 0.09f })
+                {
+                    leaf.Add(Box.Chamfer(new Vector3(sx, hy, face + side * 0.014f), new Vector3(0.03f, 0.03f, 0.03f), 0.008f, "steel"));
+                }
+                leaf.Add(Box.Chamfer(new Vector3(lcx, hy, face + side * 0.036f), new Vector3(0.24f, 0.035f, 0.018f), 0.012f, "steel"));
+                if (wl > 0.7f)
+                {
+                    float kx = lcx + Mathf.Min(0.28f, wl / 2 - 0.12f);
+                    leaf.Add(Box.Chamfer(new Vector3(kx, iy0 + 0.045f, face + side * 0.01f), new Vector3(0.07f, 0.05f, 0.006f), 0.012f, "steel"));
+                    leaf.Add(Box.Chamfer(new Vector3(kx, iy0 + 0.045f, face + side * 0.014f), new Vector3(0.012f, 0.024f, 0.004f), 0.004f, "black"));
+                }
             }
             leaf.Add(new Box(new Vector3(lcx, iy0 + 0.02f, z), new Vector3(wl, 0.04f, d + 0.02f), "rubber"));
             AddLeaf(model, material, look, leaf, 'y', 1, hl, iy0, iy1, iy0, iy1);
             new GameObject(NarrowMarker).transform.SetParent(model, false);
+        }
+
+        private static void Lattice(List<Box> list, float x0, float x1, float y0, float y1, float face, float side, int cols, int rows, float bar)
+        {
+            float cw = (x1 - x0) / cols, ch = (y1 - y0) / rows, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+            for (int j = 0; j <= rows; j++)
+            {
+                float yb = y0 + j * ch, lo = j == 0 ? y0 : yb - bar, hi = j == rows ? y1 : yb + bar;
+                list.Add(new Box(new Vector3(mx, (lo + hi) / 2, face + side * 0.007f), new Vector3(x1 - x0, hi - lo, 0.016f), "grey"));
+            }
+            for (int i = 0; i <= cols; i++)
+            {
+                float xb = x0 + i * cw, lo = i == 0 ? x0 + 0.002f : xb - bar, hi = i == cols ? x1 - 0.002f : xb + bar;
+                list.Add(new Box(new Vector3((lo + hi) / 2, my, face + side * 0.006f), new Vector3(hi - lo, y1 - y0 - 0.004f, 0.014f), "grey"));
+            }
+            float bx = cw / 2 - bar / 2, by = ch / 2 - bar / 2, bz = face + side * 0.018f;
+            var bolt = new Vector3(0.026f, 0.026f, 0.012f);
+            for (int i = 0; i < cols; i++)
+            {
+                for (int j = 0; j < rows; j++)
+                {
+                    float pcx = x0 + cw * (i + 0.5f), pcy = y0 + ch * (j + 0.5f);
+                    list.Add(Box.Chamfer(new Vector3(pcx, pcy, face + side * 0.0025f), new Vector3(cw - 2 * bar - 0.004f, ch - 2 * bar - 0.004f, 0.007f), 0.03f, "light"));
+                    foreach (float sx in new[] { -1f, 1f })
+                    {
+                        foreach (float sy in new[] { -1f, 1f })
+                        {
+                            list.Add(Box.Chamfer(new Vector3(pcx + sx * bx, pcy + sy * by, bz), bolt, 0.008f, "steel"));
+                        }
+                        if (cw > 0.45f) list.Add(Box.Chamfer(new Vector3(pcx, pcy + sx * by, bz), bolt, 0.008f, "steel"));
+                        if (ch > 0.6f) list.Add(Box.Chamfer(new Vector3(pcx + sx * bx, pcy, bz), bolt, 0.008f, "steel"));
+                    }
+                }
+            }
         }
 
         private static List<Box> SlideLeaf(float x0, float x1, float y0, float y1, float z, float d, float mid)
@@ -274,55 +374,45 @@ namespace Odyssey.Content
             bool left = x1 <= mid + 0.001f;
             float edge = left ? x1 : x0, outer = left ? x0 : x1, inward = left ? -1f : 1f;
             float px0 = edge + inward * 0.08f, px1 = outer - inward * 0.14f;
-            float px = (px0 + px1) / 2, pw = Mathf.Abs(px1 - px0);
+            float lx0 = Mathf.Min(px0, px1), lx1 = Mathf.Max(px0, px1);
             float bottom = y0 + 0.32f, top = y1 - 0.18f;
-            int panels = Mathf.Max(1, Mathf.RoundToInt((top - bottom) / 0.85f));
-            float gap = 0.08f, ph = (top - bottom - gap * (panels - 1)) / panels;
+            int rows = Mathf.Max(1, Mathf.RoundToInt((top - bottom) / 0.85f)), cols = Mathf.Max(1, Mathf.RoundToInt((lx1 - lx0) / 0.65f));
             list.Add(new Box(new Vector3(cx, cy, z), new Vector3(wl, hl, d), "light"));
             foreach (float side in new[] { -1f, 1f })
             {
-                float fz = z + side * (d / 2 + 0.005f);
+                float face = z + side * d / 2, fz = z + side * (d / 2 + 0.005f);
                 list.Add(Box.Chamfer(new Vector3(cx, y1 - 0.065f, fz), new Vector3(wl, 0.13f, 0.012f), 0.02f, "grey"));
                 list.Add(new Box(new Vector3(outer - inward * 0.06f, cy, fz), new Vector3(0.12f, hl - 0.02f, 0.012f), "grey"));
                 list.Add(new Box(new Vector3(edge + inward * 0.04f, cy, fz), new Vector3(0.08f, hl - 0.02f, 0.012f), "grey"));
                 for (float y = y0 + 0.45f; y < y1 - 0.3f; y += 0.5f)
                 {
                     list.Add(Box.Chamfer(new Vector3(outer - inward * 0.06f, y, fz + side * 0.008f), new Vector3(0.04f, 0.04f, 0.012f), 0.012f, "steel"));
+                    list.Add(Box.Chamfer(new Vector3(edge + inward * 0.05f, y + 0.25f, fz + side * 0.008f), new Vector3(0.03f, 0.03f, 0.012f), 0.01f, "steel"));
                 }
-                for (int i = 0; i < panels; i++)
+                Lattice(list, lx0, lx1, bottom, top, face, side, cols, rows, 0.035f);
+                foreach (float rx in wl > 0.9f ? new[] { outer - inward * 0.3f, edge + inward * 0.3f } : new[] { cx })
                 {
-                    float py = bottom + ph / 2 + i * (ph + gap);
-                    list.Add(Box.Chamfer(new Vector3(px, py, fz), new Vector3(pw, ph, 0.012f), 0.07f, "grey"));
-                    list.Add(Box.Chamfer(new Vector3(px, py, fz + side * 0.004f), new Vector3(pw - 0.08f, ph - 0.08f, 0.012f), 0.05f, "light"));
-                    foreach (float bx in new[] { px - pw / 2 + 0.06f, px + pw / 2 - 0.06f })
-                    {
-                        foreach (float by in new[] { py - ph / 2 + 0.06f, py + ph / 2 - 0.06f })
-                        {
-                            list.Add(Box.Chamfer(new Vector3(bx, by, fz + side * 0.006f), new Vector3(0.03f, 0.03f, 0.012f), 0.01f, "steel"));
-                        }
-                    }
+                    float ry = y1 - 0.095f;
+                    list.Add(Box.Chamfer(new Vector3(rx, ry, face + side * 0.014f), new Vector3(0.18f, 0.06f, 0.008f), 0.015f, "dark"));
+                    list.Add(new Box(Disc(rx, ry, 0.026f, 10), face + side * 0.023f, 0.012f, "steel"));
+                    list.Add(new Box(Disc(rx, ry, 0.011f, 8), face + side * 0.031f, 0.006f, "black"));
                 }
                 float hx = edge + inward * 0.22f, hy = y0 + Mathf.Min(1.1f, hl * 0.4f);
-                list.Add(Box.Chamfer(new Vector3(hx, hy, fz + side * 0.008f), new Vector3(0.15f, 0.56f, 0.012f), 0.05f, "dark"));
+                list.Add(Box.Chamfer(new Vector3(hx, hy, face + side * 0.012f), new Vector3(0.15f, 0.56f, 0.014f), 0.05f, "dark"));
                 foreach (float sy in new[] { hy - 0.19f, hy + 0.19f })
                 {
-                    list.Add(Box.Chamfer(new Vector3(hx, sy, fz + side * 0.022f), new Vector3(0.05f, 0.05f, 0.03f), 0.015f, "steel"));
+                    list.Add(Box.Chamfer(new Vector3(hx, sy, face + side * 0.032f), new Vector3(0.05f, 0.05f, 0.03f), 0.015f, "steel"));
                 }
-                list.Add(Box.Chamfer(new Vector3(hx, hy, fz + side * 0.045f), new Vector3(0.05f, 0.46f, 0.03f), 0.018f, "steel"));
+                list.Add(Box.Chamfer(new Vector3(hx, hy, face + side * 0.06f), new Vector3(0.05f, 0.46f, 0.03f), 0.018f, "steel"));
                 for (float x = Mathf.Min(x0, x1) + 0.15f; x < Mathf.Max(x0, x1) - 0.1f; x += 0.3f)
                 {
                     list.Add(Box.Chamfer(new Vector3(x, y0 + 0.12f, z + side * (d / 2 + 0.016f)), new Vector3(0.04f, 0.04f, 0.016f), 0.012f, "steel"));
                 }
             }
             list.Add(Box.Chamfer(new Vector3(cx, y0 + 0.12f, z), new Vector3(wl, 0.24f, d + 0.02f), 0.03f, "orange"));
+            list.Add(new Box(new Vector3(cx, y0 + 0.012f, z), new Vector3(wl, 0.024f, d + 0.024f), "rubber"));
             list.Add(new Box(new Vector3(edge + inward * 0.015f, cy, z), new Vector3(0.03f, hl, d + 0.03f), "rubber"));
             return list;
-        }
-
-        private static List<Vector2> Brace(float xa, float ya, float xb, float yb, float width)
-        {
-            Vector2 a = new Vector2(xa, ya), b = new Vector2(xb, yb), n = new Vector2(-(yb - ya), xb - xa).normalized * (width / 2);
-            return new List<Vector2> { a - n, b - n, b + n, a + n };
         }
 
         private static List<Box> BlastLeaf(float x0, float x1, float y0, float y1, float z, float d, float mid)
@@ -332,9 +422,10 @@ namespace Odyssey.Content
             bool left = x1 <= mid + 0.001f;
             float edge = left ? x1 : x0, outer = left ? x0 : x1, inward = left ? -1f : 1f;
             float xa = edge + inward * 0.12f, xb = outer - inward * 0.16f;
-            float py0 = y0 + 0.3f, py1 = y1 - 0.16f;
+            float py0 = y0 + 0.3f, py1 = y1 - 0.16f, pitch = wl > 6f ? 0.75f : 0.5f;
             int cols = Mathf.Max(1, Mathf.RoundToInt(Mathf.Abs(xb - xa) / 1.9f)), rows = Mathf.Max(1, Mathf.RoundToInt((py1 - py0) / 1.9f));
             float cw = Mathf.Abs(xb - xa) / cols, ch = (py1 - py0) / rows;
+            var nut = new Vector3(0.05f, 0.05f, 0.012f);
             list.Add(new Box(new Vector3(cx, cy, z), new Vector3(wl, hl, d), "dark"));
             foreach (float side in new[] { -1f, 1f })
             {
@@ -346,18 +437,42 @@ namespace Odyssey.Content
                     {
                         float pcy = py0 + ch * (j + 0.5f), pw = cw - 0.1f, ph = ch - 0.1f;
                         list.Add(Box.Chamfer(new Vector3(pcx, pcy, face + side * 0.014f), new Vector3(pw, ph, 0.03f), 0.12f, "grey"));
-                        list.Add(Box.Chamfer(new Vector3(pcx, pcy, face + side * 0.022f), new Vector3(pw - 0.22f, ph - 0.22f, 0.03f), 0.08f, "light"));
-                        float bx = pw / 2 - 0.07f, by = ph / 2 - 0.07f;
-                        foreach (float sx in new[] { -1f, 1f })
+                        int nx = Mathf.Max(2, Mathf.RoundToInt(pw / 0.9f)), ny = Mathf.Max(2, Mathf.RoundToInt(ph / 0.9f));
+                        float sw = (pw - 0.16f) / nx, sh = (ph - 0.16f) / ny, sx0 = pcx - (pw - 0.16f) / 2, sy0 = pcy - (ph - 0.16f) / 2;
+                        for (int a = 0; a < nx; a++)
                         {
-                            foreach (float sy in new[] { -1f, 1f })
+                            for (int c = 0; c < ny; c++)
                             {
-                                list.Add(Box.Chamfer(new Vector3(pcx + sx * bx, pcy + sy * by, face + side * 0.034f), new Vector3(0.07f, 0.07f, 0.02f), 0.02f, "steel"));
+                                list.Add(Box.Chamfer(new Vector3(sx0 + sw * (a + 0.5f), sy0 + sh * (c + 0.5f), face + side * 0.032f), new Vector3(sw - 0.1f, sh - 0.1f, 0.008f), 0.05f, "light"));
                             }
                         }
-                        float dx = pw / 2 - 0.22f, dy = ph / 2 - 0.22f, flip = (i + j) % 2 == 0 ? 1f : -1f;
-                        list.Add(new Box(Brace(pcx - dx, pcy - flip * dy, pcx + dx, pcy + flip * dy, 0.16f), face + side * 0.042f, 0.03f, "dark"));
+                        for (int a = 1; a < nx; a++)
+                        {
+                            float rx = sx0 + sw * a;
+                            list.Add(new Box(new Vector3(rx, pcy, face + side * 0.033f), new Vector3(0.12f, ph - 0.09f, 0.018f), "dark"));
+                            for (int c = 0; c < ny; c++)
+                            {
+                                list.Add(new Box(new Vector3(rx, sy0 + sh * (c + 0.5f), face + side * 0.047f), nut, "steel"));
+                            }
+                        }
+                        for (int c = 1; c < ny; c++)
+                        {
+                            float ry = sy0 + sh * c;
+                            list.Add(new Box(new Vector3(pcx, ry, face + side * 0.036f), new Vector3(pw - 0.056f, 0.12f, 0.02f), "dark"));
+                            for (int a = 0; a < nx; a++)
+                            {
+                                list.Add(new Box(new Vector3(sx0 + sw * (a + 0.5f), ry, face + side * 0.051f), nut, "steel"));
+                            }
+                            for (int a = 1; a < nx; a++)
+                            {
+                                list.Add(new Box(new Vector3(sx0 + sw * a, ry, face + side * 0.051f), nut, "steel"));
+                            }
+                        }
                     }
+                }
+                for (int i = 1; i < cols; i++)
+                {
+                    list.Add(new Box(new Vector3(xa + inward * cw * i, (py0 + py1) / 2, face + side * 0.021f), new Vector3(0.16f, py1 - py0, 0.044f), "dark"));
                 }
                 for (int j = 0; j <= rows; j++)
                 {
@@ -366,14 +481,35 @@ namespace Odyssey.Content
                     {
                         float bcx = xa + inward * cw * (i + 0.5f);
                         list.Add(Box.Chamfer(new Vector3(bcx, by, face + side * 0.024f), new Vector3(cw - 0.02f, 0.2f, 0.05f), 0.04f, "dark"));
-                        for (float t = -cw / 2 + 0.3f; t < cw / 2 - 0.2f; t += 0.5f)
+                        for (float t = -cw / 2 + 0.3f; t < cw / 2 - 0.2f; t += pitch)
                         {
+                            if (j == rows && Mathf.Abs(t) < 0.14f) continue;
                             list.Add(Box.Chamfer(new Vector3(bcx + t, by, face + side * 0.054f), new Vector3(0.06f, 0.06f, 0.02f), 0.018f, "steel"));
+                        }
+                        if (j == rows)
+                        {
+                            list.Add(new Box(Disc(bcx, by, 0.075f, 12), face + side * 0.056f, 0.016f, "steel"));
+                            list.Add(new Box(Disc(bcx, by, 0.03f, 8), face + side * 0.067f, 0.008f, "black"));
                         }
                     }
                 }
                 list.Add(Box.Chamfer(new Vector3(outer - inward * 0.08f, (py0 + py1) / 2, face + side * 0.019f), new Vector3(0.14f, py1 - py0 + 0.2f, 0.04f), 0.03f, "dark"));
                 list.Add(Box.Chamfer(new Vector3(edge + inward * 0.07f, (py0 + py1) / 2, face + side * 0.019f), new Vector3(0.1f, py1 - py0 + 0.2f, 0.04f), 0.03f, "dark"));
+                for (float y = py0 + 0.1f; y < py1 - 0.05f; y += pitch)
+                {
+                    list.Add(Box.Chamfer(new Vector3(outer - inward * 0.08f, y, face + side * 0.044f), nut, 0.015f, "steel"));
+                    if (y < y0 + 0.85f || y > y0 + 1.75f) list.Add(Box.Chamfer(new Vector3(edge + inward * 0.07f, y, face + side * 0.044f), nut, 0.015f, "steel"));
+                }
+                float hx = edge + inward * 0.07f;
+                foreach (float sy in new[] { y0 + 1f, y0 + 1.6f })
+                {
+                    list.Add(Box.Chamfer(new Vector3(hx, sy, face + side * 0.058f), new Vector3(0.05f, 0.05f, 0.04f), 0.015f, "steel"));
+                }
+                list.Add(Box.Chamfer(new Vector3(hx, y0 + 1.3f, face + side * 0.092f), new Vector3(0.045f, 0.76f, 0.03f), 0.015f, "steel"));
+                for (float x = Mathf.Min(x0, x1) + 0.2f; x < Mathf.Max(x0, x1) - 0.15f; x += pitch)
+                {
+                    list.Add(Box.Chamfer(new Vector3(x, y0 + 0.17f, face + side * 0.035f), nut, 0.015f, "steel"));
+                }
             }
             list.Add(Box.Chamfer(new Vector3(cx, y0 + 0.13f, z), new Vector3(wl, 0.26f, d + 0.06f), 0.04f, "orange"));
             list.Add(new Box(new Vector3(cx, y0 + 0.03f, z), new Vector3(wl, 0.06f, d + 0.08f), "rubber"));
@@ -397,25 +533,25 @@ namespace Odyssey.Content
                     list.Add(Box.Chamfer(new Vector3(tx, edge - inward * 0.06f, z), new Vector3(tw - 0.02f, 0.13f, d), 0.03f, "grey"));
                 }
             }
-            int cols = Mathf.Max(1, Mathf.RoundToInt((wl - 0.2f) / 1.4f));
-            float cw = (wl - 0.2f) / cols, pTop = top ? y1 - 0.2f : y1 - 0.24f, pBottom = top ? y0 + 0.24f : y0 + 0.2f;
+            int cols = Mathf.Max(1, Mathf.RoundToInt((wl - 0.2f) / 0.7f));
+            float pTop = top ? y1 - 0.2f : y1 - 0.24f, pBottom = top ? y0 + 0.24f : y0 + 0.2f;
+            float edgeRail = edge + inward * 0.12f, outerRail = top ? y1 - 0.1f : y0 + 0.1f;
             foreach (float side in new[] { -1f, 1f })
             {
-                float fz = z + side * (d / 2 + 0.005f);
-                list.Add(Box.Chamfer(new Vector3(cx, edge + inward * 0.12f, fz), new Vector3(wl - 0.04f, 0.14f, 0.012f), 0.03f, "grey"));
-                list.Add(Box.Chamfer(new Vector3(cx, top ? y1 - 0.1f : y0 + 0.1f, fz), new Vector3(wl - 0.04f, 0.14f, 0.012f), 0.03f, "grey"));
-                for (int i = 0; i < cols; i++)
+                float face = z + side * d / 2, fz = z + side * (d / 2 + 0.005f);
+                list.Add(Box.Chamfer(new Vector3(cx, edgeRail, fz), new Vector3(wl - 0.04f, 0.14f, 0.012f), 0.03f, "grey"));
+                list.Add(Box.Chamfer(new Vector3(cx, outerRail, fz), new Vector3(wl - 0.04f, 0.14f, 0.012f), 0.03f, "grey"));
+                for (float x = x0 + 0.2f; x < x1 - 0.15f; x += 0.35f)
                 {
-                    float pcx = x0 + 0.1f + cw * (i + 0.5f), pcy = (pTop + pBottom) / 2, ph = pTop - pBottom;
-                    list.Add(Box.Chamfer(new Vector3(pcx, pcy, fz), new Vector3(cw - 0.08f, ph, 0.012f), 0.06f, "grey"));
-                    list.Add(Box.Chamfer(new Vector3(pcx, pcy, fz + side * 0.004f), new Vector3(cw - 0.16f, ph - 0.08f, 0.012f), 0.045f, "light"));
-                    foreach (float bx in new[] { pcx - cw / 2 + 0.1f, pcx + cw / 2 - 0.1f })
+                    foreach (float ry in new[] { edgeRail, outerRail })
                     {
-                        foreach (float by in new[] { pBottom + 0.06f, pTop - 0.06f })
-                        {
-                            list.Add(Box.Chamfer(new Vector3(bx, by, fz + side * 0.006f), new Vector3(0.03f, 0.03f, 0.012f), 0.01f, "steel"));
-                        }
+                        list.Add(Box.Chamfer(new Vector3(x, ry, face + side * 0.015f), new Vector3(0.03f, 0.03f, 0.01f), 0.01f, "steel"));
                     }
+                }
+                Lattice(list, x0 + 0.1f, x1 - 0.1f, pBottom, pTop, face, side, cols, 1, 0.035f);
+                foreach (float sx in new[] { x0 + 0.05f, x1 - 0.05f })
+                {
+                    list.Add(Box.Chamfer(new Vector3(sx, cy, face + side * 0.007f), new Vector3(0.08f, Mathf.Min(0.36f, hl * 0.35f), 0.016f), 0.02f, "steel"));
                 }
             }
             return list;
@@ -443,7 +579,7 @@ namespace Odyssey.Content
         private const int Grid = 4;
         private const float Margin = 26f / 256f, Inset = 1.5f / 256f, Border = 0.03f;
 
-        private const float Tile = 2f;
+        private const float Tile = 1f;
 
         private static int Tiles(float length) => Mathf.Max(1, Mathf.RoundToInt((length - 2f * Border) / Tile));
 
@@ -487,8 +623,11 @@ namespace Odyssey.Content
 
             public void Chamfer(Vector3 center, Vector3 size, float r, string color) => Add(BigDoorModel.Box.Chamfer(center, size, r, color), -1, 0f, 0f, Vector2.zero);
 
+            public void Poly(List<Vector2> poly, float z, float depth, string color) => Add(new Box(poly, z, depth, color), -1, 0f, 0f, Vector2.zero);
+
             public void Add(Box box, int axis, float lo, float hi, Vector2 shift)
             {
+                if (axis >= 0 && (box.Bounds.max[axis] <= lo || box.Bounds.min[axis] >= hi)) return;
                 List<Vector2> poly = axis < 0 ? box.Poly : Clip(box.Poly, axis, lo, hi);
                 if (poly.Count < 3 || Mathf.Abs(Area(poly)) < 1e-7f) return;
                 if (axis >= 0 && poly.Max(p => p[axis]) - poly.Min(p => p[axis]) < 0.0005f) return;

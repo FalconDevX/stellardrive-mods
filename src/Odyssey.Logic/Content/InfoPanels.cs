@@ -137,6 +137,17 @@ namespace Odyssey.Content
             }
         }
 
+        private static void Cylinder(MeshBuilder b, Frame f, float x0, float y0, float z0, float x1, float y1, float z1, float radius, string color, int segments)
+        {
+            b.Cylinder(f.Point(x0, y0, z0), f.Point(x1, y1, z1), radius, color, segments);
+        }
+
+        private static void Screw(MeshBuilder b, Frame f, float x, float y, float z, float radius)
+        {
+            b.Cylinder(f.Point(x, y, z), f.Point(x, y, z + 0.004f), radius, "steel", 12);
+            b.Box(f.Point(x, y, z + 0.0046f), new Vector3(radius * 1.5f, 0.0022f, 0.0016f), "black", f.Rotation * Quaternion.Euler(0f, 0f, 45f));
+        }
+
         private static PartSettings Build(PartSettings display, PartSettings generator, PartSettings constant, Variant v)
         {
             GameObject root = Object.Instantiate(display.part, PartFactory.Holder);
@@ -214,9 +225,39 @@ namespace Odyssey.Content
             Box(body, frame, 0f, screenY - screenH * 0.5f - bezel * 0.5f, Depth, w, bezel, 0.02f, "grey");
             Box(body, frame, -(w - bezel) * 0.5f, screenY, Depth, bezel, screenH, 0.02f, "grey");
             Box(body, frame, (w - bezel) * 0.5f, screenY, Depth, bezel, screenH, 0.02f, "grey");
+            const float face = Depth + 0.0105f;
+            Box(body, frame, 0f, hgt * 0.5f - 0.003f, face, w, 0.006f, 0.003f, "steel");
+            foreach (float side in new[] { -1f, 1f })
+            {
+                Box(body, frame, side * (w * 0.5f - 0.003f), strip * 0.5f - 0.003f, face, 0.006f, hgt - strip - 0.006f, 0.003f, "steel");
+                Box(body, frame, side * (screenW * 0.5f + 0.003f), screenY, face, 0.006f, screenH, 0.003f, "black");
+                Box(body, frame, 0f, screenY + side * (screenH * 0.5f + 0.003f), face, screenW + 0.012f, 0.006f, 0.003f, "black");
+                foreach (float vert in new[] { -1f, 1f })
+                {
+                    Screw(body, frame, side * (screenW * 0.5f + bezel * 0.5f), screenY + vert * (screenH * 0.5f + bezel * 0.5f), Depth + 0.0095f, 0.0075f);
+                }
+                Screw(body, frame, side * (w * 0.5f - 0.025f), stripY - 0.005f, Depth + 0.0095f, 0.006f);
+                foreach (float y in new[] { -0.28f, 0.28f })
+                {
+                    Box(body, frame, side * (w * 0.5f + 0.003f), y * hgt, 0.0375f, 0.012f, 0.06f, 0.035f, "steel");
+                    Cylinder(body, frame, side * (w * 0.5f + 0.008f), y * hgt, 0.04f, side * (w * 0.5f + 0.0098f), y * hgt, 0.04f, 0.0065f, "grey", 6);
+                }
+            }
             Box(body, frame, 0f, stripY, Depth * 0.5f + 0.01f, w - 0.002f, strip, Depth, "steel");
             Box(body, frame, 0f, stripY + strip * 0.5f - 0.006f, Depth + 0.012f, w - 0.02f, 0.012f, 0.004f, "yellow");
-            Box(body, frame, w * 0.5f - 0.06f, stripY - 0.005f, Depth + 0.012f, 0.025f, 0.025f, 0.006f, "green");
+            Box(body, frame, -(w * 0.5f - 0.1f), stripY - 0.005f, Depth + 0.0105f, 0.1f, 0.03f, 0.003f, "light");
+            Box(body, frame, -(w * 0.5f - 0.1f), stripY + 0.001f, Depth + 0.0128f, 0.07f, 0.004f, 0.0016f, "dark");
+            Box(body, frame, -(w * 0.5f - 0.11f), stripY - 0.011f, Depth + 0.0128f, 0.05f, 0.004f, 0.0016f, "dark");
+            foreach ((float x, string color) in new[] { (w * 0.5f - 0.06f, "green"), (w * 0.5f - 0.09f, "orange") })
+            {
+                Cylinder(body, frame, x, stripY - 0.005f, Depth + 0.0095f, x, stripY - 0.005f, Depth + 0.012f, 0.011f, "dark", 16);
+                Cylinder(body, frame, x, stripY - 0.005f, Depth + 0.0115f, x, stripY - 0.005f, Depth + 0.015f, 0.0055f, color, 12);
+            }
+            int vents = Mathf.Max(6, Mathf.FloorToInt(w * 0.4f / 0.02f));
+            for (int i = 0; i < vents; i++)
+            {
+                Box(body, frame, (i - (vents - 1) * 0.5f) * 0.02f, hgt * 0.5f - 0.0015f, 0.045f, 0.006f, 0.003f, 0.04f, "black");
+            }
             int total = v.Lines + 1;
             float spacing = Mathf.Min(0.2f, (w - 0.2f) / total);
             float SocketX(int i) => (i - (total - 1) * 0.5f) * spacing;
@@ -224,6 +265,9 @@ namespace Odyssey.Content
             {
                 Box(body, frame, -SocketX(i), -hgt * 0.5f - 0.004f, Depth * 0.5f + 0.01f, 0.07f, 0.008f, 0.07f, i < v.Lines ? "dark" : "yellow");
             }
+            float glandX = -SocketX(total - 1) - 0.07f;
+            Cylinder(body, frame, glandX, -hgt * 0.5f + 0.002f, 0.045f, glandX, -hgt * 0.5f - 0.0045f, 0.045f, 0.014f, "steel", 6);
+            Cylinder(body, frame, glandX, -hgt * 0.5f - 0.004f, 0.045f, glandX, -hgt * 0.5f - 0.008f, 0.045f, 0.0095f, "rubber", 16);
             Mesh bodyMesh = body.Build("InfoPanelBody");
             PartFactory.CreateRenderer("Body", visual, bodyMesh, material, lookCopy);
 

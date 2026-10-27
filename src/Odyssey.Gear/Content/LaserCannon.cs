@@ -69,10 +69,54 @@ namespace Odyssey.Content
                 b.Box(new Vector3(side * 0.235f, 0.495f, 0.5f), new Vector3(0.175f, 0.03f, 0.8f), "grey",
                     Quaternion.Euler(0f, 0f, side > 0f ? 120.96f : 59.04f));
                 b.Box(new Vector3(side * 0.283f, 0.3f, 0.36f), new Vector3(0.012f, 0.06f, 0.54f), "black");
-                for (int i = 0; i < 3; i++)
+                for (int i = 0; i < 7; i++)
                 {
-                    b.Box(new Vector3(side * 0.29f, 0.27f, 0.7f + i * 0.08f), new Vector3(0.03f, 0.22f, 0.035f), "dark");
+                    b.Box(new Vector3(side * 0.2925f, 0.27f, 0.66f + i * 0.04f), new Vector3(0.025f, 0.22f, 0.012f), "dark");
                 }
+                b.Box(new Vector3(side * 0.291f, 0.166f, 0.78f), new Vector3(0.022f, 0.012f, 0.26f), "grey");
+                b.Box(new Vector3(side * 0.291f, 0.374f, 0.78f), new Vector3(0.022f, 0.012f, 0.26f), "grey");
+                for (int i = 0; i < 6; i++)
+                {
+                    float z = 0.14f + i * 0.06f;
+                    b.Cylinder(new Vector3(side * 0.287f, 0.14f, z), new Vector3(side * 0.287f, 0.25f, z), 0.015f, "blue", 12);
+                    b.Cylinder(new Vector3(side * 0.287f, 0.25f, z), new Vector3(side * 0.287f, 0.258f, z), 0.011f, "steel", 10);
+                }
+                b.Box(new Vector3(side * 0.291f, 0.2f, 0.29f), new Vector3(0.022f, 0.018f, 0.36f), "dark");
+                b.Cylinder(new Vector3(side * 0.29f, 0.395f, 0.06f), new Vector3(side * 0.29f, 0.395f, 0.9f), 0.012f, "black", 10);
+                foreach (float z in new[] { 0.06f, 0.9f })
+                {
+                    b.Cylinder(new Vector3(side * 0.272f, 0.395f, z), new Vector3(side * 0.298f, 0.395f, z), 0.016f, "steel", 8);
+                }
+                foreach (float z in new[] { 0.3f, 0.5f })
+                {
+                    b.Box(new Vector3(side * 0.292f, 0.395f, z), new Vector3(0.02f, 0.03f, 0.016f), "grey");
+                }
+                foreach (float z in new[] { 0.21f, 0.48f, 0.75f })
+                {
+                    b.Cylinder(new Vector3(side * 0.185f, 0.058f, z), new Vector3(side * 0.185f, 0.072f, z), 0.014f, "steel", 6);
+                }
+                foreach (float z in new[] { 0.345f, 0.615f })
+                {
+                    b.Box(new Vector3(side * 0.18f, 0.09f, z), new Vector3(0.06f, 0.06f, 0.014f), "grey");
+                }
+                foreach (float y in new[] { 0.17f, 0.49f })
+                {
+                    b.Cylinder(new Vector3(side * 0.2f, y, 0.012f), new Vector3(side * 0.2f, y, 0.003f), 0.01f, "steel", 6);
+                }
+                foreach (float y in new[] { 0.15f, 0.47f })
+                {
+                    b.Cylinder(new Vector3(side * 0.215f, y, 0.965f), new Vector3(side * 0.215f, y, 0.973f), 0.009f, "steel", 6);
+                }
+            }
+            foreach (float z in new[] { 0.07f, 0.13f })
+            {
+                b.Cylinder(new Vector3(-0.2f, 0.09f, z), new Vector3(0.2f, 0.09f, z), 0.03f, "blue", 14);
+                b.Cylinder(new Vector3(-0.212f, 0.09f, z), new Vector3(-0.2f, 0.09f, z), 0.022f, "steel", 12);
+                b.Cylinder(new Vector3(0.2f, 0.09f, z), new Vector3(0.212f, 0.09f, z), 0.022f, "steel", 12);
+            }
+            foreach (float x in new[] { -0.12f, 0.12f })
+            {
+                b.Box(new Vector3(x, 0.087f, 0.1f), new Vector3(0.02f, 0.066f, 0.13f), "dark");
             }
             b.Box(new Vector3(0f, 0.572f, 0.5f), new Vector3(0.3f, 0.006f, 0.56f), "black");
             b.Box(new Vector3(0f, 0.31f, 0.95f), new Vector3(0.48f, 0.36f, 0.04f), "dark");
@@ -80,6 +124,22 @@ namespace Odyssey.Content
             b.Box(new Vector3(0f, 0.33f, 0.025f), new Vector3(0.46f, 0.38f, 0.03f), "dark");
             b.Cylinder(new Vector3(0f, BarrelY, 0.02f), new Vector3(0f, BarrelY, -0.3f), 0.14f, "grey", 24);
             b.Cylinder(new Vector3(0f, BarrelY, -0.3f), new Vector3(0f, BarrelY, -0.34f), 0.15f, "dark", 24);
+            b.Cylinder(new Vector3(0f, BarrelY, 0.012f), new Vector3(0f, BarrelY, -0.006f), 0.16f, "steel", 24);
+            b.Cylinder(new Vector3(0f, BarrelY, -0.03f), new Vector3(0f, BarrelY, -0.05f), 0.148f, "dark", 24);
+            b.Cylinder(new Vector3(0f, BarrelY, -0.08f), new Vector3(0f, BarrelY, -0.22f), 0.146f, "dark", 24);
+            b.Cylinder(new Vector3(0f, BarrelY, -0.25f), new Vector3(0f, BarrelY, -0.27f), 0.148f, "dark", 24);
+            for (int k = 0; k < 12; k++)
+            {
+                float deg = k * 30f, r = deg * Mathf.Deg2Rad;
+                b.Box(new Vector3(Mathf.Cos(r) * 0.148f, BarrelY + Mathf.Sin(r) * 0.148f, -0.15f), new Vector3(0.008f, 0.014f, 0.11f), "black", Quaternion.Euler(0f, 0f, deg));
+            }
+            for (int k = 0; k < 8; k++)
+            {
+                float r = (k * 45f + 22.5f) * Mathf.Deg2Rad;
+                float c = Mathf.Cos(r), s = Mathf.Sin(r);
+                b.Cylinder(new Vector3(c * 0.15f, BarrelY + s * 0.15f, -0.006f), new Vector3(c * 0.15f, BarrelY + s * 0.15f, -0.013f), 0.007f, "grey", 6);
+                b.Cylinder(new Vector3(c * 0.125f, BarrelY + s * 0.125f, -0.34f), new Vector3(c * 0.125f, BarrelY + s * 0.125f, -0.347f), 0.007f, "steel", 6);
+            }
             return b.Build("LaserCannonBody");
         }
 
@@ -105,11 +165,32 @@ namespace Odyssey.Content
         {
             var b = new MeshBuilder();
             b.Cylinder(new Vector3(0f, 0f, -0.34f), new Vector3(0f, 0f, -0.4f), 0.085f, "dark", 20);
+            b.Cylinder(new Vector3(0f, 0f, -0.77f), new Vector3(0f, 0f, -0.78f), 0.08f, "grey", 20);
             b.Cylinder(new Vector3(0f, 0f, -0.78f), new Vector3(0f, 0f, -0.86f), 0.09f, "dark", 20);
+            b.Cylinder(new Vector3(0f, 0f, -0.81f), new Vector3(0f, 0f, -0.83f), 0.094f, "steel", 20);
+            b.Lathe(Vector3.zero, Vector3.back, new List<Vector2>
+            {
+                new Vector2(0.074f, 0.858f), new Vector2(0.074f, 0.868f), new Vector2(0.068f, 0.876f),
+                new Vector2(0.058f, 0.876f), new Vector2(0.052f, 0.87f), new Vector2(0.052f, 0.858f)
+            }, "steel", 20);
+            for (int k = 0; k < 6; k++)
+            {
+                float r = (k * 60f + 30f) * Mathf.Deg2Rad;
+                b.Cylinder(new Vector3(Mathf.Cos(r) * 0.074f, Mathf.Sin(r) * 0.074f, -0.4f), new Vector3(Mathf.Cos(r) * 0.074f, Mathf.Sin(r) * 0.074f, -0.407f), 0.006f, "steel", 6);
+            }
+            foreach (float deg in new[] { 45f, 135f, 225f, 315f })
+            {
+                float r = deg * Mathf.Deg2Rad;
+                b.Box(new Vector3(Mathf.Cos(r) * 0.08f, Mathf.Sin(r) * 0.08f, -0.59f), new Vector3(0.016f, 0.016f, 0.38f), "grey", Quaternion.Euler(0f, 0f, deg));
+            }
             foreach (float deg in new[] { 90f, 210f, 330f })
             {
                 float r = deg * Mathf.Deg2Rad;
-                b.Box(new Vector3(Mathf.Cos(r) * 0.07f, Mathf.Sin(r) * 0.07f, -0.93f), new Vector3(0.03f, 0.03f, 0.14f), "grey", Quaternion.Euler(0f, 0f, deg));
+                float c = Mathf.Cos(r), s = Mathf.Sin(r);
+                Quaternion turn = Quaternion.Euler(0f, 0f, deg);
+                b.Box(new Vector3(c * 0.083f, s * 0.083f, -0.875f), new Vector3(0.03f, 0.034f, 0.03f), "dark", turn);
+                b.Box(new Vector3(c * 0.08f, s * 0.08f, -0.93f), new Vector3(0.024f, 0.024f, 0.14f), "grey", turn);
+                b.Box(new Vector3(c * 0.07f, s * 0.07f, -0.99f), new Vector3(0.028f, 0.02f, 0.02f), "steel", turn);
             }
             return b.Build("LaserCannonBarrelParts");
         }

@@ -76,18 +76,62 @@ namespace Odyssey.Content
         private static Mesh PlateMesh()
         {
             var b = new MeshBuilder();
+            const float rail = 0.447f, top = Plate + 0.008f;
             b.Box(new Vector3(0f, Plate / 2f, 0f), new Vector3(Width - 0.02f, Plate, Length - 0.02f), "steel");
-            b.Box(new Vector3(0f, Plate + 0.003f, Front - 0.07f), new Vector3(Width - 0.06f, 0.006f, 0.1f), "yellow");
-            b.Box(new Vector3(0f, Plate + 0.003f, -Front + 0.07f), new Vector3(Width - 0.06f, 0.006f, 0.1f), "yellow");
-            for (int i = 0; i < 9; i++)
-            {
-                b.Box(new Vector3(0f, Plate + 0.002f, -Front + 0.3f + i * 0.175f), new Vector3(Width - 0.16f, 0.004f, 0.03f), "dark");
-            }
-            b.Box(new Vector3(0f, Plate / 2f, Front - 0.004f), new Vector3(StepWidth + 0.02f, Plate * 0.6f, 0.012f), "dark");
             foreach (float x in new[] { -1f, 1f })
             {
-                b.Box(new Vector3(x * (Width / 2f - 0.03f), Plate / 2f, 0f), new Vector3(0.05f, Plate + 0.01f, Length - 0.04f), "grey");
+                b.Box(new Vector3(x * (rail + 0.023f), (top + 0.002f) / 2f, 0f), new Vector3(0.046f, top - 0.002f, Length - 0.04f), "grey");
+                b.Box(new Vector3(x * (Width / 2f - 0.0035f), 0.012f, 0f), new Vector3(0.006f, 0.016f, Length - 0.08f), "dark");
+                for (int k = -2; k <= 2; k++)
+                {
+                    b.Cylinder(new Vector3(x * 0.492f, 0.058f, k * 0.4f), new Vector3(x * 0.4985f, 0.058f, k * 0.4f), 0.009f, "steel", 6);
+                }
+                foreach (float z in new[] { -1f, 1f })
+                {
+                    b.Box(new Vector3(x * (rail + 0.024f), Plate / 2f + 0.002f, z * (Front - 0.011f)), new Vector3(0.048f, Plate - 0.004f, 0.018f), "rubber");
+                }
             }
+            b.Box(new Vector3(0f, (top + 0.002f) / 2f, -Front + 0.0245f), new Vector3(rail * 2f + 0.006f, top - 0.002f, 0.035f), "grey");
+            const int knuckles = 6;
+            const float knuckle = 0.12f, gap = 0.03f;
+            float hinge = Front - 0.022f, first = -(knuckles * knuckle + (knuckles - 1) * gap) / 2f;
+            b.Cylinder(new Vector3(-rail - 0.001f, Plate, hinge), new Vector3(rail + 0.001f, Plate, hinge), 0.006f, "dark", 12);
+            for (int k = 0; k < knuckles; k++)
+            {
+                float x0 = first + k * (knuckle + gap);
+                b.Cylinder(new Vector3(x0, Plate, hinge), new Vector3(x0 + knuckle, Plate, hinge), 0.012f, "steel", 16);
+                b.Cylinder(new Vector3(x0 - 0.002f, Plate, hinge), new Vector3(x0 + 0.002f, Plate, hinge), 0.0135f, "grey", 16);
+                b.Cylinder(new Vector3(x0 + knuckle - 0.002f, Plate, hinge), new Vector3(x0 + knuckle + 0.002f, Plate, hinge), 0.0135f, "grey", 16);
+            }
+            b.Box(new Vector3(0f, Plate + 0.003f, Front - 0.09f), new Vector3(rail * 2f + 0.004f, 0.006f, 0.1f), "yellow");
+            foreach (float x in new[] { -1f, 1f })
+            {
+                b.Box(new Vector3(x * (rail + 0.13f) / 2f, Plate + 0.003f, -Front + 0.09f), new Vector3(rail - 0.13f + 0.004f, 0.006f, 0.1f), "yellow");
+                b.Box(new Vector3(x * 0.112f, Plate + 0.007f, -Front + 0.09f), new Vector3(0.016f, 0.014f, 0.028f), "steel");
+                b.Cylinder(new Vector3(x * 0.108f, Plate + 0.008f, -Front + 0.09f), new Vector3(x * 0.075f, Plate + 0.008f, -Front + 0.09f), 0.0055f, "steel", 12);
+            }
+            b.Box(new Vector3(0f, Plate + 0.0015f, -Front + 0.09f), new Vector3(0.264f, 0.003f, 0.08f), "black");
+            b.Cylinder(new Vector3(-0.076f, Plate + 0.008f, -Front + 0.09f), new Vector3(0.076f, Plate + 0.008f, -Front + 0.09f), 0.0075f, "rubber", 12);
+            const float slot = 0.175f, firstSlot = -0.7f;
+            for (int i = 0; i < 9; i++)
+            {
+                b.Box(new Vector3(0f, Plate + 0.002f, firstSlot + i * slot), new Vector3(Width - 0.16f, 0.004f, 0.03f), "dark");
+            }
+            int row = 0;
+            for (int i = -1; i < 9; i++)
+            {
+                foreach (float offset in i < 0 ? new[] { -0.0475f, -0.1275f } : new[] { 0.0475f, 0.1275f })
+                {
+                    float z = firstSlot + Mathf.Max(i, 0) * slot + offset;
+                    for (float x = -0.36f + (row % 2) * 0.045f; x <= 0.381f; x += 0.09f)
+                    {
+                        b.Box(new Vector3(x, Plate + 0.002f, z), new Vector3(0.05f, 0.004f, 0.012f), "grey");
+                    }
+                    row++;
+                }
+            }
+            b.Box(new Vector3(0f, 0.045f, Front - 0.004f), new Vector3(StepWidth + 0.02f, 0.05f, 0.012f), "dark");
+            b.Box(new Vector3(0f, 0.074f, Front - 0.005f), new Vector3(StepWidth + 0.02f, 0.008f, 0.01f), "rubber");
             return b.Build("RetractableStairsPlate");
         }
 
@@ -105,6 +149,8 @@ namespace Odyssey.Content
             foreach (float x in new[] { -Side, Side })
             {
                 b.Box(new Vector3(x, top - 0.13f, center), new Vector3(0.06f, 0.2f, Tread * 1.4142f + 0.004f), "grey", slope);
+                b.Cylinder(new Vector3(x * 1.063f, top - 0.13f, center), new Vector3(x * 1.078f, top - 0.13f, center), 0.011f, "steel", 6);
+                b.Cylinder(new Vector3(x * 1.076f, top - 0.13f, center), new Vector3(x * 1.081f, top - 0.13f, center), 0.005f, "grey", 10);
             }
         }
 

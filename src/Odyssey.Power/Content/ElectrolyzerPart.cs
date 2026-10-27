@@ -178,8 +178,33 @@ namespace Odyssey.Content
                     b.Sphere(pts[i] + o, r * 1.05f, color, 10);
                 }
             }
+            void Hex(Vector3 from, Vector3 to, float r) => b.Cylinder(from + o, to + o, r, "dark", 6);
+            void Flange(Vector3 at, Vector3 dir, float r)
+            {
+                float t = Mathf.Max(0.012f, r * 0.4f);
+                b.Cylinder(at - dir * (t * 0.5f) + o, at + dir * (t * 0.5f) + o, r * 1.8f, "steel", 14);
+                Vector3 side = Vector3.Cross(dir, Mathf.Abs(dir.y) < 0.9f ? Vector3.up : Vector3.right).normalized, side2 = Vector3.Cross(dir, side);
+                for (int i = 0; i < 4; i++)
+                {
+                    float a = (45f + 90f * i) * Mathf.Deg2Rad;
+                    Vector3 p = at + (side * Mathf.Cos(a) + side2 * Mathf.Sin(a)) * r * 1.35f;
+                    Hex(p - dir * (t * 0.5f + 0.006f), p + dir * (t * 0.5f + 0.006f), 0.006f);
+                }
+            }
+            void Post(float x, float z, float top, float plate)
+            {
+                b.Box(P(x, (0.098f + top) * 0.5f, z), new Vector3(0.035f, top - 0.098f, 0.035f), "steel");
+                b.Box(P(x, 0.106f, z), new Vector3(plate, 0.012f, plate), "dark");
+            }
 
             b.Box(P(0f, 0.05f, 0f), new Vector3(n - 0.06f, 0.1f, n - 0.06f), "dark");
+            foreach (float z in new[] { -h + 0.028f, h - 0.028f })
+            {
+                foreach (float x in new[] { -h * 0.5f, h * 0.5f })
+                {
+                    b.Box(P(x, 0.05f, z), new Vector3(0.26f, 0.05f, 0.008f), "black");
+                }
+            }
             int stripes = n * 6;
             for (int i = 0; i < stripes; i++)
             {
@@ -195,21 +220,40 @@ namespace Odyssey.Content
             float pitch = (w * 0.5f - 0.2f) / tanks;
             float radius = Mathf.Min(0.2f, pitch * 0.42f);
             float headerY = l.TankTop + radius + 0.08f;
+            float strap = radius * 1.06f, rackZ = l.TankZ + strap + 0.05f;
             foreach (var (sign, color, socket) in new[] { (-1f, "orange", l.Hydrogen), (1f, "cyan", l.Oxygen) })
             {
                 float inner = 0.12f * sign;
                 for (int i = 0; i < tanks; i++)
                 {
                     float x = inner + sign * (i + 0.5f) * pitch;
-                    b.Cylinder(P(x, 0.1f, l.TankZ), P(x, 0.16f, l.TankZ), radius * 1.15f, "dark", 20);
+                    b.Cylinder(P(x, 0.095f, l.TankZ), P(x, 0.16f, l.TankZ), radius * 1.15f, "dark", 20);
+                    for (int j = 0; j < 4; j++)
+                    {
+                        float a = (45f + 90f * j) * Mathf.Deg2Rad;
+                        var bolt = new Vector3(x + Mathf.Cos(a) * radius * 1.08f, 0.157f, l.TankZ + Mathf.Sin(a) * radius * 1.08f);
+                        Hex(bolt, bolt + Vector3.up * 0.018f, 0.008f);
+                    }
                     b.Cylinder(P(x, 0.16f, l.TankZ), P(x, l.TankTop, l.TankZ), radius, color, 20);
                     b.Sphere(P(x, l.TankTop, l.TankZ), radius * 0.98f, color, 18);
                     for (float y = 0.4f; y < l.TankTop - 0.1f; y += 0.45f)
                     {
-                        b.Cylinder(P(x, y, l.TankZ), P(x, y + 0.03f, l.TankZ), radius * 1.06f, "dark", 20);
+                        b.Cylinder(P(x, y, l.TankZ), P(x, y + 0.03f, l.TankZ), strap, "dark", 20);
+                        b.Box(P(x, y + 0.015f, l.TankZ + strap + 0.0125f), new Vector3(0.05f, 0.03f, 0.035f), "dark");
+                        Hex(new Vector3(x - 0.032f, y + 0.015f, l.TankZ + strap + 0.014f), new Vector3(x + 0.032f, y + 0.015f, l.TankZ + strap + 0.014f), 0.007f);
                     }
                     Pipe(0.028f, "steel", new Vector3(x, l.TankTop + radius * 0.7f, l.TankZ), new Vector3(x, headerY, l.TankZ));
+                    float valveY = l.TankTop + radius + 0.035f;
+                    b.Cylinder(P(x, l.TankTop + radius * 0.9f, l.TankZ), P(x, l.TankTop + radius + 0.012f, l.TankZ), 0.04f, "steel", 14);
+                    b.Box(P(x, valveY, l.TankZ), new Vector3(0.07f, 0.05f, 0.07f), "dark");
+                    b.Cylinder(P(x, valveY, l.TankZ - 0.034f), P(x, valveY, l.TankZ - 0.058f), 0.006f, "steel", 6);
+                    b.Cylinder(P(x, valveY, l.TankZ - 0.055f), P(x, valveY, l.TankZ - 0.064f), 0.03f, "red", 14);
                     b.Box(P(x, l.TankTop * 0.55f, l.TankZ - radius - 0.005f), new Vector3(0.07f, 0.07f, 0.02f), "white");
+                    float gaugeY = l.TankTop * 0.72f, front = l.TankZ - radius;
+                    b.Cylinder(P(x, gaugeY, front + 0.01f), P(x, gaugeY, front - 0.021f), 0.012f, "steel", 8);
+                    b.Cylinder(P(x, gaugeY, front - 0.02f), P(x, gaugeY, front - 0.034f), 0.042f, "dark", 16);
+                    b.Cylinder(P(x, gaugeY, front - 0.034f), P(x, gaugeY, front - 0.0365f), 0.034f, "white", 16);
+                    b.Box(P(x + 0.007f, gaugeY + 0.007f, front - 0.038f), new Vector3(0.004f, 0.026f, 0.004f), "black", Quaternion.Euler(0f, 0f, -45f));
                 }
                 float edge = sign * (h - 0.12f);
                 Pipe(0.04f, "steel",
@@ -219,16 +263,45 @@ namespace Odyssey.Content
                     new Vector3(edge, socket.y, h - 0.12f),
                     new Vector3(socket.x, socket.y, h - 0.12f),
                     new Vector3(socket.x, socket.y, h - 0.04f));
+                Flange(new Vector3(edge - sign * 0.09f, headerY, l.TankZ), Vector3.right, 0.04f);
+                Flange(new Vector3(edge, headerY - 0.09f, l.TankZ), Vector3.up, 0.04f);
+                Flange(new Vector3(socket.x, socket.y, h - 0.075f), Vector3.forward, 0.04f);
+                Post(edge, l.TankZ, socket.y - 0.038f, 0.06f);
+                Post(edge, h - 0.12f, socket.y - 0.038f, 0.06f);
                 b.Box(P(edge, l.TankTop * 0.5f, l.TankZ), new Vector3(0.1f, 0.12f, 0.1f), "dark");
                 b.Cylinder(P(edge, l.TankTop * 0.5f, l.TankZ - 0.05f), P(edge, l.TankTop * 0.5f, l.TankZ - 0.09f), 0.035f, color, 12);
             }
 
+            float rackX = w * 0.5f - 0.08f, rackTop = 0.2f;
+            for (float y = 0.4f; y < l.TankTop - 0.1f; y += 0.45f)
+            {
+                b.Box(P(0f, y + 0.015f, rackZ), new Vector3(rackX * 2f + 0.04f, 0.04f, 0.04f), "steel");
+                rackTop = y + 0.035f;
+            }
+            foreach (float x in new[] { -rackX, 0f, rackX })
+            {
+                Post(x, rackZ, rackTop, 0.09f);
+                foreach (float dx in new[] { -0.03f, 0.03f })
+                {
+                    Hex(new Vector3(x + dx, 0.11f, rackZ - 0.03f), new Vector3(x + dx, 0.124f, rackZ - 0.03f), 0.008f);
+                }
+            }
+
             float stackW = w - 0.9f, stackX = 0.25f;
             int plates = Mathf.RoundToInt(stackW / 0.05f);
-            float stackH = l.StackTop - 0.14f, stackD = 0.56f;
-            foreach (float x in new[] { stackX - stackW * 0.5f - 0.04f, stackX + stackW * 0.5f + 0.04f })
+            float stackH = l.StackTop - 0.14f, stackD = 0.56f, endTop = l.StackTop + 0.03f, endOuter = stackW * 0.5f + 0.08f;
+            b.Box(P(stackX, 0.1225f, l.StackZ), new Vector3(stackW, 0.045f, stackD - 0.06f), "dark");
+            foreach (float side in new[] { -1f, 1f })
             {
-                b.Box(P(x, 0.14f + stackH * 0.5f, l.StackZ), new Vector3(0.08f, stackH + 0.06f, stackD + 0.08f), "steel");
+                float x = stackX + side * (stackW * 0.5f + 0.04f);
+                b.Box(P(x, (0.1f + endTop) * 0.5f, l.StackZ), new Vector3(0.08f, endTop - 0.1f, stackD + 0.08f), "steel");
+                b.Box(P(x + side * 0.04f, 0.1125f, l.StackZ), new Vector3(0.16f, 0.025f, stackD + 0.16f), "dark");
+                foreach (float z in new[] { -1f, 1f })
+                {
+                    var bolt = new Vector3(x + side * 0.085f, 0.122f, l.StackZ + z * (stackD * 0.5f + 0.055f));
+                    Hex(bolt, bolt + Vector3.up * 0.02f, 0.012f);
+                }
+                b.Box(P(x, endTop + 0.02f, l.StackZ), new Vector3(0.07f, 0.04f, 0.1f), side < 0f ? "orange" : "dark");
             }
             for (int i = 0; i < plates; i++)
             {
@@ -239,7 +312,11 @@ namespace Odyssey.Content
             {
                 foreach (float z in new[] { l.StackZ - stackD * 0.5f - 0.02f, l.StackZ + stackD * 0.5f + 0.02f })
                 {
-                    b.Cylinder(P(stackX - stackW * 0.5f - 0.1f, y, z), P(stackX + stackW * 0.5f + 0.1f, y, z), 0.018f, "steel", 10);
+                    b.Cylinder(P(stackX - endOuter - 0.04f, y, z), P(stackX + endOuter + 0.04f, y, z), 0.018f, "steel", 10);
+                    foreach (float side in new[] { -1f, 1f })
+                    {
+                        Hex(new Vector3(stackX + side * (endOuter - 0.002f), y, z), new Vector3(stackX + side * (endOuter + 0.025f), y, z), 0.032f);
+                    }
                 }
             }
             int fins = Mathf.RoundToInt(stackW / 0.09f);
@@ -250,21 +327,29 @@ namespace Odyssey.Content
             }
             b.Box(P(stackX, l.StackTop + 0.005f, l.StackZ), new Vector3(stackW, 0.012f, stackD), "dark");
 
-            float riseZ = l.StackZ + stackD * 0.5f + 0.12f;
+            float riseZ = l.StackZ + stackD * 0.5f + 0.12f, outY = l.StackTop - 0.16f, backFace = l.StackZ + stackD * 0.5f;
             Pipe(0.035f, "orange",
-                new Vector3(stackX - stackW * 0.25f, l.StackTop - 0.1f, l.StackZ + stackD * 0.5f),
-                new Vector3(stackX - stackW * 0.25f, l.StackTop - 0.1f, riseZ),
-                new Vector3(-0.08f, l.StackTop - 0.1f, riseZ),
+                new Vector3(stackX - stackW * 0.25f, outY, backFace),
+                new Vector3(stackX - stackW * 0.25f, outY, riseZ),
+                new Vector3(-0.08f, outY, riseZ),
                 new Vector3(-0.08f, headerY, riseZ),
                 new Vector3(-0.08f, headerY, l.TankZ),
                 new Vector3(-0.12f, headerY, l.TankZ));
             Pipe(0.035f, "cyan",
-                new Vector3(stackX + stackW * 0.25f, l.StackTop - 0.1f, l.StackZ + stackD * 0.5f),
-                new Vector3(stackX + stackW * 0.25f, l.StackTop - 0.1f, riseZ + 0.08f),
-                new Vector3(0.08f, l.StackTop - 0.1f, riseZ + 0.08f),
+                new Vector3(stackX + stackW * 0.25f, outY, backFace),
+                new Vector3(stackX + stackW * 0.25f, outY, riseZ + 0.08f),
+                new Vector3(0.08f, outY, riseZ + 0.08f),
                 new Vector3(0.08f, headerY, riseZ + 0.08f),
                 new Vector3(0.08f, headerY, l.TankZ),
                 new Vector3(0.12f, headerY, l.TankZ));
+            foreach (float x in new[] { stackX - stackW * 0.25f, stackX + stackW * 0.25f })
+            {
+                Flange(new Vector3(x, outY, backFace + 0.008f), Vector3.forward, 0.035f);
+            }
+            Post(-0.08f, riseZ, outY - 0.033f, 0.07f);
+            Post(0.08f, riseZ + 0.08f, outY - 0.033f, 0.07f);
+            Flange(new Vector3(-0.08f, outY + 0.12f, riseZ), Vector3.up, 0.035f);
+            Flange(new Vector3(0.08f, outY + 0.12f, riseZ + 0.08f), Vector3.up, 0.035f);
 
             float backZ = h - 0.12f;
             float sideX = stackX + stackW * 0.5f + 0.2f;
@@ -274,12 +359,19 @@ namespace Odyssey.Content
                 new Vector3(l.Water.x, 0.3f, backZ),
                 new Vector3(sideX, 0.3f, backZ),
                 new Vector3(sideX, 0.3f, l.StackZ),
-                new Vector3(stackX + stackW * 0.5f + 0.08f, 0.3f, l.StackZ));
-            b.Cylinder(P(l.Water.x, 0.34f, backZ), P(l.Water.x, 0.4f, backZ), 0.06f, "dark", 14);
+                new Vector3(stackX + endOuter, 0.3f, l.StackZ));
+            b.Cylinder(P(l.Water.x, 0.33f, backZ), P(l.Water.x, 0.4f, backZ), 0.06f, "dark", 14);
+            Flange(new Vector3(stackX + endOuter + 0.007f, 0.3f, l.StackZ), Vector3.right, 0.04f);
+            Post(sideX, backZ, 0.262f, 0.07f);
+            Post(sideX, l.StackZ, 0.262f, 0.07f);
 
             b.Box(P(l.Power.x, 0.45f, backZ - 0.05f), new Vector3(0.24f, 0.3f, 0.14f), "dark");
             b.Box(P(l.Power.x, 0.61f, backZ - 0.05f), new Vector3(0.25f, 0.025f, 0.15f), "grey");
             b.Box(P(l.Power.x, 0.5f, backZ + 0.022f), new Vector3(0.12f, 0.06f, 0.005f), "yellow");
+            foreach (float dx in new[] { -0.09f, 0.09f })
+            {
+                Post(l.Power.x + dx, backZ - 0.1f, 0.302f, 0.06f);
+            }
             Pipe(0.026f, "steel", new Vector3(l.Power.x, l.Power.y, h - 0.02f), new Vector3(l.Power.x, l.Power.y, backZ), new Vector3(l.Power.x, 0.3f, backZ));
             float leftX = stackX - stackW * 0.5f - 0.04f, wireY = Mathf.Max(l.StackTop + 0.3f, headerY + 0.1f);
             Pipe(0.026f, "steel",
@@ -295,6 +387,19 @@ namespace Odyssey.Content
             b.Box(P(hx, 0.756f, hz), new Vector3(0.44f, 0.012f, 0.36f), "black");
             b.Box(P(hx, 0.6f, -h + 0.075f), new Vector3(0.34f, 0.08f, 0.01f), "white");
             b.Box(P(hx, 0.3f, -h + 0.075f), new Vector3(0.4f, 0.24f, 0.01f), "dark");
+            foreach (float y in new[] { 0.23f, 0.37f })
+            {
+                b.Cylinder(P(hx - 0.2f, y - 0.022f, -h + 0.068f), P(hx - 0.2f, y + 0.022f, -h + 0.068f), 0.01f, "steel", 8);
+            }
+            b.Box(P(hx + 0.16f, 0.3f, -h + 0.062f), new Vector3(0.02f, 0.1f, 0.02f), "steel");
+            foreach (float side in new[] { -1f, 1f })
+            {
+                for (int i = 0; i < 6; i++)
+                {
+                    b.Box(P(hx + side * 0.252f, 0.27f + i * 0.045f, hz), new Vector3(0.014f, 0.012f, 0.3f), "dark", Quaternion.Euler(0f, 0f, side * 35f));
+                }
+            }
+            b.Cylinder(P(hx - 0.14f, 0.755f, hz + 0.18f), P(hx + 0.14f, 0.755f, hz + 0.18f), 0.012f, "steel", 10);
             b.Box(P(hx, 0.86f, hz + 0.18f), new Vector3(0.3f, 0.2f, 0.03f), "dark");
             b.Box(P(hx, 0.865f, hz + 0.163f), new Vector3(0.26f, 0.15f, 0.005f), "screen");
             foreach (var (dx, c) in new[] { (-0.08f, "green"), (0f, "yellow"), (0.08f, "red") })
@@ -302,6 +407,7 @@ namespace Odyssey.Content
                 b.Box(P(hx + dx, 0.46f, -h + 0.075f), new Vector3(0.035f, 0.035f, 0.012f), c);
             }
             b.Box(P(l.Signal.x, 0.42f, backZ - 0.02f), new Vector3(0.12f, 0.12f, 0.1f), "dark");
+            Post(l.Signal.x, backZ - 0.05f, 0.362f, 0.06f);
             Pipe(0.016f, "white", new Vector3(l.Signal.x, l.Signal.y, h - 0.04f), new Vector3(l.Signal.x, l.Signal.y, backZ), new Vector3(l.Signal.x, 0.36f, backZ));
             ServicePanel(b, o, h, new[] { (l.Hydrogen.x, "orange"), (l.Power.x, "yellow"), (l.Signal.x, "white"), (l.Water.x, "blue"), (l.Oxygen.x, "cyan") });
             return b.Build("ElectrolyzerLargeBody");
