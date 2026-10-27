@@ -280,6 +280,10 @@ namespace Odyssey.Diagnostics
             {
                 yield return HitchTest.Run();
             }
+            else if (HasArg("export"))
+            {
+                ModelExport.Run();
+            }
             ScreenCapture.CaptureScreenshot(Path.Combine(DevTools.OutDir, "screen.png"));
             if (HasArg("quit") || DevMod.DevQuitAfterDump.Value)
             {

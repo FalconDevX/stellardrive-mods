@@ -227,7 +227,7 @@ def build(out):
         c, n = np.array(center, dtype=float), np.array(normal, dtype=float)
         yaw = math.atan2(n[0], n[2])
         frame.add(chamfer_box(w + 0.06, h + 0.06, depth, 0.015), tuple(c), rot(0, yaw, 0))
-        screens.add(quad(c + n * (depth / 2 + 0.004), n, w, h, region), uv_mode="explicit")
+        screens.add(quad(c + n * (depth / 2 + 0.0015), n, w, h, region), uv_mode="explicit")
 
     screen((0.0, 0.20, 1.52), (0, 0, 1), 0.62, 0.20, 0.06, WIDE)
     screen((1.52, 0.20, 0.0), (1, 0, 0), 0.62, 0.20, 0.06, WIDE)

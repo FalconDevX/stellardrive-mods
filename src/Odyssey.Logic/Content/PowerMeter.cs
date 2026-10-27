@@ -20,7 +20,7 @@ namespace Odyssey.Content
         internal const ushort PartId = 243;
         internal const byte SignalSocket = 0, PowerSocket = 1, SignalSocket2 = 2, PowerSocket2 = 3;
         private const ushort GeneratorPartId = 60;
-        private const float Width = 0.25f, Height = 0.25f, Depth = 0.25f, SocketX = 0.115f, SocketY = 0.125f;
+        private const float Width = 0.25f, Height = 0.25f, Depth = 0.25f, SocketY = 0.125f;
         private static PartSettings _part;
         private static bool _failed;
 
@@ -91,14 +91,39 @@ namespace Odyssey.Content
             }
 
             var body = new MeshBuilder();
+            float hw = Width * 0.5f, hd = Depth * 0.5f;
             body.Box(new Vector3(0f, Height * 0.5f, 0f), new Vector3(Width - 0.04f, Height - 0.04f, Depth - 0.04f), "steel");
-            body.Box(new Vector3(0f, 0.01f, 0f), new Vector3(Width - 0.02f, 0.02f, Depth - 0.02f), "grey");
-            body.Box(new Vector3(0f, Height - 0.01f, 0f), new Vector3(Width - 0.02f, 0.02f, Depth - 0.02f), "grey");
-            body.Box(new Vector3(0f, Height - 0.002f, 0f), new Vector3(Width - 0.1f, 0.006f, Depth - 0.1f), "screen");
-            body.Cylinder(new Vector3(-SocketX, SocketY, 0f), new Vector3(-Width * 0.5f + 0.002f, SocketY, 0f), 0.045f, "dark");
-            body.Cylinder(new Vector3(SocketX, SocketY, 0f), new Vector3(Width * 0.5f - 0.002f, SocketY, 0f), 0.045f, "dark");
-            body.Cylinder(new Vector3(0f, SocketY, -SocketX), new Vector3(0f, SocketY, -Depth * 0.5f + 0.002f), 0.045f, "yellow");
-            body.Cylinder(new Vector3(0f, SocketY, SocketX), new Vector3(0f, SocketY, Depth * 0.5f - 0.002f), 0.045f, "yellow");
+            body.Box(new Vector3(0f, 0.012f, 0f), new Vector3(Width - 0.02f, 0.024f, Depth - 0.02f), "grey");
+            body.Box(new Vector3(0f, Height - 0.012f, 0f), new Vector3(Width - 0.02f, 0.024f, Depth - 0.02f), "grey");
+            foreach (float sx in new[] { -1f, 1f })
+            {
+                foreach (float sz in new[] { -1f, 1f })
+                {
+                    body.Box(new Vector3(sx * (hw - 0.017f), Height * 0.5f, sz * (hd - 0.017f)), new Vector3(0.026f, Height - 0.03f, 0.026f), "dark");
+                    body.Cylinder(new Vector3(sx * (hw - 0.04f), Height - 0.003f, sz * (hd - 0.04f)), new Vector3(sx * (hw - 0.04f), Height + 0.002f, sz * (hd - 0.04f)), 0.007f, "steel", 6);
+                }
+            }
+            float bezel = Width - 0.09f;
+            foreach (float s in new[] { -1f, 1f })
+            {
+                body.Box(new Vector3(0f, Height + 0.002f, s * (bezel * 0.5f + 0.006f)), new Vector3(bezel + 0.024f, 0.008f, 0.012f), "dark");
+                body.Box(new Vector3(s * (bezel * 0.5f + 0.006f), Height + 0.002f, 0f), new Vector3(0.012f, 0.008f, bezel), "dark");
+            }
+            body.Box(new Vector3(0f, Height - 0.001f, 0f), new Vector3(bezel, 0.004f, bezel), "screen");
+            body.Cylinder(new Vector3(hw - 0.04f, Height - 0.002f, 0f), new Vector3(hw - 0.04f, Height + 0.004f, 0f), 0.006f, "green", 8);
+            var faces = new[] { (Vector3.left, "dark"), (Vector3.right, "dark"), (Vector3.back, "yellow"), (Vector3.forward, "yellow") };
+            foreach ((Vector3 n, string color) in faces)
+            {
+                Vector3 face = new Vector3(n.x * hw, SocketY, n.z * hd);
+                Vector3 side = Vector3.Cross(Vector3.up, n);
+                body.Cylinder(face - n * 0.03f, face - n * 0.002f, 0.045f, color);
+                body.Cylinder(face - n * 0.025f, face - n * 0.004f, 0.056f, "grey");
+                for (int i = -1; i <= 1; i++)
+                {
+                    body.Box(face - n * 0.019f + side * (i * 0.03f) + Vector3.up * 0.075f, new Vector3(0.014f, 0.014f, 0.014f), "black");
+                }
+                body.Box(face - n * 0.019f - Vector3.up * 0.078f, new Vector3(Mathf.Abs(side.x) * 0.08f + Mathf.Abs(n.x) * 0.006f, 0.016f, Mathf.Abs(side.z) * 0.08f + Mathf.Abs(n.z) * 0.006f), color == "yellow" ? "yellow" : "white");
+            }
             Mesh mesh = body.Build("PowerMeterBody");
             GameObject meter = PartFactory.CreateRenderer("Body", visual, mesh, material, lookCopy);
             Matrix4x4 place = (root.transform.worldToLocalMatrix * visual.localToWorldMatrix).inverse;

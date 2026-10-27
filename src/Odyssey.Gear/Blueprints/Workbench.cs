@@ -46,10 +46,10 @@ namespace Odyssey.Blueprints
             {
                 GameObject root = Object.Instantiate(table.part, PartFactory.Holder);
                 root.name = "ToolWorkbench";
-                Mesh body = ModAssets.LoadMesh("workbench_body.bin");
+                Mesh body = WorkbenchModel.Build();
                 Transform visual = root.transform.Find("Visuals") ?? root.transform.Find("Visual") ?? throw new InvalidOperationException("Research table has no visuals object");
                 MeshRenderer look = visual.GetComponentInChildren<MeshRenderer>(true);
-                Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("workbench_albedo.jpg"), "ToolWorkbench");
+                Material material = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("door_albedo.png"), "ToolWorkbench");
                 var lookCopy = new GameObject("look").AddComponent<MeshRenderer>();
                 lookCopy.gameObject.layer = look.gameObject.layer;
                 lookCopy.shadowCastingMode = look.shadowCastingMode;
@@ -66,9 +66,9 @@ namespace Odyssey.Blueprints
                     Object.DestroyImmediate(oldVisuals);
                     visual.gameObject.AddComponent<DefaultShipPartVisuals>();
                 }
-                PartFactory.CreateRenderer("Body", visual, body, material, lookCopy).transform.localRotation = Quaternion.Euler(0f, -90f, 0f);
+                PartFactory.CreateRenderer("Body", visual, body, material, lookCopy);
                 Object.DestroyImmediate(lookCopy.gameObject);
-                Bounds rotated = new Bounds(Quaternion.Euler(0f, -90f, 0f) * body.bounds.center, new Vector3(body.bounds.size.z, body.bounds.size.y, body.bounds.size.x));
+                Bounds rotated = WorkbenchModel.Bounds;
                 PartFactory.SetBounds(root, rotated);
                 Transform interactions = root.transform.Find("Interactions");
                 if (interactions != null)

@@ -156,7 +156,7 @@ namespace Odyssey.Content
             l.Signal = new Vector3(0f, SocketY, half);
             l.Water = new Vector3(spacing, SocketY, half);
             l.Oxygen = new Vector3(2f * spacing, SocketY, half);
-            l.Label = new Vector3(l.HopperX, 0.6f, -half + 0.062f);
+            l.Label = new Vector3(l.HopperX, 0.6f, -half + 0.067f);
             return l;
         }
 

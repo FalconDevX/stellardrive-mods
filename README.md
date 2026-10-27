@@ -40,13 +40,13 @@
 
 | Mod | Version | Summary | Who needs it |
 |---|:---:|---|---|
-| **[Odyssey Core](#odyssey)** | 1.2.0 | Shared base of the Odyssey modules: part and research registration, build menu tabs, research tree layout, title screen | All players (required by every Odyssey module) |
-| **[Odyssey Mining](#odyssey)** | 1.0.0 | Ore, glass and uranium deposits and the excavator | All players |
-| **[Odyssey Power](#odyssey)** | 1.0.0 | Nuclear reactors, hydrogen thruster and heavy engines, electrolyzer, water pump, large tanks, bigger vents | All players |
-| **[Odyssey Building](#odyssey)** | 1.0.0 | Large doors, gates and floor hatches, barriers, stairs, large chests, pontoons, rotors, heavy gyroscope | All players |
-| **[Odyssey Logic](#odyssey)** | 1.0.0 | Info panels, power meter, gas meter signal, extra pilot seat outputs | All players |
-| **[Odyssey Gear](#odyssey)** | 1.0.0 | Jetpack, laser cannon, blueprint tool, paint tool, tool workbench | All players |
-| **[Odyssey Tweaks](#odyssey)** | 1.0.0 | Performance fixes, culling, cable fixes, chase camera (V) | Each player (some fixes host) |
+| **[Odyssey Core](#odyssey)** | 1.2.6 | Shared base of the Odyssey modules: part and research registration, build menu tabs, research tree layout, title screen | All players (required by every Odyssey module) |
+| **[Odyssey Mining](#odyssey)** | 1.0.1 | Ore, glass and uranium deposits and the excavator | All players |
+| **[Odyssey Power](#odyssey)** | 1.1.5 | Nuclear reactors, hydrogen thruster and heavy engines, electrolyzer, water pump, large tanks, bigger vents | All players |
+| **[Odyssey Building](#odyssey)** | 1.0.4 | Large doors, gates and floor hatches, barriers, stairs, large chests, pontoons, rotors, heavy gyroscope | All players |
+| **[Odyssey Logic](#odyssey)** | 1.0.1 | Info panels, power meter, gas meter signal, extra pilot seat outputs | All players |
+| **[Odyssey Gear](#odyssey)** | 1.0.1 | Jetpack, laser cannon, blueprint tool, paint tool, tool workbench | All players |
+| **[Odyssey Tweaks](#odyssey)** | 1.2.3 | Performance fixes, culling, cable fixes, chase camera (V) | Each player (some fixes host) |
 | **[Water](#water)** | 0.6.0 | Real, swimmable water in the lakes and oceans of Otrera b with buoyancy, splashes and drowning | All players |
 | **[Pick Block](#pick-block)** | 0.3.4 | Middle-click to pick a part, hold to build continuously, area building up to 9x9 | Each player |
 | **[Ship Safety](#ship-safety)** | 0.6.1 | Fixes the negative-mass "launch at many c" bug, adds speed limits and ship-to-ship collision | Host (collision: all) |
@@ -80,7 +80,7 @@ All screenshots: [docs/gallery](docs/gallery)
 
 ## Highlights
 
-<img src="docs/showcase.jpg" alt="Every part added by Stellar Drive: Odyssey on one floating platform: hydrogen engines, nuclear reactors, electrolyzers, pumps, tanks, chests, pontoons, laser cannon, info panels, stairs, doors and floor hatches" width="100%">
+<img src="docs/showcase.jpg" alt="Every part added by Stellar Drive: Odyssey on one floating platform: excavator, hydrogen engines, nuclear reactors, electrolyzers, pumps, air vents, tanks, chests, heavy gyroscope, tool workbench, pontoons, laser cannon, info panels, power meter, stairs, barriers, doors and floor hatches" width="100%">
 
 - **New progression:** over a dozen new research nodes (Mining, Hydrogen Propulsion, Heavy Hydrogen Engines, Nuclear Power, Large Reactor, Mechanics, Laser Weapons, Jetpack, Info Panels, Large Doors, Large Tanks, Large Storage, Tool Crafting), with the research tree grouped into colored category rows.
 - **Industrial chain:** mine ore and uranium, electrolyze ice or water into hydrogen and oxygen, and power ships with chemical, hydrogen or nuclear energy.

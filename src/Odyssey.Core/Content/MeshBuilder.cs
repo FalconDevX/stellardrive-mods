@@ -92,6 +92,68 @@ namespace Odyssey.Content
             return this;
         }
 
+        internal MeshBuilder Prism(IList<Vector2> outline, float x0, float x1, string color)
+        {
+            _atlas = true;
+            float area = 0f;
+            for (int i = 0; i < outline.Count; i++)
+            {
+                Vector2 p = outline[i], q = outline[(i + 1) % outline.Count];
+                area += p.x * q.y - q.x * p.y;
+            }
+            var poly = new List<Vector2>(outline);
+            if (area < 0f) poly.Reverse();
+            float zMin = float.MaxValue, zMax = float.MinValue, yMin = float.MaxValue, yMax = float.MinValue;
+            foreach (Vector2 p in poly)
+            {
+                zMin = Mathf.Min(zMin, p.x);
+                zMax = Mathf.Max(zMax, p.x);
+                yMin = Mathf.Min(yMin, p.y);
+                yMax = Mathf.Max(yMax, p.y);
+            }
+            float Fu(float z) => Margin + (1f - 2f * Margin) * (z - zMin) / Mathf.Max(1e-4f, zMax - zMin);
+            float Fv(float y) => Margin + (1f - 2f * Margin) * (y - yMin) / Mathf.Max(1e-4f, yMax - yMin);
+            foreach (float x in new[] { x0, x1 })
+            {
+                var n = new Vector3(x == x0 ? -1f : 1f, 0f, 0f);
+                int start = _vertices.Count;
+                foreach (Vector2 p in poly) Add(new Vector3(x, p.y, p.x), n, CellUv(color, Fu(p.x), Fv(p.y)));
+                for (int k = 1; k + 1 < poly.Count; k++) Triangle(start, start + k, start + k + 1, n);
+            }
+            float thickness = Mathf.Abs(x1 - x0);
+            for (int i = 0; i < poly.Count; i++)
+            {
+                Vector2 a = poly[i], b = poly[(i + 1) % poly.Count], d = b - a;
+                if (d.sqrMagnitude < 1e-10f) continue;
+                var n = new Vector3(0f, -d.x, d.y).normalized;
+                float length = d.magnitude;
+                float[] cu = Cuts(length), cv = Cuts(thickness);
+                for (int u = 0; u + 1 < cu.Length; u++)
+                {
+                    for (int v = 0; v + 1 < cv.Length; v++)
+                    {
+                        int start = _vertices.Count;
+                        foreach (var (s, t) in new[] { (cu[u], cv[v]), (cu[u + 1], cv[v]), (cu[u + 1], cv[v + 1]), (cu[u], cv[v + 1]) })
+                        {
+                            Vector2 p = a + d * (s / length);
+                            Add(new Vector3(Mathf.Min(x0, x1) + t, p.y, p.x), n, CellUv(color, Slice(s, length), Slice(t, thickness)));
+                        }
+                        Triangle(start, start + 1, start + 2, n);
+                        Triangle(start, start + 2, start + 3, n);
+                    }
+                }
+            }
+            return this;
+        }
+
+        private void Triangle(int a, int b, int c, Vector3 n)
+        {
+            bool flip = Vector3.Dot(Vector3.Cross(_vertices[b] - _vertices[a], _vertices[c] - _vertices[a]), n) < 0f;
+            _triangles.Add(a);
+            _triangles.Add(flip ? c : b);
+            _triangles.Add(flip ? b : c);
+        }
+
         internal MeshBuilder Cylinder(Vector3 from, Vector3 to, float radius, int segments = 16) => Cylinder(from, to, radius, null, segments);
 
         internal MeshBuilder Cylinder(Vector3 from, Vector3 to, float radius, string color, int segments = 16)

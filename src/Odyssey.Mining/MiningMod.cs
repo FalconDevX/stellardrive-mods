@@ -3,7 +3,7 @@ using MelonLoader;
 using Odyssey;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(MiningMod), "Odyssey Mining", "1.0.0", "mateu")]
+[assembly: MelonInfo(typeof(MiningMod), "Odyssey Mining", "1.0.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 [assembly: MelonAdditionalDependencies("Odyssey.Core")]
 

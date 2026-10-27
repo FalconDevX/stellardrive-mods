@@ -94,14 +94,12 @@ namespace Odyssey.Content
             GameObject root = Object.Instantiate(chest.part, _holder.transform);
             root.name = "Excavator";
 
-            Mesh bodyMesh = ModAssets.LoadMesh("excavator_body.bin");
-            Mesh drillMesh = ModAssets.LoadMesh("excavator_drill.bin");
-            Texture2D albedo = ModAssets.LoadTexture("excavator_albedo.png");
+            Mesh bodyMesh = ExcavatorModel.Body();
+            Mesh drillMesh = ExcavatorModel.Drill();
 
             Transform visual = root.transform.Find("Visual");
             MeshRenderer chestRenderer = visual.GetComponentInChildren<MeshRenderer>(true);
-            var material = new Material(chestRenderer.sharedMaterial) { name = "Excavator" };
-            material.SetTexture("_Albedo", albedo);
+            Material material = PartFactory.CreateMaterial(chestRenderer.sharedMaterial, ModAssets.LoadTexture("door_albedo.png"), "Excavator");
             var look = (chestRenderer.gameObject.layer, chestRenderer.shadowCastingMode, chestRenderer.renderingLayerMask);
 
             foreach (Transform child in visual.Cast<Transform>().ToArray())

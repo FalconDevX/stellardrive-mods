@@ -1,7 +1,7 @@
 ﻿using MelonLoader;
 using Odyssey;
 
-[assembly: MelonInfo(typeof(BuildingMod), "Odyssey Building", "1.0.3", "mateu")]
+[assembly: MelonInfo(typeof(BuildingMod), "Odyssey Building", "1.0.4", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 [assembly: MelonAdditionalDependencies("Odyssey.Core")]
 

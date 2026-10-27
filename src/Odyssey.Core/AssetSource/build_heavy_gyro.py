@@ -189,15 +189,72 @@ def build_conditioners(m):
             bolt(m, (x + sx * 0.03, 0.291, z0 + bz * 0.045), (0, 1, 0), 0.0055, 0.004)
 
 
+SOCKETS = [(0.0735, 0.375, 0.058, 0.064), (0.0735, 0.125, 0.058, 0.064), (0.0735, -0.125, 0.058, 0.064), (0.07, -0.375, 0.045, 0.069)]
+RAIL_IN, RAIL_OUT = 0.465, 0.4855
+
+
+def build_socket_rails(m):
+    for sx in (-1, 1):
+        m.box((sx * (RAIL_IN + RAIL_OUT) / 2, 0.074, 0), (RAIL_OUT - RAIL_IN, 0.124, 0.88), 'dark', bevel=0.003)
+        face = sx * (RAIL_OUT + 0.002)
+        for y, z, h, w in SOCKETS:
+            t = 0.009
+            for dy in (-1, 1):
+                m.box((face, y + dy * (h / 2 + t / 2 + 0.002), z), (0.005, t, w + 0.022), 'steel')
+            for dz in (-1, 1):
+                m.box((face, y, z + dz * (w / 2 + t / 2 + 0.002)), (0.005, h + 0.004, t), 'steel')
+        for z in (0.0, 0.25, -0.25):
+            m.box((face, 0.074, z), (0.005, 0.07, 0.05), 'dark')
+            hazard(m, (sx * (RAIL_OUT + 0.0045), 0.074, z), (0, 0, 1), (0, 1, 0), (sx, 0, 0), 0.04, 0.06)
+        for i in range(8):
+            z = -0.385 + i * 0.11
+            for y in (0.022, 0.126):
+                bolt(m, (sx * RAIL_OUT, y, z), (sx, 0, 0), 0.0055, 0.005)
+
+
+def build_base(m):
+    m.box((0, 0.006, 0), (0.432, 0.012, 0.9), 'dark')
+    for i in range(9):
+        m.box((0, 0.0145, -0.4 + i * 0.1), (0.42, 0.005, 0.014), 'grey')
+    for sz in (-1, 1):
+        z = sz * 0.452
+        m.box((0, 0.046, z), (0.432, 0.07, 0.034), 'grey', bevel=0.004)
+        hazard(m, (0, 0.046, sz * 0.469), (1, 0, 0), (0, 1, 0), (0, 0, sz), 0.34, 0.046)
+        for bx in (-1, 1):
+            bolt(m, (bx * 0.19, 0.046, sz * 0.469), (0, 0, sz), 0.008, 0.006)
+
+
+def build_lines(m):
+    z = 0.461 + 0.0065
+    for sx in (-1, 1):
+        lean = lambda y: 0.22 - (y - 0.3) * 0.9 - 0.035
+        path = [(sx * 0.31, 0.2545, z), (sx * 0.262, 0.2545, z)] + [(sx * lean(y), y, z) for y in (0.27, 0.45)]
+        m.pipe(path, 0.0065, 'copper', seg=10)
+        for y in (0.33, 0.41):
+            x = sx * lean(y)
+            m.box((x, y, z + 0.004), (0.016, 0.034, 0.008), 'dark', rot=Matrix.Rotation(math.atan2(0.18, sx * -0.162), 3, 'Z'), bevel=0.002)
+            bolt(m, (x, y, z + 0.008), (0, 0, 1), 0.005, 0.004)
+
+
+def build_conditioner_feet(m):
+    for sx in (-1, 1):
+        m.box((sx * 0.42, 0.146, -0.375), (0.112, 0.032, 0.132), 'dark', bevel=0.003)
+        for bz in (-1, 1):
+            for bx in (-1, 1):
+                bolt(m, (sx * 0.42 + bx * 0.045, 0.162, -0.375 + bz * 0.055), (0, 1, 0), 0.006, 0.005)
+        for i in range(6):
+            m.box((sx * 0.42 - sx * 0.051, 0.18 + i * 0.018, -0.375), (0.006, 0.008, 0.09), 'dark')
+
+
 def build_bar(m):
     for sx in (-1, 1):
         x = sx * 0.332
         m.lathe([(0.056, 0.0), (0.084, 0.0), (0.088, 0.004), (0.088, 0.011), (0.082, 0.015), (0.056, 0.015), (0.056, 0.0)], 'steel', (x, 0, 0), (sx, 0, 0), seg=32)
         for i in range(8):
             a = math.radians(22.5 + 45 * i)
-            bolt(m, (x, 0.118 * math.sin(a), 0.118 * math.cos(a)), (sx, 0, 0), 0.0095, 0.009)
+            bolt(m, (x, 0.098 * math.sin(a), 0.098 * math.cos(a)), (sx, 0, 0), 0.0085, 0.009)
         for sy in (-1, 1):
-            m.box((x + sx * 0.002, sy * 0.14, 0), (0.004, 0.012, 0.11), 'yellow')
+            m.box((x + sx * 0.002, sy * 0.098, 0), (0.004, 0.012, 0.04), 'yellow')
     for sz in (-1, 1):
         for sy in (-1, 1):
             m.box((0, sy * 0.1235, sz * 0.366), (0.1, 0.019, 0.032), 'steel', bevel=0.003)
@@ -245,6 +302,10 @@ m = Builder()
 build_aframes(m)
 build_conditioners(m)
 build_cables(m)
+build_socket_rails(m)
+build_base(m)
+build_lines(m)
+build_conditioner_feet(m)
 detail = m.to_object('HeavyGyroDetail')
 export(detail, os.path.join(OUT, 'heavy_gyro_frame.bin'), False)
 export(detail, os.path.join(OUT, 'heavy_gyro_glow.bin'), True)

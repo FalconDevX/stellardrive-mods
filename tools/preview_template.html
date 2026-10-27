@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Model Preview</title>
+<style>
+  :root { --bg: #15181d; --panel: #1d2128; --line: #2c323c; --text: #d8dde5; --dim: #8a93a1; --accent: #f0a640; }
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100vh; display: flex; background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, sans-serif; overflow: hidden; }
+  aside { width: 300px; flex: none; display: flex; flex-direction: column; background: var(--panel); border-right: 1px solid var(--line); }
+  aside h2 { margin: 0; padding: 10px 12px 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+  #search { margin: 10px 12px 4px; padding: 6px 8px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
+  #groups { flex: 1; overflow-y: auto; min-height: 120px; }
+  .group { padding: 5px 12px; cursor: pointer; display: flex; justify-content: space-between; gap: 8px; }
+  .group:hover { background: #262b34; }
+  .group.active { background: #2e3540; color: var(--accent); }
+  .group small { color: var(--dim); }
+  #parts { max-height: 45vh; overflow-y: auto; border-top: 1px solid var(--line); }
+  .part { padding: 6px 12px; border-bottom: 1px solid var(--line); }
+  .part label { display: flex; gap: 6px; align-items: center; }
+  .part select { width: 100%; margin-top: 4px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 3px; }
+  .part small { color: var(--dim); }
+  main { flex: 1; position: relative; }
+  canvas { display: block; }
+  #toolbar { position: absolute; top: 10px; left: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+  #toolbar label, #toolbar button { background: rgba(29, 33, 40, .9); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 5px 9px; cursor: pointer; font: inherit; display: flex; gap: 5px; align-items: center; }
+  #info { position: absolute; bottom: 10px; left: 10px; background: rgba(29, 33, 40, .9); border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; white-space: pre; font-family: ui-monospace, monospace; font-size: 12px; }
+  #help { position: absolute; bottom: 10px; right: 10px; color: var(--dim); font-size: 12px; text-align: right; }
+</style>
+</head>
+<body>
+<aside>
+  <input id="search" placeholder="Filter models...">
+  <div id="groups"></div>
+  <h2>Parts</h2>
+  <div id="parts"></div>
+</aside>
+<main>
+  <div id="toolbar">
+    <label><input type="checkbox" id="textured" checked> Textures</label>
+    <label><input type="checkbox" id="wire"> Wireframe</label>
+    <label><input type="checkbox" id="back"> Inverted faces (red)</label>
+    <label><input type="checkbox" id="grid" checked> Grid (1 unit)</label>
+    <label><input type="checkbox" id="spin"> Spin</label>
+    <label><input type="checkbox" id="light"> Light background</label>
+    <button id="reset">Reset view</button>
+  </div>
+  <div id="info"></div>
+  <div id="help">Drag: rotate &middot; Right drag: pan &middot; Wheel: zoom<br>&uarr;/&darr;: previous / next model</div>
+</main>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const DATA = /*DATA*/null;
+const main = document.querySelector("main");
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+main.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 500);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x3a3530, 1.1));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(4, 8, 5);
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0xffffff, 0.5);
+fill.position.set(-5, 2, -4);
+scene.add(fill);
+const grid = new THREE.GridHelper(20, 20, 0x5a6270, 0x343a44);
+scene.add(grid);
+const axes = new THREE.AxesHelper(0.5);
+scene.add(axes);
+const root = new THREE.Group();
+scene.add(root);
+
+const textureCache = {};
+function texture(name) {
+  if (!name || !DATA.textures[name]) return null;
+  if (!textureCache[name]) {
+    const t = new THREE.TextureLoader().load(DATA.textures[name]);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    textureCache[name] = t;
+  }
+  return textureCache[name];
+}
+
+async function geometry(mesh) {
+  if (mesh.geometry) return mesh.geometry;
+  const packed = Uint8Array.from(atob(mesh.data), c => c.charCodeAt(0));
+  const buffer = await new Response(new Blob([packed]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer();
+  const view = new DataView(buffer);
+  const verts = view.getInt32(4, true), count = view.getInt32(8, true);
+  const pos = new Float32Array(verts * 3), nrm = new Float32Array(verts * 3), uv = new Float32Array(verts * 2);
+  let o = 12;
+  for (let i = 0; i < verts; i++) {
+    const f = k => view.getFloat32(o + k * 4, true);
+    pos.set([f(0), f(1), -f(2)], i * 3);
+    nrm.set([f(3), f(4), -f(5)], i * 3);
+    uv.set([f(6), f(7)], i * 2);
+    o += 32;
+  }
+  const idx = new Uint32Array(count);
+  for (let i = 0; i < count; i += 3) {
+    idx[i] = view.getInt32(o + i * 4, true);
+    idx[i + 1] = view.getInt32(o + (i + 2) * 4, true);
+    idx[i + 2] = view.getInt32(o + (i + 1) * 4, true);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  g.setAttribute("normal", new THREE.BufferAttribute(nrm, 3));
+  g.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+  g.setIndex(new THREE.BufferAttribute(idx, 1));
+  g.computeBoundingBox();
+  mesh.geometry = g;
+  return g;
+}
+
+const ui = id => document.getElementById(id);
+const groups = [...new Set(DATA.meshes.map(m => m.group))];
+let current = 0, objects = [];
+
+function applyMaterial(entry) {
+  const tex = ui("textured").checked ? texture(entry.mesh.texture) : null;
+  const m = entry.object.material;
+  m.map = tex;
+  m.color.set(tex ? 0xffffff : 0x9aa3ad);
+  m.emissiveMap = entry.mesh.emissive ? tex : null;
+  m.emissive.set(entry.mesh.emissive && tex ? 0xffffff : 0x000000);
+  m.wireframe = ui("wire").checked;
+  m.needsUpdate = true;
+  entry.back.visible = ui("back").checked;
+}
+
+function updateInfo() {
+  const shown = objects.filter(o => o.object.visible);
+  const box = new THREE.Box3();
+  shown.forEach(o => box.expandByObject(o.object));
+  const size = box.isEmpty() ? new THREE.Vector3() : box.getSize(new THREE.Vector3());
+  const tris = shown.reduce((s, o) => s + o.mesh.tris, 0);
+  const module = [...new Set(objects.map(o => o.mesh.module))].join(", ");
+  ui("info").textContent = `${groups[current]}  (${module})\ntriangles ${tris}\nsize  x ${size.x.toFixed(3)}  y ${size.y.toFixed(3)}  z ${size.z.toFixed(3)}`;
+}
+
+function frame() {
+  const box = new THREE.Box3();
+  objects.filter(o => o.object.visible).forEach(o => box.expandByObject(o.object));
+  if (box.isEmpty()) return;
+  const center = box.getCenter(new THREE.Vector3());
+  const radius = box.getSize(new THREE.Vector3()).length() / 2 || 1;
+  const dist = radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.05;
+  controls.target.copy(center);
+  camera.position.copy(center).add(new THREE.Vector3(0.75, 0.5, 1).normalize().multiplyScalar(dist));
+  camera.near = dist / 200;
+  camera.far = dist * 20;
+  camera.updateProjectionMatrix();
+  controls.update();
+}
+
+async function show(index) {
+  const target = (index + groups.length) % groups.length;
+  current = target;
+  const list = DATA.meshes.filter(m => m.group === groups[target]);
+  const geometries = await Promise.all(list.map(geometry));
+  if (current !== target) return;
+  root.clear();
+  objects = list.map((mesh, i) => {
+    const object = new THREE.Mesh(geometries[i], new THREE.MeshStandardMaterial({ roughness: 0.75, metalness: 0.1 }));
+    const back = new THREE.Mesh(object.geometry, new THREE.MeshBasicMaterial({ color: 0xff2030, side: THREE.BackSide }));
+    object.add(back);
+    root.add(object);
+    const entry = { mesh, object, back };
+    applyMaterial(entry);
+    return entry;
+  });
+  document.querySelectorAll(".group").forEach(el => el.classList.toggle("active", el.dataset.group === groups[current]));
+  document.querySelector(".group.active")?.scrollIntoView({ block: "nearest" });
+  renderParts();
+  updateInfo();
+  frame();
+}
+
+function renderParts() {
+  const names = Object.keys(DATA.textures).sort();
+  ui("parts").replaceChildren(...objects.map(entry => {
+    const div = document.createElement("div");
+    div.className = "part";
+    div.innerHTML = `<label><input type="checkbox" checked> ${entry.mesh.name} <small>${entry.mesh.tris} tris</small></label><select></select>`;
+    const check = div.querySelector("input"), select = div.querySelector("select");
+    select.append(new Option("(no texture)", ""), ...names.map(n => new Option(n, n)));
+    select.value = entry.mesh.texture;
+    check.onchange = () => { entry.object.visible = check.checked; updateInfo(); };
+    select.onchange = () => { entry.mesh.texture = select.value; applyMaterial(entry); };
+    return div;
+  }));
+}
+
+function renderGroups() {
+  const filter = ui("search").value.toLowerCase();
+  const titles = { game: "Parts exported from the game", asset: "Mesh files (.bin)" };
+  let source = null;
+  ui("groups").replaceChildren(...groups.filter(g => g.toLowerCase().includes(filter)).flatMap(g => {
+    const parts = DATA.meshes.filter(m => m.group === g);
+    const div = document.createElement("div");
+    div.className = "group" + (g === groups[current] ? " active" : "");
+    div.dataset.group = g;
+    div.innerHTML = `<span>${g}</span><small>${parts[0].module}</small>`;
+    div.onclick = () => show(groups.indexOf(g));
+    if (parts[0].source === source) return [div];
+    source = parts[0].source;
+    const header = document.createElement("h2");
+    header.textContent = titles[source];
+    return [header, div];
+  }));
+}
+
+function background() {
+  scene.background = new THREE.Color(ui("light").checked ? 0xc9ced6 : 0x15181d);
+}
+
+["textured", "wire", "back"].forEach(id => ui(id).onchange = () => objects.forEach(applyMaterial));
+ui("grid").onchange = () => { grid.visible = axes.visible = ui("grid").checked; };
+ui("light").onchange = background;
+ui("reset").onclick = frame;
+ui("search").oninput = renderGroups;
+window.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" && e.target.type !== "checkbox") return;
+  if (e.key === "ArrowDown") { show(current + 1); e.preventDefault(); }
+  if (e.key === "ArrowUp") { show(current - 1); e.preventDefault(); }
+});
+
+function resize() {
+  renderer.setSize(main.clientWidth, main.clientHeight);
+  camera.aspect = main.clientWidth / main.clientHeight;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener("resize", resize);
+resize();
+background();
+renderGroups();
+show(0);
+
+renderer.setAnimationLoop(() => {
+  if (ui("spin").checked) root.rotation.y += 0.005;
+  controls.update();
+  renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>

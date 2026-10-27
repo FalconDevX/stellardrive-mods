@@ -4,7 +4,7 @@ using Odyssey;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(GearMod), "Odyssey Gear", "1.0.0", "mateu")]
+[assembly: MelonInfo(typeof(GearMod), "Odyssey Gear", "1.0.1", "mateu")]
 [assembly: MelonGame("CuriousOwlGames", "StellarDrive")]
 [assembly: MelonAdditionalDependencies("Odyssey.Core")]
 

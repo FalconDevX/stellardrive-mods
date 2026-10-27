@@ -73,34 +73,67 @@ namespace Odyssey.Content
             b.Box(foot + Vector3.up * 0.015f, new Vector3(0.14f, 0.03f, 0.14f), "dark");
         }
 
+        private const float WebIn = 0.44f, WebOut = 0.49f, StringerTop = 1.3f, StringerBottom = 0.84f;
+
+        private static List<Vector2> Band(float lo, float hi)
+        {
+            var poly = new List<Vector2> { new Vector2(-3f, -3f + lo), new Vector2(3f, 3f + lo), new Vector2(3f, 3f + hi), new Vector2(-3f, -3f + hi) };
+            poly = Clip(poly, p => p.x + Run / 2f);
+            poly = Clip(poly, p => Run / 2f - p.x);
+            poly = Clip(poly, p => p.y);
+            return Clip(poly, p => Rise - p.y);
+        }
+
+        private static List<Vector2> Clip(List<Vector2> poly, Func<Vector2, float> inside)
+        {
+            var result = new List<Vector2>();
+            for (int i = 0; i < poly.Count; i++)
+            {
+                Vector2 a = poly[i], b = poly[(i + 1) % poly.Count];
+                float da = inside(a), db = inside(b);
+                if (da >= 0f) result.Add(a);
+                if ((da >= 0f) != (db >= 0f)) result.Add(Vector2.Lerp(a, b, da / (da - db)));
+            }
+            return result;
+        }
+
         private static Mesh BuildBody()
         {
             var b = new MeshBuilder();
-            float tread = Width - 0.14f;
+            float tread = WebIn * 2f + 0.006f;
             for (int i = 0; i < Steps; i++)
             {
                 float top = (i + 1) * StepHeight, front = Front(i), center = front + Tread / 2f;
                 b.Box(new Vector3(0f, top - 0.025f, center + 0.01f), new Vector3(tread, 0.05f, Tread + 0.02f), "steel");
-                b.Box(new Vector3(0f, top - 0.011f, front + 0.0235f), new Vector3(tread + 0.006f, 0.028f, 0.051f), "yellow");
+                b.Box(new Vector3(0f, top - 0.011f, front + 0.0235f), new Vector3(tread + 0.004f, 0.028f, 0.051f), "yellow");
                 for (int g = 1; g <= 3; g++)
                 {
                     b.Box(new Vector3(0f, top + 0.002f, front + 0.05f + g * 0.045f), new Vector3(tread - 0.08f, 0.006f, 0.014f), "dark");
                 }
                 b.Box(new Vector3(0f, top - 0.09f, front + Tread - 0.03f), new Vector3(tread, 0.08f, 0.02f), "dark");
+                foreach (float sx in new[] { -1f, 1f })
+                {
+                    b.Box(new Vector3(sx * (WebIn - 0.025f), top - 0.08f, front + 0.14f), new Vector3(0.05f, 0.06f, 0.16f), "dark");
+                    foreach (float bz in new[] { front + 0.08f, front + 0.2f })
+                    {
+                        b.Cylinder(new Vector3(sx * (WebOut - 0.004f), top - 0.08f, bz), new Vector3(sx * (WebOut + 0.012f), top - 0.08f, bz), 0.013f, "steel", 8);
+                    }
+                }
             }
 
-            Quaternion slope = Quaternion.Euler(-45f, 0f, 0f);
-            float length = Mathf.Sqrt(Rise * Rise + Run * Run) - 0.12f;
-            foreach (float x in new[] { -Side, Side })
+            foreach (float sx in new[] { -1f, 1f })
             {
-                b.Box(new Vector3(x, Rise / 2f - 0.06f, 0.06f), new Vector3(0.06f, 0.22f, length), "grey", slope);
-                b.Box(new Vector3(x, 0.02f, -Run / 2f + 0.12f), new Vector3(0.12f, 0.04f, 0.2f), "dark");
-                b.Box(new Vector3(x, Rise - 0.06f, Run / 2f - 0.05f), new Vector3(0.1f, 0.12f, 0.1f), "dark");
-                foreach (int step in new[] { 2, 5 })
+                float x = sx * Side;
+                b.Prism(Band(StringerBottom, StringerTop), sx * WebIn, sx * WebOut, "grey");
+                b.Prism(Band(StringerTop - 0.03f, StringerTop), sx * (WebIn - 0.012f), sx * (WebOut + 0.012f), "dark");
+                b.Prism(Band(StringerBottom, StringerBottom + 0.03f), sx * (WebIn - 0.012f), sx * (WebOut + 0.012f), "dark");
+                b.Box(new Vector3(sx * (WebIn + WebOut) / 2f, 0.01f, -Run / 2f + 0.08f), new Vector3(0.1f, 0.02f, 0.16f), "dark");
+                b.Box(new Vector3(sx * (WebIn + WebOut) / 2f, Rise + 0.0075f, Run / 2f - 0.14f), new Vector3(0.1f, 0.015f, 0.28f), "dark");
+                foreach (float z in new[] { -0.5f, 0f, 0.5f })
                 {
-                    Vector3 foot = new Vector3(x, (step + 1) * StepHeight, Front(step) + Tread / 2f);
-                    b.Cylinder(foot, new Vector3(x, RailY(foot.z), foot.z), 0.022f, "steel", 14);
-                    b.Cylinder(foot, foot + Vector3.up * 0.05f, 0.032f, "dark", 14);
+                    float y = z + StringerTop;
+                    b.Cylinder(new Vector3(x, y - 0.04f, z), new Vector3(x, RailY(z), z), 0.022f, "steel", 14);
+                    b.Cylinder(new Vector3(x, y - 0.01f, z), new Vector3(x, y + 0.05f, z), 0.034f, "dark", 14);
                 }
                 foreach (Vector3 end in new[] { new Vector3(x, 0f, -Run / 2f), new Vector3(x, Rise, Run / 2f) })
                 {
@@ -111,6 +144,11 @@ namespace Odyssey.Content
                 b.Cylinder(low, high, 0.03f, "yellow", 16);
                 Vector3 mid = Vector3.up * 0.45f;
                 b.Cylinder(low - mid, high - mid, 0.02f, "yellow", 12);
+            }
+            foreach (float z in new[] { -0.35f, 0.35f })
+            {
+                float y = z + StringerBottom + 0.05f;
+                b.Cylinder(new Vector3(-WebIn - 0.004f, y, z), new Vector3(WebIn + 0.004f, y, z), 0.025f, "dark", 12);
             }
             return b.Build("MetalStairs");
         }

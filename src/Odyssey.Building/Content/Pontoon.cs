@@ -81,27 +81,90 @@ namespace Odyssey.Content
         private static Mesh BodyMesh()
         {
             var b = new MeshBuilder();
-            b.Box(new Vector3(0f, 0.04f, 0f), new Vector3(0.5f, 0.08f, 1.7f), "dark");
+            b.Box(new Vector3(0f, 0.035f, 0f), new Vector3(0.5f, 0.07f, 1.7f), "dark");
+            b.Box(new Vector3(0f, 0.075f, 0f), new Vector3(0.44f, 0.01f, 1.64f), "grey");
+            for (int i = 0; i < 8; i++)
+            {
+                float z = -0.75f + i * (1.5f / 7f);
+                foreach (float x in new[] { -0.2f, 0.2f })
+                {
+                    b.Cylinder(new Vector3(x, 0.076f, z), new Vector3(x, 0.088f, z), 0.013f, "steel", 6);
+                }
+            }
             foreach (float z in new[] { -0.6f, 0.6f })
             {
-                b.Box(new Vector3(0f, 0.17f, z), new Vector3(0.14f, 0.2f, 0.14f), "steel");
-                b.Box(new Vector3(0f, 0.27f, z), new Vector3(0.34f, 0.06f, 0.24f), "grey");
+                b.Box(new Vector3(0f, 0.15f, z), new Vector3(0.12f, 0.16f, 0.16f), "steel");
+                b.Box(new Vector3(0f, 0.15f, z), new Vector3(0.3f, 0.16f, 0.025f), "grey");
+                foreach (float sx in new[] { -1f, 1f })
+                {
+                    b.Box(new Vector3(sx * 0.12f, 0.12f, z), new Vector3(0.08f, 0.08f, 0.16f), "dark");
+                }
+                Saddle(b, z);
             }
-            b.Cylinder(new Vector3(0f, 0.1f, 0.84f), new Vector3(0f, 0.1f, 0.66f), 0.035f, "orange", 12);
-            b.Box(new Vector3(0f, 0.04f, 0.855f), new Vector3(0.2f, 0.06f, 0.02f), "steel");
+            Vector3 inlet = new Vector3(0f, 0.1f, 0.66f);
+            b.Cylinder(new Vector3(0f, 0.1f, 0.84f), inlet, 0.035f, "orange", 12);
+            b.Cylinder(new Vector3(0f, 0.1f, 0.7f), new Vector3(0f, 0.1f, 0.74f), 0.045f, "dark", 12);
+            b.Cylinder(new Vector3(0f, 0.135f, 0.72f), new Vector3(0f, 0.17f, 0.72f), 0.01f, "steel", 6);
+            b.Cylinder(new Vector3(0f, 0.17f, 0.72f), new Vector3(0f, 0.18f, 0.72f), 0.035f, "red", 12);
+            b.Pipe(new[] { inlet, new Vector3(0f, 0.1f, 0.62f), new Vector3(0f, 0.2f, 0.62f) }, 0.02f, "black", 8);
+            b.Box(new Vector3(0f, 0.045f, 0.855f), new Vector3(0.2f, 0.07f, 0.02f), "steel");
+            foreach (float x in new[] { -0.07f, 0.07f })
+            {
+                b.Cylinder(new Vector3(x, 0.045f, 0.864f), new Vector3(x, 0.045f, 0.87f), 0.01f, "grey", 6);
+            }
             return b.Build("PontoonBody");
+        }
+
+        private static void Saddle(MeshBuilder b, float z)
+        {
+            const int segments = 8;
+            const float span = 46f * Mathf.Deg2Rad;
+            float radius = FloatRadius + 0.02f;
+            for (int i = 0; i < segments; i++)
+            {
+                float a = -span + (i + 0.5f) * span * 2f / segments;
+                float chord = 2f * radius * Mathf.Sin(span / segments) + 0.004f;
+                var n = new Vector3(Mathf.Sin(a), -Mathf.Cos(a), 0f);
+                Quaternion r = Quaternion.AngleAxis(a * Mathf.Rad2Deg, Vector3.forward);
+                Vector3 c = new Vector3(0f, FloatY, z) + n * radius;
+                b.Box(c, new Vector3(chord, 0.04f, 0.2f), "grey", r);
+                b.Box(c - n * 0.024f, new Vector3(chord, 0.012f, 0.18f), "rubber", r);
+            }
+            foreach (float s in new[] { -1f, 1f })
+            {
+                float a = s * span;
+                Vector3 from = new Vector3(s * 0.06f, 0.2f, z);
+                Vector3 tip = new Vector3(0f, FloatY, z) + new Vector3(Mathf.Sin(a), -Mathf.Cos(a), 0f) * radius;
+                Vector3 d = tip - from;
+                b.Box((from + tip) / 2f, new Vector3(d.magnitude, 0.03f, 0.03f), "dark", Quaternion.FromToRotation(Vector3.right, d));
+            }
         }
 
         private static Mesh FloatMesh()
         {
             var b = new MeshBuilder();
-            b.Cylinder(new Vector3(0f, 0f, -FloatHalfLength), new Vector3(0f, 0f, FloatHalfLength), FloatRadius, "yellow", 24);
+            b.Cylinder(new Vector3(0f, 0f, -FloatHalfLength), new Vector3(0f, 0f, FloatHalfLength), FloatRadius, "yellow", 28);
             foreach (float s in new[] { -1f, 1f })
             {
-                float z = s * FloatHalfLength;
-                b.Cylinder(new Vector3(0f, 0f, z), new Vector3(0f, 0f, z + s * 0.1f), 0.31f, "yellow", 24);
-                b.Cylinder(new Vector3(0f, 0f, z + s * 0.1f), new Vector3(0f, 0f, z + s * 0.18f), 0.2f, "yellow_dark", 20);
-                b.Cylinder(new Vector3(0f, 0f, s * 0.75f), new Vector3(0f, 0f, s * 0.85f), FloatRadius + 0.012f, "dark", 24);
+                var dome = new List<Vector2>();
+                for (int k = 0; k <= 6; k++)
+                {
+                    float t = k / 6f * Mathf.PI * 0.42f;
+                    dome.Add(new Vector2(FloatRadius * Mathf.Cos(t), 0.2f * Mathf.Sin(t) / Mathf.Sin(Mathf.PI * 0.42f)));
+                }
+                dome.Add(new Vector2(0f, 0.2f));
+                b.Lathe(new Vector3(0f, 0f, s * FloatHalfLength), new Vector3(0f, 0f, s), dome, "yellow", 28);
+                float end = s * (FloatHalfLength + 0.2f);
+                b.Cylinder(new Vector3(0f, 0f, end - s * 0.02f), new Vector3(0f, 0f, end + s * 0.03f), 0.06f, "dark", 14);
+                b.Cylinder(new Vector3(0f, 0f, end + s * 0.03f), new Vector3(0f, 0f, end + s * 0.045f), 0.035f, "steel", 10);
+                b.Cylinder(new Vector3(0f, 0f, s * FloatHalfLength - 0.03f), new Vector3(0f, 0f, s * FloatHalfLength + 0.03f), FloatRadius + 0.01f, "yellow_dark", 28);
+                b.Cylinder(new Vector3(0f, 0f, s * 0.75f), new Vector3(0f, 0f, s * 0.85f), FloatRadius + 0.012f, "dark", 28);
+                b.Box(new Vector3(0f, FloatRadius + 0.02f, s * 0.8f), new Vector3(0.06f, 0.03f, 0.12f), "dark");
+                b.Box(new Vector3(0f, FloatRadius + 0.055f, s * 0.8f), new Vector3(0.02f, 0.05f, 0.08f), "steel");
+            }
+            foreach (float z in new[] { -0.35f, 0f, 0.35f })
+            {
+                b.Cylinder(new Vector3(0f, 0f, z - 0.01f), new Vector3(0f, 0f, z + 0.01f), FloatRadius + 0.004f, "yellow_dark", 28);
             }
             b.Box(Vector3.zero, new Vector3(FloatRadius * 2f + 0.03f, 0.05f, 1.2f), "black");
             return b.Build("PontoonFloat");
@@ -164,7 +227,7 @@ namespace Odyssey.Content
             SocketObject gas = Resources.FindObjectsOfTypeAll<SocketObject>().FirstOrDefault(x => x.Type == CableType.Fluid && x.visualObject != null && x.interactive != null);
             if (gas != null)
             {
-                PartFactory.CloneSocket(gas, root.transform, OxygenSocket, centre + new Vector3(0f, 0.04f * n, 0.88f * n), 180f);
+                PartFactory.CloneSocket(gas, root.transform, OxygenSocket, centre + new Vector3(0f, 0.04f * n, 0.865f * n + 0.02f), 180f);
             }
             else
             {

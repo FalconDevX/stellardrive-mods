@@ -10,14 +10,14 @@ INTAKE_H = 0.86
 
 
 def socket_stub(m, y, z_face):
-    m.box((0, y, z_face + 0.09), (0.22, 0.2, 0.18), 'grey')
+    m.box((0, y + 0.05, z_face + 0.09), (0.22, 0.3, 0.18), 'grey')
     m.cylinder((0, y, z_face + 0.03), 0.075, 0.06, 'blue', 16, axis='z')
     m.cylinder((0, y, z_face + 0.008), 0.095, 0.016, 'grey', 20, axis='z')
     m.cylinder((0, y, z_face - 0.001), 0.06, 0.004, 'black', 16, axis='z')
     for k in range(4):
         a = math.pi / 4 + k * math.pi / 2
         m.cylinder((math.cos(a) * 0.082, y + math.sin(a) * 0.082, z_face), 0.008, 0.01, 'steel', 6, axis='z')
-    m.box((0, y + 0.135, z_face + 0.005), (0.16, 0.025, 0.01), 'blue')
+    m.box((0, y + 0.145, z_face - 0.004), (0.16, 0.025, 0.01), 'blue')
 
 
 vent = Mesh()
@@ -40,7 +40,9 @@ for sx in (-1, 1):
         vent.cylinder((sx * 0.45, VENT_H + 0.003, sz * 0.45), 0.022, 0.012, 'dark', 8)
 vent.box((0, VENT_H - 0.16, 0), (0.84, 0.01, 0.84), 'black')
 vent.cylinder((0, VENT_H - 0.105, 0), 0.34, 0.15, 'dark', 32, caps=False)
-vent.cylinder((0, VENT_H - 0.035, 0), 0.36, 0.012, 'steel', 32, caps=False)
+for k in range(32):
+    a = 2 * math.pi * k / 32
+    vent.box((math.cos(a) * 0.382, VENT_H - 0.03, math.sin(a) * 0.382), (0.1, 0.012, 0.078), 'steel', rot=(0, -math.degrees(a), 0))
 vent.cylinder((0, VENT_H - 0.15, 0), 0.05, 0.02, 'dark', 12)
 for k in range(3):
     a = 2 * math.pi * k / 3 + math.pi / 6

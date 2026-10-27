@@ -116,16 +116,17 @@ namespace Odyssey.Content
             {
                 _housingMaterial = PartFactory.CreateMaterial(look.sharedMaterial, ModAssets.LoadTexture("door_albedo.png"), "TankSocketHousing");
             }
-            inward = new Vector3(0f, 0f, Mathf.Sign(inward.z == 0f ? 1f : inward.z));
+            inward = Mathf.Abs(inward.x) > Mathf.Abs(inward.z) ? new Vector3(Mathf.Sign(inward.x), 0f, 0f) : new Vector3(0f, 0f, Mathf.Sign(inward.z == 0f ? 1f : inward.z));
+            Quaternion rotation = Quaternion.LookRotation(inward);
             float width = 0.1f * scale, depth = Mathf.Clamp(DistanceToBody(root, look, socket, inward, width) + 0.05f * scale, 0.1f * scale, 0.6f * scale), height = socket.y + 0.05f * scale;
             float radius = width / 2f;
             Vector3 front = new Vector3(socket.x, 0f, socket.z) + inward * 0.01f;
             Vector3 center = front + inward * (depth / 2f);
             var b = new MeshBuilder();
-            b.Box(center + Vector3.up * ((height - radius) / 2f), new Vector3(width, height - radius, depth), "light");
+            b.Box(center + Vector3.up * ((height - radius) / 2f), new Vector3(width, height - radius, depth), "light", rotation);
             b.Cylinder(center + Vector3.up * (height - radius) - inward * (depth / 2f), center + Vector3.up * (height - radius) + inward * (depth / 2f), radius, "light", 20);
-            b.Box(new Vector3(socket.x, socket.y, front.z) + inward * 0.012f, new Vector3(width * 0.62f, width * 0.62f, 0.02f), "dark");
-            b.Box(center + Vector3.up * 0.02f * scale, new Vector3(width * 1.1f, 0.04f * scale, depth * 1.05f), "grey");
+            b.Box(socket + inward * 0.022f, new Vector3(width * 0.62f, width * 0.62f, 0.02f), "dark", rotation);
+            b.Box(center + Vector3.up * 0.02f * scale, new Vector3(width * 1.1f, 0.04f * scale, depth * 1.05f), "grey", rotation);
             Transform visuals = root.transform.Find("Visuals") ?? root.transform;
             GameObject housing = PartFactory.CreateRenderer("SocketHousing", visuals, b.Build("TankSocketHousing"), _housingMaterial, look);
             housing.transform.SetParent(visuals, true);
@@ -138,13 +139,14 @@ namespace Odyssey.Content
         {
             Mesh mesh = look.GetComponent<MeshFilter>()?.sharedMesh;
             float best = float.MaxValue;
+            Vector3 right = Vector3.Cross(Vector3.up, inward);
             if (mesh != null && mesh.isReadable)
             {
                 foreach (Vector3 v in mesh.vertices)
                 {
                     Vector3 p = root.transform.InverseTransformPoint(look.transform.TransformPoint(v));
                     float along = Vector3.Dot(p - socket, inward);
-                    if (along > 0f && Mathf.Abs(p.x - socket.x) < width / 2f && p.y > 0.05f && along < best) best = along;
+                    if (along > 0f && Mathf.Abs(Vector3.Dot(p - socket, right)) < width / 2f && p.y > 0.05f && along < best) best = along;
                 }
             }
             if (best < float.MaxValue)
@@ -154,9 +156,9 @@ namespace Odyssey.Content
             Bounds b = look.bounds;
             Vector3 center = root.transform.InverseTransformPoint(b.center);
             float radius = Mathf.Min(b.extents.x, b.extents.z);
-            float dx = Mathf.Abs(socket.x - center.x) + width / 2f;
+            float dx = Mathf.Abs(Vector3.Dot(socket - center, right)) + width / 2f;
             float surface = dx < radius ? Mathf.Sqrt(radius * radius - dx * dx) : 0f;
-            return Mathf.Max(0f, Mathf.Abs(socket.z - center.z) - surface);
+            return Mathf.Max(0f, Mathf.Abs(Vector3.Dot(socket - center, inward)) - surface);
         }
 
         private static void AddMirroredSockets(GameObject root, int scale)
@@ -171,10 +173,16 @@ namespace Odyssey.Content
             float mirrorX = (scale - 1) * 0.5f;
             var ids = new HashSet<byte>(all.Select(x => x.Id));
             byte nextId = 0;
+            foreach (SocketObject socket in all.Where(x => x.Type == CableType.Signal))
+            {
+                Vector3 p = root.transform.InverseTransformPoint(socket.transform.position);
+                AddHousing(root, p, new Vector3(mirrorX - p.x, 0f, mirrorX - p.z), scale);
+            }
             foreach (SocketObject source in fluids.ToArray())
             {
                 while (ids.Contains(nextId)) nextId++;
                 Vector3 p = root.transform.InverseTransformPoint(source.transform.position);
+                AddHousing(root, p, new Vector3(0f, 0f, mirrorX - p.z), scale);
                 var pos = new Vector3(2f * mirrorX - p.x, p.y, p.z);
                 SocketObject copy = PartFactory.CloneSocket(source, root.transform, nextId, pos, 0f);
                 AddHousing(root, pos, new Vector3(0f, 0f, mirrorX - pos.z), scale);

@@ -235,8 +235,8 @@ namespace Odyssey.Content
                 float y = chamberLength * t;
                 b.Lathe(new Vector3(basePos.x, y0, basePos.z), Vector3.up, new List<Vector2>
                 {
-                    new Vector2(chamberRadius + 0.004f, y), new Vector2(chamberRadius + 0.02f, y + 0.02f),
-                    new Vector2(chamberRadius + 0.02f, y + chamberLength * 0.08f), new Vector2(chamberRadius + 0.004f, y + chamberLength * 0.08f + 0.02f),
+                    new Vector2(chamberRadius - 0.004f, y), new Vector2(chamberRadius + 0.02f, y + 0.02f),
+                    new Vector2(chamberRadius + 0.02f, y + chamberLength * 0.08f), new Vector2(chamberRadius - 0.004f, y + chamberLength * 0.08f + 0.02f),
                 }, t < 0.5f ? Orange : Dark, segments);
             }
             b.Lathe(new Vector3(basePos.x, 0f, basePos.z), Vector3.up, new List<Vector2>
@@ -245,6 +245,7 @@ namespace Odyssey.Content
             }, Steel, segments);
 
             const int steps = 14;
+            float Bell(float t) => throatRadius + (exitRadius - throatRadius) * (1f - Mathf.Pow(1f - t, 2.2f));
             var outer = new List<Vector2>();
             var inner = new List<Vector2>();
             float thickness = Mathf.Max(0.02f, exitRadius * 0.04f);
@@ -264,7 +265,8 @@ namespace Odyssey.Content
             for (int k = 1; k <= ribs; k++)
             {
                 float t = (float)k / (ribs + 1);
-                float r = throatRadius + (exitRadius - throatRadius) * (1f - Mathf.Pow(1f - t, 2.2f)) + thickness;
+                int s = Mathf.Min(steps - 1, Mathf.FloorToInt(t * steps));
+                float r = Mathf.Lerp(Bell((float)s / steps), Bell((float)(s + 1) / steps), t * steps - s) + thickness - 0.004f;
                 float y = Mathf.Lerp(yThroat, exitY, t);
                 float h = Mathf.Max(0.015f, exitRadius * 0.035f);
                 b.Lathe(new Vector3(basePos.x, 0f, basePos.z), Vector3.up, new List<Vector2>
@@ -290,11 +292,16 @@ namespace Odyssey.Content
 
         private static void FeedPipes(MeshBuilder b, float width, Vector3 hydrogenTarget, Vector3 oxygenTarget)
         {
-            float half = width * 0.5f - 0.12f;
+            float half = width * 0.5f - 0.12f, socket = width * 0.5f - 0.078f;
+            foreach (float sx in new[] { -1f, 1f })
+            {
+                b.Cylinder(new Vector3(sx * (half - 0.04f), 0.32f, 0f), new Vector3(sx * socket, 0.32f, 0f), 0.085f, Dark, 16);
+                b.Box(new Vector3(sx * (half - 0.01f), 0.225f, 0f), new Vector3(0.12f, 0.19f, 0.12f), Dark);
+            }
             b.Pipe(new[] { new Vector3(-half, 0.32f, 0f), new Vector3(-half + 0.25f, 0.32f, 0f), new Vector3(-half + 0.25f, hydrogenTarget.y, 0f), hydrogenTarget }, 0.05f, Orange, 10);
             b.Pipe(new[] { new Vector3(half, 0.32f, 0f), new Vector3(half - 0.25f, 0.32f, 0f), new Vector3(half - 0.25f, oxygenTarget.y, 0f), oxygenTarget }, 0.05f, Cyan, 10);
-            b.Box(new Vector3(0f, 0.32f, width * 0.5f - 0.2f), new Vector3(0.26f, 0.22f, 0.22f), Dark);
-            b.Box(new Vector3(0f, 0.45f, width * 0.5f - 0.2f), new Vector3(0.27f, 0.03f, 0.23f), Orange);
+            b.Box(new Vector3(0f, 0.29f, width * 0.5f - 0.19f), new Vector3(0.26f, 0.28f, 0.24f), Dark);
+            b.Box(new Vector3(0f, 0.44f, width * 0.5f - 0.19f), new Vector3(0.27f, 0.03f, 0.25f), Orange);
         }
 
         private static List<Nozzle> Medium(MeshBuilder b)
@@ -355,8 +362,8 @@ namespace Odyssey.Content
                 nozzles.Add(Engine(b, pos, 0.22f, 0.55f, 0.11f, 0.42f, 3.6f, 20));
                 b.Pipe(new[] { new Vector3(pos.x * 0.6f, 1.55f, pos.z * 0.6f), new Vector3(pos.x, 1.55f, pos.z) }, 0.05f, Steel, 10);
             }
-            Pump(b, new Vector3(0f, 0.2f, -1.35f), 0.2f, 0.9f, new Vector3(0f, 1.3f, -0.8f));
-            Pump(b, new Vector3(0f, 0.2f, 1.1f), 0.18f, 0.6f, new Vector3(0f, 1.0f, 0.8f));
+            Pump(b, new Vector3(0f, 0.2f, -1.35f), 0.2f, 0.9f, new Vector3(0f, 1.3f, -0.74f));
+            Pump(b, new Vector3(0f, 0.2f, 1.1f), 0.18f, 0.6f, new Vector3(0f, 1.0f, 0.74f));
             FeedPipes(b, 4f, new Vector3(-1.38f, 1.2f, 0f), new Vector3(1.38f, 1.2f, 0f));
             b.Pipe(new[] { new Vector3(-1.05f, 0.85f, 0f), new Vector3(-0.8f, 0.85f, 0f) }, 0.08f, Orange, 12);
             b.Pipe(new[] { new Vector3(1.05f, 0.85f, 0f), new Vector3(0.8f, 0.85f, 0f) }, 0.08f, Cyan, 12);
