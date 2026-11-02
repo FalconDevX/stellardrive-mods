@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>SunRays</AssemblyName>
+    <RootNamespace>SunRays</RootNamespace>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\sunrays.bundle" LogicalName="SunRays.sunrays.bundle" />
+  </ItemGroup>
+</Project>

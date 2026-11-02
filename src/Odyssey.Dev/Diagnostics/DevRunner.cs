@@ -268,6 +268,10 @@ namespace Odyssey.Diagnostics
             {
                 yield return PhotoTest.Run();
             }
+            else if (HasArg("sunrays"))
+            {
+                yield return SunRaysTest.Run();
+            }
             else if (HasArg("reentry"))
             {
                 yield return ReentryShow.Run();

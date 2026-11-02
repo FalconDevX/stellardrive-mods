@@ -1,0 +1,7 @@
+{
+  "id": "stellardrive-sunrays",
+  "name": "Sun Rays",
+  "author": "mateu",
+  "version": "0.1.0",
+  "description": "Volumetric rays of sunlight that break through gaps in the clouds. They are computed from the game's real clouds and only appear under partly cloudy skies, with the sun up and the camera below the clouds; a slow weather rhythm keeps them from being there all the time. Only visual"
+}

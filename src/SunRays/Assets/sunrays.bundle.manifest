@@ -1,0 +1,21 @@
+ManifestFileVersion: 0
+UnityVersion: 6000.3.24f1
+CRC: 3444688462
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: 8d0c7ef616a25e1d9299c1edef992cf1
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: 235cbca85ccdf28f10f6ab4fde453a14
+  IncrementalBuildHash:
+    serializedVersion: 2
+    Hash: 2684662dd448c9f866994119a3b2df50
+HashAppended: 0
+ClassTypes:
+- Class: 48
+  Script: {instanceID: 0}
+SerializeReferenceClassIdentifiers: []
+Assets:
+- Assets/SunRays/SunRays.shader
+Dependencies: []

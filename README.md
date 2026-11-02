@@ -61,6 +61,7 @@
 | **[FPS Counter](#fps-counter)** | 0.1.0 | FPS counter in the top-right corner (F3) | Each player |
 | **[Reentry](#reentry)** | 0.2.1 | Plasma, sparks and a fiery trail when a ship flies fast through an atmosphere | Each player |
 | **[Photo Mode](#photo-mode)** | 0.1.0 | P stops time, free camera around the scene, Enter / F12 saves a photo | Each player |
+| **[Sun Rays](#sun-rays)** | 0.1.0 | Rays of sunlight through gaps in the clouds, only when the sky is right | Each player |
 
 Current versions are always listed in [`dist/VERSIONS.txt`](dist/VERSIONS.txt).
 
@@ -182,6 +183,9 @@ A few commonly tweaked options:
 | Photo Mode | `SuperSize` | `2` | Photos are saved at this many times the screen resolution (1-4) |
 | Reentry | `Brightness` | `1` | Brightness of the plasma, flames and glow |
 | Reentry | `TrailLength` | `1` | Length of the fiery trail (0 = none) |
+| Sun Rays | `Intensity` | `1` | Brightness of the rays (0.1-3) |
+| Sun Rays | `Frequency` | `0.6` | How much of the time the weather allows rays (0 = never, 1 = always) |
+| Sun Rays | `Steps` | `32` | Samples along each view ray (12-64), lower is faster |
 
 ---
 
@@ -356,6 +360,18 @@ Press **P** to stop time and look at the scene from anywhere. The game's HUD dis
 | P / Esc | Back to the game |
 
 Time stops completely (physics, network ticks, flames and particles) in single player or when you host alone. When other players are connected, time keeps running for everyone and only the free camera is used, so the world never stops for the others.
+
+### Sun Rays
+
+Volumetric rays of sunlight that break through gaps in the clouds. They are computed from the game's real cloud layer, so every ray comes from an actual hole in the clouds above you, and they look strongest when you look towards the sun. The mod works out the cloud shadow on its own, the terrain and the rest of the game's graphics stay the same.
+
+The rays fade in and out over about ten seconds and only appear when all of this is true:
+
+- the planet has clouds
+- the sun is above the horizon; rays are warmer and stronger when it is low
+- the camera is below the cloud layer
+- the sky around you is partly cloudy: no rays under a clear sky or a closed overcast
+- the slow weather rhythm allows it, set with `Frequency`
 
 ### Reentry
 
